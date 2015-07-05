@@ -1,3 +1,13 @@
+/*
+ *   -- clMAGMA (version 0.2.0) --
+ *      Univ. of Tennessee, Knoxville
+ *      Univ. of California, Berkeley
+ *      Univ. of Colorado, Denver
+ *      April 2012
+ *
+ * @generated s Thu May 24 17:09:45 2012
+ */
+
 #include <stdio.h>
 
 #include "magmablas.h"
@@ -13,29 +23,14 @@ typedef struct {
         short ipiv[BLOCK_SIZE];
 } slaswp_params_t2;
 
-typedef struct 
-{
-	float a;
-	float b;
-	float c;
-	float d;
-} float4;
-
-
 // ----------------------------------------
 void slaswp3(
 	cl_mem dA, size_t offset, slaswp_params_t2 params, magma_queue_t queue )
 {
-	/*
-	int blocksize = 64;
-	dim3 blocks = (params.n+blocksize-1) / blocksize;
-	myslaswp2<<< blocks, blocksize, 0, magma_stream >>>( params );
-	*/
-	
 	cl_int ciErrNum;                // Error code var
 	cl_kernel ckKernel=NULL;
 	
-	ckKernel = rt.KernelPool["myslaswp2"];
+	ckKernel = rt->KernelPool["myslaswp2"];
 	if (!ckKernel)
 	{
 		printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
@@ -48,7 +43,7 @@ void slaswp3(
 	ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(slaswp_params_t2), (void*)&params );
 	if (ciErrNum != CL_SUCCESS)
 	{
-		printf("Error: clSetKernelArg at %d in file %s, %s\n", __LINE__, __FILE__, rt.GetErrorCode(ciErrNum));
+		printf("Error: clSetKernelArg at %d in file %s, %s\n", __LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
 		return;
 	}
 	
@@ -66,7 +61,7 @@ void slaswp3(
 	if (ciErrNum != CL_SUCCESS)
 	{
 		printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
-			__LINE__, __FILE__, rt.GetErrorCode(ciErrNum));
+			__LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
 		return;
 	}
 }

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.1) --
+    -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @precisions normal z -> s
+       @precisions normal z -> s d c
 
 */
 
@@ -18,7 +18,7 @@ magma_zgetrf_gpu(magma_int_t m, magma_int_t n,
                  magma_int_t *ipiv, magma_int_t *info,
                  magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.1) --
+/*  -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -115,7 +115,7 @@ magma_zgetrf_gpu(magma_int_t m, magma_int_t n,
         lapackf77_zgetrf(&m, &n, work, &m, ipiv, info);
         chk( magma_zsetmatrix( m, n, work, 0, m, dA, dA_offset, ldda, queue ));
 
-        free(work);
+        magma_free_host(work);
       }
     else 
       {

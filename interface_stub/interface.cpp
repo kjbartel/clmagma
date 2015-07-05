@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -14,7 +14,7 @@
 
 #include "magma.h"
 
-#if !defined(HAVE_CUBLAS) && !defined(HAVE_AMDBLAS) && !defined(HAVE_CBLAS)
+#if !defined(HAVE_CUBLAS) && !defined(HAVE_clAmdBlas) && !defined(HAVE_CBLAS)
 
 // ========================================
 // initialization
@@ -145,4 +145,4 @@ magma_event_sync( magma_event_t event )
     return 0;
 }
 
-#endif // not HAVE_CUBLAS and not HAVE_AMDBLAS and not HAVE_CBLAS
+#endif // not HAVE_CUBLAS and not HAVE_clAmdBlas and not HAVE_CBLAS

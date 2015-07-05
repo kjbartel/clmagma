@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.1) --
+#   -- clMAGMA (version 0.2.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -11,7 +11,16 @@ include ../Makefile.internal
 
 INC += -I$(MAGMA_DIR)/control
 
-ZSRC  = magmablas_z.cpp
+ZSRC  = magmablas_z.cpp \
+        zpermute.cpp    \
+		zinplace_transpose.cpp \
+		ztranspose.cpp   \
+		ztranspose2.cpp  \
+        \
+        zinplace_transpose.cl \
+        zpermute-v2.cl   \
+		ztranspose.cl    \
+        ztranspose-v2.cl \
 
 -include Makefile.src
 -include Makefile.local
@@ -19,10 +28,6 @@ ZSRC  = magmablas_z.cpp
 ALLSRC = \
 	interface.cpp \
 	strerror.cpp \
-	sinplace_transpose.cpp \
-	spermute.cpp     \
-	stranspose.cpp   \
-	stranspose2.cpp  \
 	CL_MAGMA_RT.cpp  \
 	$(ZSRC) $(CSRC) $(DSRC) $(SSRC)
 
@@ -33,6 +38,18 @@ CL_SRCS = \
 	spermute-v2.cl		\
 	stranspose.cl		\
 	stranspose-v2.cl	\
+	dinplace_transpose.cl	\
+	dpermute-v2.cl		\
+	dtranspose.cl		\
+	dtranspose-v2.cl	\
+	cinplace_transpose.cl	\
+	cpermute-v2.cl		\
+	ctranspose.cl		\
+	ctranspose-v2.cl	\
+	zinplace_transpose.cl	\
+	zpermute-v2.cl		\
+	ztranspose.cl		\
+	ztranspose-v2.cl	\
 
 CL_OBJS = $(CL_SRCS:.cl=.co)
 
@@ -58,7 +75,7 @@ $(LIBMAGMA): $(ALLOBJ)
 	$(FORT) $(OPTS) $(INC) -c $< -o $@
 
 clean:
-	rm -f *.o *~ *.linkinfo $(CL_COMPILER)
+	rm -f *.o *.co *~ *.linkinfo $(CL_COMPILER)
 
 cleanall: clean
 	rm -f *.a

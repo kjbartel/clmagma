@@ -248,12 +248,45 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   Kernel2FileNamePool["stranspose_32"         ] = dir + "stranspose.co";
   Kernel2FileNamePool["myslaswp2"             ] = dir + "spermute-v2.co";
 
+  Kernel2FileNamePool["dinplace_T_even_kernel"] = dir + "dinplace_transpose.co";
+  Kernel2FileNamePool["dinplace_T_odd_kernel" ] = dir + "dinplace_transpose.co";
+  Kernel2FileNamePool["dtranspose3_32"        ] = dir + "dtranspose-v2.co";
+  Kernel2FileNamePool["dtranspose_32"         ] = dir + "dtranspose.co";
+  Kernel2FileNamePool["mydlaswp2"             ] = dir + "dpermute-v2.co";
+
+  Kernel2FileNamePool["cinplace_T_even_kernel"] = dir + "cinplace_transpose.co";
+  Kernel2FileNamePool["cinplace_T_odd_kernel" ] = dir + "cinplace_transpose.co";
+  Kernel2FileNamePool["ctranspose3_32"        ] = dir + "ctranspose-v2.co";
+  Kernel2FileNamePool["ctranspose_32"         ] = dir + "ctranspose.co";
+  Kernel2FileNamePool["myclaswp2"             ] = dir + "cpermute-v2.co";
+
+  Kernel2FileNamePool["zinplace_T_even_kernel"] = dir + "zinplace_transpose.co";
+  Kernel2FileNamePool["zinplace_T_odd_kernel" ] = dir + "zinplace_transpose.co";
+  Kernel2FileNamePool["ztranspose3_32"        ] = dir + "ztranspose-v2.co";
+  Kernel2FileNamePool["ztranspose_32"         ] = dir + "ztranspose.co";
+  Kernel2FileNamePool["myzlaswp2"             ] = dir + "zpermute-v2.co";
+
   HasBeenInitialized = true;
 
   BuildFromBinaries( (dir + "sinplace_transpose.co").c_str() );
   BuildFromBinaries( (dir + "stranspose-v2.co"     ).c_str() );
   BuildFromBinaries( (dir + "stranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "spermute-v2.co"       ).c_str() );
+
+  BuildFromBinaries( (dir + "dinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "dtranspose-v2.co"     ).c_str() );
+  BuildFromBinaries( (dir + "dtranspose.co"        ).c_str() );
+  BuildFromBinaries( (dir + "dpermute-v2.co"       ).c_str() );
+
+  BuildFromBinaries( (dir + "cinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "ctranspose-v2.co"     ).c_str() );
+  BuildFromBinaries( (dir + "ctranspose.co"        ).c_str() );
+  BuildFromBinaries( (dir + "cpermute-v2.co"       ).c_str() );
+
+  BuildFromBinaries( (dir + "zinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "ztranspose-v2.co"     ).c_str() );
+  BuildFromBinaries( (dir + "ztranspose.co"        ).c_str() );
+  BuildFromBinaries( (dir + "zpermute-v2.co"       ).c_str() );
 
   bool rtr;
   rtr = CreateKernel("sinplace_T_even_kernel");
@@ -270,7 +303,55 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
     printf ("error creating kernel stranspose_32\n");
   rtr = CreateKernel("myslaswp2");
   if (rtr==false)
-    printf ("error creating kernel stranspose_32\n");
+    printf ("error creating kernel myslaswp2\n");
+
+  rtr = CreateKernel("dinplace_T_even_kernel");
+  if (rtr==false)
+    printf ("error creating kernel dinplace_T_even_kernel\n");
+  rtr = CreateKernel("dinplace_T_odd_kernel");
+  if (rtr==false)
+    printf ("error creating kernel dinplace_T_odd_kernel\n");
+  rtr = CreateKernel("dtranspose3_32");
+  if (rtr==false)
+    printf ("error creating kernel dtranspose3_32\n");
+  rtr = CreateKernel("dtranspose_32");
+  if (rtr==false)
+    printf ("error creating kernel dtranspose_32\n");
+  rtr = CreateKernel("mydlaswp2");
+  if (rtr==false)
+    printf ("error creating kernel mydlaswp2\n");
+
+  rtr = CreateKernel("cinplace_T_even_kernel");
+  if (rtr==false)
+    printf ("error creating kernel cinplace_T_even_kernel\n");
+  rtr = CreateKernel("cinplace_T_odd_kernel");
+  if (rtr==false)
+    printf ("error creating kernel cinplace_T_odd_kernel\n");
+  rtr = CreateKernel("ctranspose3_32");
+  if (rtr==false)
+    printf ("error creating kernel ctranspose3_32\n");
+  rtr = CreateKernel("ctranspose_32");
+  if (rtr==false)
+    printf ("error creating kernel ctranspose_32\n");
+  rtr = CreateKernel("myclaswp2");
+  if (rtr==false)
+    printf ("error creating kernel myclaswp2\n");
+
+  rtr = CreateKernel("zinplace_T_even_kernel");
+  if (rtr==false)
+    printf ("error creating kernel zinplace_T_even_kernel\n");
+  rtr = CreateKernel("zinplace_T_odd_kernel");
+  if (rtr==false)
+    printf ("error creating kernel zinplace_T_odd_kernel\n");
+  rtr = CreateKernel("ztranspose3_32");
+  if (rtr==false)
+    printf ("error creating kernel ztranspose3_32\n");
+  rtr = CreateKernel("ztranspose_32");
+  if (rtr==false)
+    printf ("error creating kernel ztranspose_32\n");
+  rtr = CreateKernel("myzlaswp2");
+  if (rtr==false)
+    printf ("error creating kernel myzlaswp2\n");
 
   return true;
 }
@@ -366,6 +447,24 @@ bool CL_MAGMA_RT::Init()
 	Kernel2FileNamePool["stranspose3_32"        ] = dir + string("stranspose-v2.co");
 	Kernel2FileNamePool["stranspose_32"         ] = dir + string("stranspose.co");
 	Kernel2FileNamePool["myslaswp2"             ] = dir + string("spermute-v2.co");
+
+	Kernel2FileNamePool["dinplace_T_even_kernel"] = dir + string("dinplace_transpose.co");
+	Kernel2FileNamePool["dinplace_T_odd_kernel" ] = dir + string("dinplace_transpose.co");
+	Kernel2FileNamePool["dtranspose3_32"        ] = dir + string("dtranspose-v2.co");
+	Kernel2FileNamePool["dtranspose_32"         ] = dir + string("dtranspose.co");
+	Kernel2FileNamePool["mydlaswp2"             ] = dir + string("dpermute-v2.co");
+
+	Kernel2FileNamePool["cinplace_T_even_kernel"] = dir + string("cinplace_transpose.co");
+	Kernel2FileNamePool["cinplace_T_odd_kernel" ] = dir + string("cinplace_transpose.co");
+	Kernel2FileNamePool["ctranspose3_32"        ] = dir + string("ctranspose-v2.co");
+	Kernel2FileNamePool["ctranspose_32"         ] = dir + string("ctranspose.co");
+	Kernel2FileNamePool["myclaswp2"             ] = dir + string("cpermute-v2.co");
+
+	Kernel2FileNamePool["zinplace_T_even_kernel"] = dir + string("zinplace_transpose.co");
+	Kernel2FileNamePool["zinplace_T_odd_kernel" ] = dir + string("zinplace_transpose.co");
+	Kernel2FileNamePool["ztranspose3_32"        ] = dir + string("ztranspose-v2.co");
+	Kernel2FileNamePool["ztranspose_32"         ] = dir + string("ztranspose.co");
+	Kernel2FileNamePool["myzlaswp2"             ] = dir + string("zpermute-v2.co");
 
 	HasBeenInitialized = true;
 	return true;

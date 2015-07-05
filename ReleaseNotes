@@ -11,6 +11,14 @@ Included are routines for the following algorithms:
     * LU, QR, and Cholesky factorizations in both real and complex
       arithmetic (single and double);
 
+ 0.2.0
+    * Change GPU_TARGET in make.inc to descriptive name (e.g., AMD).
+    * Added solvers for general and symmetric matrices 
+    * Added least squares solver
+    * Added multiple precision support for LU factorization
+    * All routines provided in this release support s/d/c/z 
+      precision arithmetic
+
  0.1.0 - 04-01-11
     * LU, QR, and Cholesky dense matrix factorizations
     * Auxiliary OpenCL kernels

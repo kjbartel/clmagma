@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated d Wed Apr  4 01:12:54 2012
+ * @generated d Thu May 24 17:09:45 2012
  */
 
 #include <stdlib.h>
@@ -14,7 +14,7 @@
 
 #include "magma.h"
 
-#ifdef HAVE_AMDBLAS
+#ifdef HAVE_clAmdBlas
 
 // ========================================
 // globals, defined in interface.c
@@ -104,6 +104,25 @@ magma_dgetmatrix_async(
     return err;
 }
 
+// --------------------
+magma_err_t
+magma_dcopymatrix(
+    magma_int_t m, magma_int_t n,
+    magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
+    magmaDouble_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue )
+{
+    size_t src_origin[3] = { dA_offset*sizeof(double), 0, 0 };
+    size_t dst_orig[3]   = { dB_offset*sizeof(double), 0, 0 };
+    size_t region[3]        = { m*sizeof(double), n, 1 };
+    cl_int err = clEnqueueCopyBufferRect(
+        queue, dA_src, dB_dst,
+        src_origin, dst_orig, region,
+        ldda*sizeof(double), 0,
+        lddb*sizeof(double), 0,
+        0, NULL, NULL );
+    return err;
+}
 // ========================================
 // BLAS functions
 magma_err_t
@@ -235,6 +254,27 @@ magma_dtrsm(
 
 // --------------------
 magma_err_t
+magma_dtrsv(
+	magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
+	magma_int_t n, 
+	magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
+	magmaDouble_ptr dx, size_t dx_offset, magma_int_t incx,
+	magma_queue_t queue )
+{
+	cl_int err = clAmdBlasDtrsv(
+		clAmdBlasColumnMajor,
+		amdblas_uplo_const( uplo ),
+		amdblas_trans_const( trans ),
+		amdblas_diag_const( diag ),
+		n,
+		dA, dA_offset, lda,
+		dx, dx_offset, incx,
+		1, &queue, 0, NULL, NULL );
+	return err;
+}
+
+// --------------------
+magma_err_t
 magma_dtrmm(
     magma_side_t side, magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
     magma_int_t m, magma_int_t n,
@@ -255,4 +295,4 @@ magma_dtrmm(
     return err;
 }
 
-#endif // HAVE_AMDBLAS
+#endif // HAVE_clAmdBlas

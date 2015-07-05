@@ -1,26 +1,38 @@
+/*
+ *   -- clMAGMA (version 0.2.0) --
+ *      Univ. of Tennessee, Knoxville
+ *      Univ. of California, Berkeley
+ *      Univ. of Colorado, Denver
+ *      April 2012
+ *
+ * @generated s Thu May 24 17:09:45 2012
+ */
+
 #include <stdio.h>
 
 #include "magmablas.h"
 #include "CL_MAGMA_RT.h"
 
-#define NB 16
+//#define NB 16
+#define SSIZE_2SHARED 16
 
 magma_err_t
 magma_sinplace_transpose(
 	cl_mem A, size_t offset, int lda, int m, magma_queue_t queue )
 {
 	cl_int ciErrNum;                // Error code var
-	int in = m / NB;
+//	int in = m / NB;
+	int in = m / SSIZE_2SHARED;
 	cl_kernel ckKernel=NULL;
 	if (in&1)
 	{
 		//printf ("running odd kernel\n");
-		ckKernel = rt.KernelPool["sinplace_T_odd_kernel"];
+		ckKernel = rt->KernelPool["sinplace_T_odd_kernel"];
 	}
 	else
 	{
 		//printf ("running even kernel\n");
-		ckKernel = rt.KernelPool["sinplace_T_even_kernel"];
+		ckKernel = rt->KernelPool["sinplace_T_even_kernel"];
 	}
 	
 	if (!ckKernel)
@@ -48,8 +60,11 @@ magma_sinplace_transpose(
 	
 	size_t GlobalWorkSize[2]={0,0}, LocalWorkSize[2]={0,0};
 	
-	LocalWorkSize[0] = NB;
-	LocalWorkSize[1] = NB/2;
+//	LocalWorkSize[0] = NB;
+//	LocalWorkSize[1] = NB/2;
+	
+	LocalWorkSize[0] = SSIZE_2SHARED;
+	LocalWorkSize[1] = SSIZE_2SHARED/2;
 	
 	if (in&1)
 	{
@@ -68,7 +83,7 @@ magma_sinplace_transpose(
 	if (ciErrNum != CL_SUCCESS)
 	{
 		printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
-			__LINE__, __FILE__, rt.GetErrorCode(ciErrNum));
+			__LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
 		return MAGMA_ERR_UNKNOWN;
 	}
 	

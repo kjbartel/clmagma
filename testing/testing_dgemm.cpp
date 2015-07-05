@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 0.1) --
+ *  -- clMAGMA (version 0.2.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
  *     April 2012
  *
- * @generated d Wed Apr  4 01:12:55 2012
+ * @generated d Thu May 24 17:09:49 2012
  *
  **/
 

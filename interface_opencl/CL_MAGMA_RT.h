@@ -8,29 +8,6 @@
 
 #include "magma.h"
 
-//#include "stdio.h"
-//#include "stdlib.h"
-//#include <string.h>
-//
-//#include <new>
-//#include <map>
-//#include <string>
-//#include <math.h>
-//#include <vector>
-//#include <sstream>
-//#include <iostream>
-//#include <memory>
-//#include <fstream>
-//#include <exception>
-//
-//
-//#include "cl.h"
-//#include <oclUtils.h>
-//
-//#define QUEUE_COUNT 2 
-//
-//using namespace std;
-
 class CL_MAGMA_RT
 {
 	private:
@@ -53,13 +30,21 @@ class CL_MAGMA_RT
 		cl_device_id* cdDevices;        // OpenCL device list    
 		cl_context cxGPUContext;        // OpenCL context
 		cl_command_queue *commandQueue;
+
+		CL_MAGMA_RT();                                 // Private constructor
+		~CL_MAGMA_RT();
 		
 	public:
+
+		// singleton class to guarentee only 1 instance of runtime
+		static CL_MAGMA_RT * Instance()
+		{
+			static CL_MAGMA_RT rrt;
+			return &rrt;
+		}
 		cl_device_id * GetDevicePtr();
 		cl_context GetContext();
 		cl_command_queue GetCommandQueue(int queueid);
-		CL_MAGMA_RT();
-		~CL_MAGMA_RT();
 		bool Init ();
 		bool Init(cl_platform_id gPlatform, cl_context gContext);
 		bool Quit ();
@@ -76,7 +61,6 @@ class CL_MAGMA_RT
 		std::map<std::string, cl_kernel> KernelPool;	// kernel name -> kernel
 };
 
-// declare global runtime object
-extern CL_MAGMA_RT rt;
+extern CL_MAGMA_RT *rt;
 
 #endif        //  #ifndef CL_MAGMA_RT_H

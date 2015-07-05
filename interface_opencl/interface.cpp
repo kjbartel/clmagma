@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -14,7 +14,7 @@
 #include "magma.h"
 #include "CL_MAGMA_RT.h"
 
-#ifdef HAVE_AMDBLAS
+#ifdef HAVE_clAmdBlas
 
 // ========================================
 // globals
@@ -22,7 +22,7 @@ cl_platform_id gPlatform;
 cl_context     gContext;
 
 // Run time global variable used for LU
-CL_MAGMA_RT rt;
+CL_MAGMA_RT *rt;
 
 // ========================================
 // initialization
@@ -47,7 +47,8 @@ magma_init()
     assert( err == 0 );
 
     // Initialize kernels related to LU
-    rt.Init(gPlatform, gContext);
+	rt = CL_MAGMA_RT::Instance();
+    rt->Init(gPlatform, gContext);
     
     return err;
 }
@@ -61,7 +62,7 @@ magma_finalize()
     err = clReleaseContext( gContext );
 
     // quit the RT
-    rt.Quit();
+    rt->Quit();
 
     return err;
 }
@@ -189,4 +190,4 @@ magma_event_sync( magma_event_t event )
     return err;
 }
 
-#endif // HAVE_AMDBLAS
+#endif // HAVE_clAmdBlas

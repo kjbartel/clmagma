@@ -2,7 +2,7 @@
  *
  * @file common_magma.h
  *
- *  clMAGMA (version 0.1) --
+ *  clMAGMA (version 0.2.0) --
  *  Univ. of Tennessee, Knoxville
  *  Univ. of California, Berkeley
  *  Univ. of Colorado, Denver

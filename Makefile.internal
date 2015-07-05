@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.1) --
+#   -- clMAGMA (version 0.2.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -13,7 +13,7 @@ include $(MAGMA_DIR)/make.inc
 # Set default values if they are not set in make.inc
 #
 PGIFORTRAN   ?= 0
-GPU_TARGET   ?= 1
+GPU_TARGET   ?= AMD
 LIBMAGMA     ?= $(MAGMA_DIR)/lib/libclmagma.a
 LIBMAGMABLAS ?= $(MAGMA_DIR)/lib/libclmagmablas.a
 
@@ -26,19 +26,21 @@ prefix ?= $(MAGMA_DIR)/install
 TESLAOPT = -arch sm_13 -DGPUSHMEM=130 -gencode arch=compute_13,code=compute_13 -gencode arch=compute_10,code=compute_10 
 FERMIOPT = -arch sm_20 -DGPUSHMEM=200
 
-ifeq (${GPU_TARGET}, 0)
+ifeq (${GPU_TARGET}, Tesla)
 	GPUOPT = ${TESLAOPT}
-	OPTS   += -DGPUSHMEM=130
+	OPTS   += -DGPUSHMEM=130 -DHAVE_CUBLAS
 	LDOPTS += -DGPUSHMEM=130
-endif
-
-ifeq (${GPU_TARGET}, 1)
+else ifeq (${GPU_TARGET}, Fermi)
 	GPUOPT = ${FERMIOPT}
-	OPTS   += -DGPUSHMEM=200
+	OPTS   += -DGPUSHMEM=200 -DHAVE_CUBLAS
 	LDOPTS += -DGPUSHMEM=200
+else ifeq (${GPU_TARGET}, AMD)
+	OPTS += -DHAVE_clAmdBlas
+else
+$(error GPU_TARGET, currently ${GPU_TARGET}, must be one of Tesla, Fermi, or AMD. Please edit your make.inc file)
 endif
 
-INC += -I../include
+INC += -I$(MAGMA_DIR)/include
 
 LIBEXT = $(LIBDIR) $(LIB)
 

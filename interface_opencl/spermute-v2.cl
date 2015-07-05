@@ -1,17 +1,21 @@
 /*
-    -- clMAGMA (version 0.1) --
-       Univ. of Tennessee, Knoxville
-       Univ. of California, Berkeley
-       Univ. of Colorado, Denver
-       April 2012
-
-       @generated s Mon Mar 12 22:19:01 2012
-
-*/
+ *   -- clMAGMA (version 0.2.0) --
+ *      Univ. of Tennessee, Knoxville
+ *      Univ. of California, Berkeley
+ *      Univ. of Colorado, Denver
+ *      April 2012
+ *
+ * @generated s Thu May 24 17:09:46 2012
+ */
 //#include "common_magma.h"
 
+#define PRECISION_s
 #define BLOCK_SIZE 64
 #define __mul24( x, y )  ((x)*(y))
+
+#if defined(PRECISION_c) || defined(PRECISION_z)
+typedef float float;
+#endif
 
 typedef struct {
         int n, lda, j0;

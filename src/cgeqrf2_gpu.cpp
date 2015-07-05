@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.1) --
+    -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated c Wed Apr  4 01:12:53 2012
+       @generated c Thu May 24 17:09:42 2012
 
 */
 
@@ -18,7 +18,7 @@ magma_cgeqrf2_gpu( magma_int_t m, magma_int_t n,
                    magmaFloatComplex *tau, magma_err_t *info,
 		   magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.1) --
+/*  -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

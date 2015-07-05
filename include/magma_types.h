@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -32,10 +32,11 @@ typedef int magma_int_t;
     
     typedef cuDoubleComplex magmaDoubleComplex;
     typedef cuFloatComplex  magmaFloatComplex;
+    
     #define MAGMA_Z_MAKE(r,i)     make_cuDoubleComplex(r, i)
     #define MAGMA_Z_REAL(a)       (a).x
     #define MAGMA_Z_IMAG(a)       (a).y
-    #define MAGMA_Z_SET2REAL(a,r) (a).x = (r);   (a).y =  0.0
+    #define MAGMA_Z_SET2REAL(a,r) { (a).x = (r);   (a).y = 0.0; }
     #define MAGMA_Z_ADD(a, b)     cuCadd(a, b)
     #define MAGMA_Z_SUB(a, b)     cuCsub(a, b)
     #define MAGMA_Z_MUL(a, b)     cuCmul(a, b)
@@ -46,7 +47,7 @@ typedef int magma_int_t;
     #define MAGMA_C_MAKE(r,i)     make_cuFloatComplex(r, i)
     #define MAGMA_C_REAL(a)       (a).x
     #define MAGMA_C_IMAG(a)       (a).y
-    #define MAGMA_C_SET2REAL(a,r) (a).x = (r);   (a).y =  0.0
+    #define MAGMA_C_SET2REAL(a,r) { (a).x = (r);   (a).y = 0.0; }
     #define MAGMA_C_ADD(a, b)     cuCaddf(a, b)
     #define MAGMA_C_SUB(a, b)     cuCsubf(a, b)
     #define MAGMA_C_MUL(a, b)     cuCmulf(a, b)
@@ -54,7 +55,7 @@ typedef int magma_int_t;
     #define MAGMA_C_ABS(a)        cuCabsf(a)
     #define MAGMA_C_CNJG(a)       cuConjf(a)
     
-#elif HAVE_AMDBLAS
+#elif HAVE_clAmdBlas
     #if defined(__APPLE__) || defined(__MACOSX)
     #include "my_amdblas.h"
     #else
@@ -67,10 +68,11 @@ typedef int magma_int_t;
     
     typedef DoubleComplex magmaDoubleComplex;
     typedef FloatComplex  magmaFloatComplex;
+    
     #define MAGMA_Z_MAKE(r,i)     doubleComplex(r,i)
     #define MAGMA_Z_REAL(a)       (a).x
     #define MAGMA_Z_IMAG(a)       (a).y
-    #define MAGMA_Z_SET2REAL(a,r) (a).x = (r);   (a).y =  0.0
+    #define MAGMA_Z_SET2REAL(a,r) { (a).x = (r);   (a).y = 0.0; }
     #define MAGMA_Z_ADD(a, b)     MAGMA_Z_MAKE((a).x+(b).x, (a).y+(b).y)
     #define MAGMA_Z_SUB(a, b)     MAGMA_Z_MAKE((a).x-(b).x, (a).y-(b).y)
     #define MAGMA_Z_CNJG(a)       MAGMA_Z_MAKE((a).x, -(a).y)
@@ -78,7 +80,7 @@ typedef int magma_int_t;
     #define MAGMA_C_MAKE(r,i)     floatComplex(r,i)
     #define MAGMA_C_REAL(a)       (a).x
     #define MAGMA_C_IMAG(a)       (a).y
-    #define MAGMA_C_SET2REAL(a,r) (a).x = (r);   (a).y =  0.0
+    #define MAGMA_C_SET2REAL(a,r) { (a).x = (r);   (a).y = 0.0; }
     #define MAGMA_C_ADD(a, b)     MAGMA_C_MAKE((a).x+(b).x, (a).y+(b).y)
     #define MAGMA_C_SUB(a, b)     MAGMA_C_MAKE((a).x-(b).x, (a).y-(b).y)
     #define MAGMA_C_CNJG(a)       MAGMA_C_MAKE((a).x, -(a).y)
@@ -93,6 +95,7 @@ typedef int magma_int_t;
         #include <complex>
         typedef std::complex<float>   magmaFloatComplex;
         typedef std::complex<double>  magmaDoubleComplex;
+        
         #define MAGMA_Z_MAKE(r, i)  std::complex<double>(r,i)
         #define MAGMA_Z_REAL(x)     x.real()
         #define MAGMA_Z_IMAG(x)     x.imag()
@@ -104,6 +107,7 @@ typedef int magma_int_t;
         #include <complex.h>
         typedef float  complex /*_Complex*/ magmaFloatComplex;
         typedef double complex /*_Complex*/ magmaDoubleComplex;
+        
         #define MAGMA_Z_MAKE(r, i)  ((r) + (i)*_Complex_I)
         #define MAGMA_Z_REAL(x)     creal(x)
         #define MAGMA_Z_IMAG(x)     cimag(x)
@@ -114,6 +118,10 @@ typedef int magma_int_t;
     #endif
 #endif
 
+#define MAGMA_Z_EQUAL(a,b)    (MAGMA_Z_REAL(a)==MAGMA_Z_REAL(b) && MAGMA_Z_IMAG(a)==MAGMA_Z_IMAG(b))
+
+#define MAGMA_C_EQUAL(a,b)    (MAGMA_C_REAL(a)==MAGMA_C_REAL(b) && MAGMA_C_IMAG(a)==MAGMA_C_IMAG(b))
+
 #define MAGMA_D_MAKE(r,i)     (r)
 #define MAGMA_D_REAL(x)       (x)
 #define MAGMA_D_IMAG(x)       (0.0f)
@@ -121,6 +129,7 @@ typedef int magma_int_t;
 #define MAGMA_D_ADD(a, b)     ((a) + (b))
 #define MAGMA_D_SUB(a, b)     ((a) - (b))
 #define MAGMA_D_CNJG(a)       (a)
+#define MAGMA_D_EQUAL(a,b)    ((a) == (b))
 
 #define MAGMA_S_MAKE(r,i)     (r)
 #define MAGMA_S_REAL(x)       (x)
@@ -129,6 +138,7 @@ typedef int magma_int_t;
 #define MAGMA_S_ADD(a, b)     ((a) + (b))
 #define MAGMA_S_SUB(a, b)     ((a) - (b))
 #define MAGMA_S_CNJG(a)       (a)
+#define MAGMA_S_EQUAL(a,b)    ((a) == (b))
 
 #define MAGMA_Z_ZERO              MAGMA_Z_MAKE( 0.0, 0.0)
 #define MAGMA_Z_ONE               MAGMA_Z_MAKE( 1.0, 0.0)
@@ -155,7 +165,7 @@ typedef int magma_int_t;
 #define MAGMA_S_NEG_HALF          (-0.5)
 
 
-#if HAVE_AMDBLAS
+#if HAVE_clAmdBlas
     // OpenCL uses opaque memory references on GPU
     typedef cl_mem magma_ptr;
     typedef cl_mem magmaFloat_ptr;
@@ -316,7 +326,7 @@ const char* lapack_const ( int magma_const );
 #define lapack_diag_const( c)  lapack_const(c)
 #define lapack_uplo_const( c)  lapack_const(c)
 
-#ifdef HAVE_AMDBLAS
+#ifdef HAVE_clAmdBlas
 int                  amdblas_const      ( int magma_const );
 clAmdBlasOrder       amdblas_order_const( int magma_const );
 clAmdBlasTranspose   amdblas_trans_const( int magma_const );

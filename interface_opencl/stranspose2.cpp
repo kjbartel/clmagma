@@ -1,3 +1,13 @@
+/*
+ *   -- clMAGMA (version 0.2.0) --
+ *      Univ. of Tennessee, Knoxville
+ *      Univ. of California, Berkeley
+ *      Univ. of Colorado, Denver
+ *      April 2012
+ *
+ * @generated s Thu May 24 17:09:46 2012
+ */
+
 #include <stdio.h>
 
 #include "magmablas.h"
@@ -18,7 +28,7 @@ magma_stranspose2(
 	cl_int ciErrNum;                // Error code var
 	cl_kernel ckKernel=NULL;
 	
-	ckKernel = rt.KernelPool["stranspose3_32"];
+	ckKernel = rt->KernelPool["stranspose3_32"];
 	if (!ckKernel)
 	{
 		printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
@@ -61,7 +71,7 @@ magma_stranspose2(
 	if (ciErrNum != CL_SUCCESS)
 	{
 		printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
-			__LINE__, __FILE__, rt.GetErrorCode(ciErrNum));
+			__LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
 		return MAGMA_ERR_UNKNOWN;
 	}
 	

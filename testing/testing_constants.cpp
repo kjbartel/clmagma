@@ -108,7 +108,7 @@ int main( int argc, char** argv )
 	assert( lapacke_const( MagmaColumnwise    ) == 'C' );
 	assert( lapacke_const( MagmaRowwise       ) == 'R' );
 	
-	#ifdef HAVE_AMDBLAS
+	#ifdef HAVE_clAmdBlas
 	printf( "testing magma -> clAmdBlas constants\n" );
 	assert( amdblas_const( MagmaRowMajor      ) == clAmdBlasRowMajor    );
 	assert( amdblas_const( MagmaColMajor      ) == clAmdBlasColumnMajor );

@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.1) --
+#   -- clMAGMA (version 0.2.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -19,13 +19,12 @@ ZSRC  =
 
 ALLHDR = $(ZHDR) $(CHDR) $(DHDR) $(SHDR)
 
-ALLSRC = dummy.cpp $(ZSRC) $(CSRC) $(DSRC) $(SSRC)
+ALLSRC = $(ZSRC) $(CSRC) $(DSRC) $(SSRC) \
+	dummy.cpp
 
-ifeq (${GPU_TARGET}, 0)
+ifeq (${GPU_TARGET}, Tesla)
 GPUOPT = ${TESLAOPT}
-endif
-
-ifeq (${GPU_TARGET}, 1)
+else ifeq (${GPU_TARGET}, Fermi)
 GPUOPT = ${FERMIOPT}
 endif
 

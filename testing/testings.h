@@ -17,14 +17,14 @@
 
 #define TESTING_MALLOC_HOST( ptr, type, size )                                       \
     if ( MAGMA_SUCCESS != magma_malloc_host( (void**)&ptr, (size)*sizeof(type) ) ) { \
-        fprintf( stderr, "!!!! magma_malloc failed for: %s\n", #ptr );               \
+        fprintf( stderr, "!!!! magma_malloc_host failed for: %s\n", #ptr );               \
         exit(-1);                                                                    \
     }
 
 #define TESTING_MALLOC_DEV( ptr, type, size )                                   \
     if ( MAGMA_SUCCESS != magma_malloc( &ptr, (size)*sizeof(type) ) ) { \
-        fprintf( stderr, "!!!! magma_malloc_host failed for: %s\n", #ptr );     \
-        exit(-1);                                                               \
+        fprintf( stderr, "!!!! magma_malloc_dev failed for: %s\n", #ptr );     \
+		exit(-1);                                                               \
     }
 
 #define TESTING_FREE( ptr ) free( ptr )

@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -14,7 +14,7 @@
 
 #include "magma.h"
 
-#ifdef HAVE_AMDBLAS
+#ifdef HAVE_clAmdBlas
 
 // ========================================
 // globals, defined in interface.c
@@ -104,6 +104,25 @@ magma_zgetmatrix_async(
     return err;
 }
 
+// --------------------
+magma_err_t
+magma_zcopymatrix(
+    magma_int_t m, magma_int_t n,
+    magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
+    magmaDoubleComplex_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue )
+{
+    size_t src_origin[3] = { dA_offset*sizeof(magmaDoubleComplex), 0, 0 };
+    size_t dst_orig[3]   = { dB_offset*sizeof(magmaDoubleComplex), 0, 0 };
+    size_t region[3]        = { m*sizeof(magmaDoubleComplex), n, 1 };
+    cl_int err = clEnqueueCopyBufferRect(
+        queue, dA_src, dB_dst,
+        src_origin, dst_orig, region,
+        ldda*sizeof(magmaDoubleComplex), 0,
+        lddb*sizeof(magmaDoubleComplex), 0,
+        0, NULL, NULL );
+    return err;
+}
 // ========================================
 // BLAS functions
 magma_err_t
@@ -235,6 +254,27 @@ magma_ztrsm(
 
 // --------------------
 magma_err_t
+magma_ztrsv(
+	magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
+	magma_int_t n, 
+	magmaDoubleComplex_const_ptr dA, size_t dA_offset, magma_int_t lda,
+	magmaDoubleComplex_ptr dx, size_t dx_offset, magma_int_t incx,
+	magma_queue_t queue )
+{
+	cl_int err = clAmdBlasZtrsv(
+		clAmdBlasColumnMajor,
+		amdblas_uplo_const( uplo ),
+		amdblas_trans_const( trans ),
+		amdblas_diag_const( diag ),
+		n,
+		dA, dA_offset, lda,
+		dx, dx_offset, incx,
+		1, &queue, 0, NULL, NULL );
+	return err;
+}
+
+// --------------------
+magma_err_t
 magma_ztrmm(
     magma_side_t side, magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
     magma_int_t m, magma_int_t n,
@@ -255,4 +295,4 @@ magma_ztrmm(
     return err;
 }
 
-#endif // HAVE_AMDBLAS
+#endif // HAVE_clAmdBlas

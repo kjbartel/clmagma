@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.1) --
+#   -- clMAGMA (version 0.2.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -13,6 +13,9 @@ ZSRC = \
 	testing_zpotrf_gpu.cpp	\
 	testing_zgeqrf_gpu.cpp  \
 	testing_zgetrf_gpu.cpp	\
+	testing_zposv_gpu.cpp	\
+	testing_zgesv_gpu.cpp	\
+	testing_zgeqrs_gpu.cpp	\
         \
         testing_zgemm.cpp
 

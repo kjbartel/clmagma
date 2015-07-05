@@ -1,18 +1,24 @@
 /*
-    -- clMAGMA (version 0.1) --
+    -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Mon Mar 12 20:57:38 2012
+       @generated s Thu May 24 17:09:46 2012
 
 */
 //#include "common_magma.h"
-#define PRECISION_s
 //#include "commonblas.h"
+
+#define PRECISION_s
+
 #define SSIZE_1SHARED 32
 #define __mul24( x, y )  ((x)*(y))
+
+#if defined(PRECISION_c) || defined(PRECISION_z)
+typedef float float;
+#endif
 
 __kernel void stranspose3_32( __global float *B, int offsetB, int ldb, 
                                 __global float *A, int offsetA, int lda,
@@ -49,7 +55,7 @@ __kernel void stranspose3_32( __global float *B, int offsetB, int ldb,
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
-#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c)
+#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c) || defined(PRECISION_z)
         if (iby + inx < n){
             if (ibx + iny <m){
                 B[0*ldb] = a[inx][iny+0];
@@ -63,7 +69,7 @@ __kernel void stranspose3_32( __global float *B, int offsetB, int ldb,
                 }
             }
         }
-#else /* defined(PRECISION_z) */
+#else
         if (iby + inx < n){
             if (ibx + iny <m){
                 B[0*ldb] = a[inx][iny+0];
@@ -149,12 +155,12 @@ __kernel void stranspose2_32( __global float *B, int offsetB, int ldb,
         
         barrier(CLK_LOCAL_MEM_FENCE);
         
-#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c)
+#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c) || defined(PRECISION_z) 
         B[0*ldb] = a[inx][iny+0];
         B[8*ldb] = a[inx][iny+8];
         B[16*ldb] = a[inx][iny+16];
         B[24*ldb] = a[inx][iny+24];
-#else /* defined(PRECISION_z) */
+#else 
         B[0*ldb]    = a[inx][iny+0];
         B[8*ldb]    = a[inx][iny+8];
         B[0*ldb+16] = a[inx+16][iny+0];

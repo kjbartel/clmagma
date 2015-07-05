@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.1) --
+#   -- clMAGMA (version 0.2.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -16,6 +16,15 @@ ZSRC = \
 	zlarfb_gpu.cpp  \
 	zgeqrf2_gpu.cpp	\
 	zgetrf_gpu.cpp	\
+	zunmqr_gpu.cpp	\
+	zgeqrf_gpu.cpp  \
+        \
+	zpotrs_gpu.cpp	\
+	zposv_gpu.cpp	\
+	zgetrs_gpu.cpp	\
+	zgesv_gpu.cpp	\
+	zgeqrs_gpu.cpp	\
+	zgels_gpu.cpp	\
 
 -include Makefile.src
 

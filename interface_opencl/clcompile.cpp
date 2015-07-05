@@ -10,10 +10,10 @@ int main( int argc, char** argv )
 		exit(1);
 	}
 	
-	CL_MAGMA_RT runtime;
-	runtime.Init();
-	runtime.CompileFile( argv[1] );
-	runtime.Quit();
+	CL_MAGMA_RT *runtime = CL_MAGMA_RT::Instance();
+	runtime->Init();
+	runtime->CompileFile( argv[1] );
+	runtime->Quit();
 
 	return 0;
 }

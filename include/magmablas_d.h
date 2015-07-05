@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated d Wed Apr  4 01:12:51 2012
+ * @generated d Thu May 24 17:09:40 2012
  */
 
 #ifndef MAGMA_BLAS_D_H
@@ -22,32 +22,38 @@ extern "C" {
 // copying sub-matrices (contiguous columns)
 magma_err_t
 magma_dsetmatrix(
-	magma_int_t m, magma_int_t n,
-	double const* hA_src, size_t hA_offset, magma_int_t ldha,
-	magmaDouble_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
-	magma_queue_t queue );
+    magma_int_t m, magma_int_t n,
+    double const* hA_src, size_t hA_offset, magma_int_t ldha,
+    magmaDouble_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dgetmatrix(
-	magma_int_t m, magma_int_t n,
-	magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
-	double*          hA_dst, size_t hA_offset, magma_int_t ldha,
-	magma_queue_t queue );
+    magma_int_t m, magma_int_t n,
+    magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
+    double*          hA_dst, size_t hA_offset, magma_int_t ldha,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dsetmatrix_async(
-	magma_int_t m, magma_int_t n,
-	double const* hA_src, size_t hA_offset, magma_int_t ldha,
-	magmaDouble_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
-	magma_queue_t queue, magma_event_t *event );
+    magma_int_t m, magma_int_t n,
+    double const* hA_src, size_t hA_offset, magma_int_t ldha,
+    magmaDouble_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
+    magma_queue_t queue, magma_event_t *event );
 
 magma_err_t
 magma_dgetmatrix_async(
-	magma_int_t m, magma_int_t n,
-	magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
-	double*          hA_dst, size_t hA_offset, magma_int_t ldha,
-	magma_queue_t queue, magma_event_t *event );
+    magma_int_t m, magma_int_t n,
+    magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
+    double*          hA_dst, size_t hA_offset, magma_int_t ldha,
+    magma_queue_t queue, magma_event_t *event );
 
+magma_err_t
+magma_dcopymatrix(
+    magma_int_t m, magma_int_t n,
+    magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
+    magmaDouble_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue );
 
 // ========================================
 // matrix transpose and swapping functions
@@ -81,39 +87,39 @@ magma_dpermute_long2(
 // BLAS functions
 magma_err_t
 magma_dgemm(
-	magma_trans_t transA, magma_trans_t transB,
-	magma_int_t m, magma_int_t n, magma_int_t k,
-	double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
-	                          magmaDouble_const_ptr dB, size_t dB_offset, magma_int_t ldb,
-	double beta,  magmaDouble_ptr       dC, size_t dC_offset, magma_int_t ldc,
-	magma_queue_t queue );
+    magma_trans_t transA, magma_trans_t transB,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
+                              magmaDouble_const_ptr dB, size_t dB_offset, magma_int_t ldb,
+    double beta,  magmaDouble_ptr       dC, size_t dC_offset, magma_int_t ldc,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dgemv(
-	magma_trans_t transA,
-	magma_int_t m, magma_int_t n,
-	double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
-	                          magmaDouble_const_ptr dx, size_t dx_offset, magma_int_t incx,
-	double beta,  magmaDouble_ptr       dy, size_t dy_offset, magma_int_t incy,
-	magma_queue_t queue );
+    magma_trans_t transA,
+    magma_int_t m, magma_int_t n,
+    double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
+                              magmaDouble_const_ptr dx, size_t dx_offset, magma_int_t incx,
+    double beta,  magmaDouble_ptr       dy, size_t dy_offset, magma_int_t incy,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dsymm(
-	magma_side_t side, magma_uplo_t uplo,
-	magma_int_t m, magma_int_t n,
-	double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
-	                          magmaDouble_const_ptr dB, size_t dB_offset, magma_int_t ldb,
-	double beta,  magmaDouble_ptr       dC, size_t dC_offset, magma_int_t ldc,
-	magma_queue_t queue );
+    magma_side_t side, magma_uplo_t uplo,
+    magma_int_t m, magma_int_t n,
+    double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
+                              magmaDouble_const_ptr dB, size_t dB_offset, magma_int_t ldb,
+    double beta,  magmaDouble_ptr       dC, size_t dC_offset, magma_int_t ldc,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dsymv(
-	magma_uplo_t uplo,
-	magma_int_t n,
-	double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
-	                          magmaDouble_const_ptr dx, size_t dx_offset, magma_int_t incx,
-	double beta,  magmaDouble_ptr       dy, size_t dy_offset, magma_int_t incy,
-	magma_queue_t queue );
+    magma_uplo_t uplo,
+    magma_int_t n,
+    double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
+                              magmaDouble_const_ptr dx, size_t dx_offset, magma_int_t incx,
+    double beta,  magmaDouble_ptr       dy, size_t dy_offset, magma_int_t incy,
+    magma_queue_t queue );
 
 magma_err_t
 magma_dsyrk(
@@ -130,6 +136,14 @@ magma_dtrsm(
     double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda,
                               magmaDouble_ptr       dB, size_t dB_offset, magma_int_t ldb,
     magma_queue_t queue );
+
+magma_err_t
+magma_dtrsv(
+    magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag, 
+	magma_int_t n, 
+	magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda, 
+	magmaDouble_ptr dx, size_t dx_offset, magma_int_t incx,
+	magma_queue_t queue );
 
 magma_err_t
 magma_dtrmm(

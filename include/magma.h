@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.1) --
+ *   -- clMAGMA (version 0.2.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -57,9 +57,9 @@ magma_free_host( void* ptr );
 // device & queue support
 magma_err_t
 magma_get_devices(
-	magma_device_t* devices,
-	magma_int_t     size,
-	magma_int_t*    numPtr );
+    magma_device_t* devices,
+    magma_int_t     size,
+    magma_int_t*    numPtr );
 
 magma_err_t
 magma_queue_create( magma_device_t device, magma_queue_t* queuePtr );

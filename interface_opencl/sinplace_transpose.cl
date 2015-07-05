@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.1) --
+    -- clMAGMA (version 0.2.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
-        Univ. of Colorado, Denver
-       April 2012
+	   Univ. of Colorado, Denver
+       May 2012
 
-       @generated s Fri Nov 11 17:02:30 2011
+       @generated s Thu May 24 17:09:46 2012
 
 */
 // #include "common_magma.h"
@@ -13,10 +13,17 @@
 // #include "commonblas.h"
 
 
-#define NB 16
+#define PRECISION_s
+//#define NB 16
+#define SSIZE_2SHARED 16
 
-#define NBhalf (NB/2)
+//#define NBhalf (NB/2)
+#define NBhalf (SSIZE_2SHARED/2)
 #define __mul24( x, y )  ((x)*(y))
+
+#if defined(PRECISION_c) || defined(PRECISION_z)
+typedef float float;
+#endif
 
 //#if NB == 32
 #define COPY_1D_TO_2D( a, lda, b, inx, iny )        \
@@ -27,9 +34,9 @@
     a[0]			= b[inx][iny];                        \
     a[NBhalf*lda]	= b[inx][iny+NBhalf];
 
-//#else
-
 /*
+#else
+
 #define COPY_1D_TO_2D( a, lda, b, inx, iny )        \
     b[iny][inx] = a[0];
 
@@ -40,11 +47,13 @@
 */
 
 
-
 __kernel void sinplace_T_even_kernel(__global float *matrix, int offset, int lda, int half )
 {     
-	__local float a[NB][NB+1];
-	__local float b[NB][NB+1];
+//	__local float a[NB][NB+1];
+//	__local float b[NB][NB+1];
+
+	__local float a[SSIZE_2SHARED][SSIZE_2SHARED+1];
+	__local float b[SSIZE_2SHARED][SSIZE_2SHARED+1];
 
 	int inx = get_local_id(0);
 	int iny = get_local_id(1);
@@ -53,8 +62,11 @@ __kernel void sinplace_T_even_kernel(__global float *matrix, int offset, int lda
 	int ibx = bottom ? (get_group_id(0) - 1) : (get_group_id(1) + half);
 	int iby = bottom ? get_group_id(1)       : (get_group_id(0) + half);
 
-	ibx *= NB;
-	iby *= NB;
+//	ibx *= NB;
+//	iby *= NB;
+
+	ibx *= SSIZE_2SHARED;
+	iby *= SSIZE_2SHARED;
 
 	matrix += offset;
 
@@ -80,9 +92,12 @@ __kernel void sinplace_T_even_kernel(__global float *matrix, int offset, int lda
 
 __kernel void sinplace_T_odd_kernel (__global float *matrix, int offset, int lda, int half )
 {        
-        __local float a[NB][NB+1];
-        __local float b[NB][NB+1];
+       //__local float a[NB][NB+1];
+       //__local float b[NB][NB+1];
         
+		__local float a[SSIZE_2SHARED][SSIZE_2SHARED+1];
+		__local float b[SSIZE_2SHARED][SSIZE_2SHARED+1];
+
         int inx = get_local_id(0);
         int iny = get_local_id(1);
 
@@ -90,8 +105,11 @@ __kernel void sinplace_T_odd_kernel (__global float *matrix, int offset, int lda
         int ibx = bottom ? get_group_id(0)  : (get_group_id(1) + half - 1);
         int iby = bottom ? get_group_id(1)  : (get_group_id(0) + half);
 
-        ibx *= NB;
-        iby *= NB;
+        //ibx *= NB;
+        //iby *= NB;
+
+		ibx *= SSIZE_2SHARED;
+		iby *= SSIZE_2SHARED;
 
 		matrix += offset;
 

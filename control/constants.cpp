@@ -174,7 +174,7 @@ const char* lapack_const( int magma_const ) {
 // ----------------------------------------
 // Convert magma constants to clAmdBlas constants.
 
-#ifdef HAVE_AMDBLAS
+#ifdef HAVE_clAmdBlas
 const int magma2amdblas_constants[] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

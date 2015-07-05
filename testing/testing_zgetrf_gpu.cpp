@@ -1,5 +1,5 @@
 /*
- *  -- clMAGMA (version 0.1) --
+ *  -- clMAGMA (version 0.2.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
@@ -28,7 +28,6 @@
 #define FLOPS(m, n) (      FMULS_GETRF(m, n) +      FADDS_GETRF(m, n) )
 #endif
 
-#if defined(PRECISION_s)
 double get_LU_error(magma_int_t M, magma_int_t N, 
                     magmaDoubleComplex *A,  magma_int_t lda, 
                     magmaDoubleComplex *LU, magma_int_t *IPIV)
@@ -70,14 +69,12 @@ double get_LU_error(magma_int_t M, magma_int_t N,
 
     return residual / (matnorm * N);
 }
-#endif
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing zgetrf
 */
 int main( int argc, char** argv)
 {
-#if defined(PRECISION_s)
     real_Double_t    gflops, gpu_perf, cpu_perf, gpu_time, cpu_time, error;
     magmaDoubleComplex *h_A, *h_R;
     magmaDoubleComplex_ptr d_A;
@@ -85,8 +82,11 @@ int main( int argc, char** argv)
 
     /* Matrix size */
     magma_int_t M = 0, N = 0, n2, lda, ldda;
+#if defined (PRECISION_z)
+    magma_int_t size[10] = {1024,2048,3072,4032,4992,5952,7000,7000,7000,7000};
+#else
     magma_int_t size[10] = {1024,2048,3072,4032,4992,5952,7104,8064,9000,10000};
-
+#endif
     magma_int_t i, info, min_mn;
     //magma_int_t nb, maxn, ret;
     magma_int_t ione     = 1;
@@ -175,13 +175,13 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-	magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-	magma_zgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
+		magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+		magma_zgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
 
-	magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = get_time();
-        magma_zgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
-	gpu_time = get_time() - gpu_time;
+		magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+		gpu_time = get_time();
+		magma_zgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
+		gpu_time = get_time() - gpu_time;
         if (info < 0)
             printf("Argument %d of zgetrf had an illegal value.\n", -info);
 
@@ -190,7 +190,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the factorization
            =================================================================== */
-	magma_zgetmatrix( M, N, d_A, 0, ldda, h_A, 0, lda, queue );
+		magma_zgetmatrix( M, N, d_A, 0, ldda, h_A, 0, lda, queue );
         error = get_LU_error(M, N, h_R, lda, h_A, ipiv);
         
         printf("%5d %5d  %6.2f (%6.2f)     %6.2f (%6.2f)      %e\n",
@@ -208,7 +208,4 @@ int main( int argc, char** argv)
 
     magma_queue_destroy( queue );
     magma_finalize();
-#else
-    printf("Only single precision is supported for now.\n");
-#endif
 }
