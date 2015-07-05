@@ -1,12 +1,12 @@
-/*  -- MAGMA (version 1.0.0) --
+/*  -- MAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
     @author Raffaele Solca
 
-    @generated s Wed Oct 24 00:32:52 2012
+    @generated s Mon Nov 25 17:55:59 2013
 */
 #include <stdio.h>
 #include "common_magma.h"
@@ -27,11 +27,11 @@ magma_slaex0(magma_int_t n, float* d, float* e, float* q, magma_int_t ldq,
              magma_int_t il, magma_int_t iu, magma_int_t* info, magma_queue_t queue)
 {
 /*
-    -- MAGMA (version 1.0.0) --
+    -- MAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
        .. Scalar Arguments ..
       CHARACTER          RANGE

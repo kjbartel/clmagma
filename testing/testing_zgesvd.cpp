@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
        @precisions normal z -> c d s
 
@@ -44,8 +44,8 @@ int main( int argc, char** argv)
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
     
-	const char* jobu = "S";
-	const char* jobv = "S";
+    const char* jobu = "S";
+    const char* jobv = "S";
 
     int checkres = getenv("MAGMA_TESTINGS_CHECK") != NULL;
     int lapack   = getenv("MAGMA_RUN_LAPACK")     != NULL;
@@ -65,10 +65,10 @@ int main( int argc, char** argv)
     int ntest = 0;
     for( int i = 1; i < argc; ++i ) {
         if ( strcmp("-N", argv[i]) == 0 && i+1 < argc ) {
-            if (ntest > MAXTESTS){ 
-				printf("error: -N repeated more than maximum %d tests\n", MAXTESTS );
-				exit(1);
-			}
+            if (ntest > MAXTESTS){
+                printf("error: -N repeated more than maximum %d tests\n", MAXTESTS );
+                exit(1);
+            }
             int m, n;
             info = sscanf( argv[++i], "%d,%d", &m, &n );
             if ( info == 2 && m > 0 && n > 0 ) {
@@ -91,23 +91,23 @@ int main( int argc, char** argv)
             printf( "-M has been replaced in favor of -N m,n to allow -N to be repeated.\n\n" );
             exit(1);
         }
-		else if ( strcmp("-UA", argv[i]) == 0 )
-			jobu = "A";
-		else if ( strcmp("-US", argv[i]) == 0 )
-			jobu = "S";
-		else if ( strcmp("-UO", argv[i]) == 0 )
-			jobu = "O";
-		else if ( strcmp("-UN", argv[i]) == 0 )
-			jobu = "N";
-		
-		else if ( strcmp("-VA", argv[i]) == 0 )
-			jobv = "A";
-		else if ( strcmp("-VS", argv[i]) == 0 )
-			jobv = "S";
-		else if ( strcmp("-VO", argv[i]) == 0 )
-			jobv = "O";
-		else if ( strcmp("-VN", argv[i]) == 0 )
-			jobv = "N";
+        else if ( strcmp("-UA", argv[i]) == 0 )
+            jobu = "A";
+        else if ( strcmp("-US", argv[i]) == 0 )
+            jobu = "S";
+        else if ( strcmp("-UO", argv[i]) == 0 )
+            jobu = "O";
+        else if ( strcmp("-UN", argv[i]) == 0 )
+            jobu = "N";
+        
+        else if ( strcmp("-VA", argv[i]) == 0 )
+            jobv = "A";
+        else if ( strcmp("-VS", argv[i]) == 0 )
+            jobv = "S";
+        else if ( strcmp("-VO", argv[i]) == 0 )
+            jobv = "O";
+        else if ( strcmp("-VN", argv[i]) == 0 )
+            jobv = "N";
         
         else if ( strcmp("-all", argv[i]) == 0 )
             test_all = true;
@@ -137,17 +137,17 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
@@ -183,7 +183,7 @@ int main( int argc, char** argv)
 
     TESTING_MALLOC_HOST(h_work, magmaDoubleComplex, lwork);
     
-	const char* jobs[] = { "None", "Some", "Over", "All" };
+    const char* jobs[] = { "None", "Some", "Over", "All" };
 
     printf("-1.00 indicates non-applicable test that was skipped. See code for norm formulas.\n");
     printf("jobu jobv     M     N  CPU time (sec)  GPU time (sec)  |S1-S2|/.  |A-USV'|/. |I-UU'|/M  |I-VV'|/N  S (0=okay)\n");
@@ -225,8 +225,8 @@ int main( int argc, char** argv)
                           h_R, M, S1, U, M,
                           VT, N, h_work, lwork, &info, queue );
             #endif
-			for(int j=0;j<n2;j++)
-				h_R[j] = h_A[j];
+            for(int j=0;j<n2;j++)
+                h_R[j] = h_A[j];
             gpu_time = get_time();
             #if defined(PRECISION_z) || defined(PRECISION_c)
             magma_zgesvd( jobu[0], jobv[0], M, N,
@@ -330,7 +330,7 @@ int main( int argc, char** argv)
                 lapackf77_zgesvd( jobu, jobv, &M, &N,
                                   h_A, &M, S2, U, &M,
                                   VT, &N, h_work, &lwork, rwork, &info);
-				#else 
+                #else
                 lapackf77_zgesvd( jobu, jobv, &M, &N,
                                   h_A, &M, S2, U, &M,
                                   VT, &N, h_work, &lwork, &info);

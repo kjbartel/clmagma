@@ -1,12 +1,12 @@
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
     @author Raffaele Solca
 
-    @generated s Wed Oct 24 00:32:52 2012
+    @generated s Mon Nov 25 17:56:00 2013
 */
 
 #ifdef _OPENMP
@@ -188,9 +188,9 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
 
     magmaFloat_ptr dq2= dwork;
     magmaFloat_ptr ds = dq2;
-	size_t ds_offset = n*(n/2+1);
+    size_t ds_offset = n*(n/2+1);
     magmaFloat_ptr dq = ds;
-	size_t dq_offset = ds_offset + n*(n/2+1);
+    size_t dq_offset = ds_offset + n*(n/2+1);
     magma_int_t lddq = n/2 + 1;
 
     magma_int_t i,iq2,j,n12,n2,n23,tmp,lq2;

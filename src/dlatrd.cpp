@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.0.0) --
+     -- clMAGMA (version 1.1.0-beta2) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        April 2012
+        @date November 2013
 
-        @generated d Wed Oct 24 00:32:50 2012
+        @generated d Mon Nov 25 17:55:59 2013
 
 */
 
@@ -21,137 +21,137 @@
 #define dA(i, j) da, (da_offset+(j)*ldda + (i))
 #define dW(i, j) dw, (dw_offset+(j)*lddw + (i))
 
-extern "C" magma_err_t 
-magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb, 
-             double *a,  magma_int_t lda, 
-             double *e, double *tau, 
+extern "C" magma_err_t
+magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
+             double *a,  magma_int_t lda,
+             double *e, double *tau,
              double *w,  magma_int_t ldw,
-             magmaDouble_ptr da, size_t da_offset, magma_int_t ldda, 
+             magmaDouble_ptr da, size_t da_offset, magma_int_t ldda,
              magmaDouble_ptr dw, size_t dw_offset, magma_int_t lddw, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    DLATRD reduces NB rows and columns of a real symmetric matrix A to   
-    symmetric tridiagonal form by an orthogonal similarity   
-    transformation Q' * A * Q, and returns the matrices V and W which are   
-    needed to apply the transformation to the unreduced part of A.   
+    Purpose
+    =======
+    DLATRD reduces NB rows and columns of a real symmetric matrix A to
+    symmetric tridiagonal form by an orthogonal similarity
+    transformation Q' * A * Q, and returns the matrices V and W which are
+    needed to apply the transformation to the unreduced part of A.
 
-    If UPLO = 'U', DLATRD reduces the last NB rows and columns of a   
-    matrix, of which the upper triangle is supplied;   
-    if UPLO = 'L', DLATRD reduces the first NB rows and columns of a   
-    matrix, of which the lower triangle is supplied.   
+    If UPLO = 'U', DLATRD reduces the last NB rows and columns of a
+    matrix, of which the upper triangle is supplied;
+    if UPLO = 'L', DLATRD reduces the first NB rows and columns of a
+    matrix, of which the lower triangle is supplied.
 
-    This is an auxiliary routine called by DSYTRD.   
+    This is an auxiliary routine called by DSYTRD.
 
-    Arguments   
-    =========   
-    UPLO    (input) CHARACTER*1   
-            Specifies whether the upper or lower triangular part of the   
-            symmetric matrix A is stored:   
-            = 'U': Upper triangular   
-            = 'L': Lower triangular   
+    Arguments
+    =========
+    UPLO    (input) CHARACTER*1
+            Specifies whether the upper or lower triangular part of the
+            symmetric matrix A is stored:
+            = 'U': Upper triangular
+            = 'L': Lower triangular
 
-    N       (input) INTEGER   
-            The order of the matrix A.   
+    N       (input) INTEGER
+            The order of the matrix A.
 
-    NB      (input) INTEGER   
-            The number of rows and columns to be reduced.   
+    NB      (input) INTEGER
+            The number of rows and columns to be reduced.
 
-    A       (input/output) DOUBLE_PRECISION array, dimension (LDA,N)   
-            On entry, the symmetric matrix A.  If UPLO = 'U', the leading   
-            n-by-n upper triangular part of A contains the upper   
-            triangular part of the matrix A, and the strictly lower   
-            triangular part of A is not referenced.  If UPLO = 'L', the   
-            leading n-by-n lower triangular part of A contains the lower   
-            triangular part of the matrix A, and the strictly upper   
-            triangular part of A is not referenced.   
-            On exit:   
-            if UPLO = 'U', the last NB columns have been reduced to   
-              tridiagonal form, with the diagonal elements overwriting   
-              the diagonal elements of A; the elements above the diagonal   
-              with the array TAU, represent the orthogonal matrix Q as a   
-              product of elementary reflectors;   
-            if UPLO = 'L', the first NB columns have been reduced to   
-              tridiagonal form, with the diagonal elements overwriting   
-              the diagonal elements of A; the elements below the diagonal   
-              with the array TAU, represent the  orthogonal matrix Q as a   
-              product of elementary reflectors.   
-            See Further Details.   
+    A       (input/output) DOUBLE_PRECISION array, dimension (LDA,N)
+            On entry, the symmetric matrix A.  If UPLO = 'U', the leading
+            n-by-n upper triangular part of A contains the upper
+            triangular part of the matrix A, and the strictly lower
+            triangular part of A is not referenced.  If UPLO = 'L', the
+            leading n-by-n lower triangular part of A contains the lower
+            triangular part of the matrix A, and the strictly upper
+            triangular part of A is not referenced.
+            On exit:
+            if UPLO = 'U', the last NB columns have been reduced to
+              tridiagonal form, with the diagonal elements overwriting
+              the diagonal elements of A; the elements above the diagonal
+              with the array TAU, represent the orthogonal matrix Q as a
+              product of elementary reflectors;
+            if UPLO = 'L', the first NB columns have been reduced to
+              tridiagonal form, with the diagonal elements overwriting
+              the diagonal elements of A; the elements below the diagonal
+              with the array TAU, represent the  orthogonal matrix Q as a
+              product of elementary reflectors.
+            See Further Details.
 
-    LDA     (input) INTEGER   
-            The leading dimension of the array A.  LDA >= (1,N).   
+    LDA     (input) INTEGER
+            The leading dimension of the array A.  LDA >= (1,N).
 
-    E       (output) DOUBLE_PRECISION array, dimension (N-1)   
-            If UPLO = 'U', E(n-nb:n-1) contains the superdiagonal   
-            elements of the last NB columns of the reduced matrix;   
-            if UPLO = 'L', E(1:nb) contains the subdiagonal elements of   
-            the first NB columns of the reduced matrix.   
+    E       (output) DOUBLE_PRECISION array, dimension (N-1)
+            If UPLO = 'U', E(n-nb:n-1) contains the superdiagonal
+            elements of the last NB columns of the reduced matrix;
+            if UPLO = 'L', E(1:nb) contains the subdiagonal elements of
+            the first NB columns of the reduced matrix.
 
-    TAU     (output) DOUBLE_PRECISION array, dimension (N-1)   
-            The scalar factors of the elementary reflectors, stored in   
-            TAU(n-nb:n-1) if UPLO = 'U', and in TAU(1:nb) if UPLO = 'L'.   
-            See Further Details.   
+    TAU     (output) DOUBLE_PRECISION array, dimension (N-1)
+            The scalar factors of the elementary reflectors, stored in
+            TAU(n-nb:n-1) if UPLO = 'U', and in TAU(1:nb) if UPLO = 'L'.
+            See Further Details.
 
-    W       (output) DOUBLE_PRECISION array, dimension (LDW,NB)   
-            The n-by-nb matrix W required to update the unreduced part   
-            of A.   
+    W       (output) DOUBLE_PRECISION array, dimension (LDW,NB)
+            The n-by-nb matrix W required to update the unreduced part
+            of A.
 
-    LDW     (input) INTEGER   
-            The leading dimension of the array W. LDW >= max(1,N).   
+    LDW     (input) INTEGER
+            The leading dimension of the array W. LDW >= max(1,N).
 
-    Further Details   
-    ===============   
-    If UPLO = 'U', the matrix Q is represented as a product of elementary   
-    reflectors   
+    Further Details
+    ===============
+    If UPLO = 'U', the matrix Q is represented as a product of elementary
+    reflectors
 
-       Q = H(n) H(n-1) . . . H(n-nb+1).   
+       Q = H(n) H(n-1) . . . H(n-nb+1).
 
-    Each H(i) has the form   
+    Each H(i) has the form
 
-       H(i) = I - tau * v * v'   
+       H(i) = I - tau * v * v'
 
-    where tau is a real scalar, and v is a real vector with   
-    v(i:n) = 0 and v(i-1) = 1; v(1:i-1) is stored on exit in A(1:i-1,i),   
-    and tau in TAU(i-1).   
+    where tau is a real scalar, and v is a real vector with
+    v(i:n) = 0 and v(i-1) = 1; v(1:i-1) is stored on exit in A(1:i-1,i),
+    and tau in TAU(i-1).
 
-    If UPLO = 'L', the matrix Q is represented as a product of elementary   
-    reflectors   
+    If UPLO = 'L', the matrix Q is represented as a product of elementary
+    reflectors
 
-       Q = H(1) H(2) . . . H(nb).   
+       Q = H(1) H(2) . . . H(nb).
 
-    Each H(i) has the form   
+    Each H(i) has the form
 
-       H(i) = I - tau * v * v'   
+       H(i) = I - tau * v * v'
 
-    where tau is a real scalar, and v is a real vector with   
-    v(1:i) = 0 and v(i+1) = 1; v(i+1:n) is stored on exit in A(i+1:n,i),   
-    and tau in TAU(i).   
+    where tau is a real scalar, and v is a real vector with
+    v(1:i) = 0 and v(i+1) = 1; v(i+1:n) is stored on exit in A(i+1:n,i),
+    and tau in TAU(i).
 
-    The elements of the vectors v together form the n-by-nb matrix V   
-    which is needed, with W, to apply the transformation to the unreduced   
-    part of the matrix, using a symmetric rank-2k update of the form:   
-    A := A - V*W' - W*V'.   
+    The elements of the vectors v together form the n-by-nb matrix V
+    which is needed, with W, to apply the transformation to the unreduced
+    part of the matrix, using a symmetric rank-2k update of the form:
+    A := A - V*W' - W*V'.
 
-    The contents of A on exit are illustrated by the following examples   
-    with n = 5 and nb = 2:   
+    The contents of A on exit are illustrated by the following examples
+    with n = 5 and nb = 2:
 
-    if UPLO = 'U':                       if UPLO = 'L':   
+    if UPLO = 'U':                       if UPLO = 'L':
 
-      (  a   a   a   v4  v5 )              (  d                  )   
-      (      a   a   v4  v5 )              (  1   d              )   
-      (          a   1   v5 )              (  v1  1   a          )   
-      (              d   1  )              (  v1  v2  a   a      )   
-      (                  d  )              (  v1  v2  a   a   a  )   
+      (  a   a   a   v4  v5 )              (  d                  )
+      (      a   a   v4  v5 )              (  1   d              )
+      (          a   1   v5 )              (  v1  1   a          )
+      (              d   1  )              (  v1  v2  a   a      )
+      (                  d  )              (  v1  v2  a   a   a  )
 
-    where d denotes a diagonal element of the reduced matrix, a denotes   
-    an element of the original matrix that is unchanged, and vi denotes   
-    an element of the vector defining H(i).   
+    where d denotes a diagonal element of the reduced matrix, a denotes
+    an element of the original matrix that is unchanged, and vi denotes
+    an element of the vector defining H(i).
     =====================================================================    */
   
     char uplo_[2]  = {uplo, 0};
@@ -170,13 +170,14 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
   
     double alpha;
 
-    double *f = (double *)malloc(n*sizeof(double ));
+    double *f;
+    magma_dmalloc_cpu( &f, n );
 
     if (n <= 0) {
       return 0;
     }
 
-	magma_event_t event = NULL;
+    magma_event_t event = NULL;
 
     if (lapackf77_lsame(uplo_, "U")) {
 
@@ -232,7 +233,7 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
           }
           
             // 3. Here is where we need it // TODO find the right place
-			magma_event_sync(event);
+            magma_event_sync(event);
 
           if (i < n-1) {
           
@@ -270,19 +271,19 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
           #if defined(PRECISION_z) || defined(PRECISION_c)
               lapackf77_dlacgv(&i, W(i, 0), &ldw);
           #endif
-          blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, A(i, 0), &lda, 
+          blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, A(i, 0), &lda,
                         W(i, 0), &ldw, &c_one, A(i, i), &ione);
           #if defined(PRECISION_z) || defined(PRECISION_c)
               lapackf77_dlacgv(&i, W(i, 0), &ldw);
               lapackf77_dlacgv(&i, A(i ,0), &lda);
           #endif
-          blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, W(i, 0), &ldw, 
+          blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, W(i, 0), &ldw,
                         A(i, 0), &lda, &c_one, A(i, i), &ione);
           #if defined(PRECISION_z) || defined(PRECISION_c)
               lapackf77_dlacgv(&i, A(i, 0), &lda);
           #endif
 
-          if (i < n-1) 
+          if (i < n-1)
             {
               /* Generate elementary reflector H(i) to annihilate A(i+2:n,i) */
               i_n = n - i - 1;
@@ -291,9 +292,9 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
               e[i] = MAGMA_D_REAL( alpha );
               MAGMA_D_SET2REAL(*A(i+1, i), 1.);
 
-              /* Compute W(i+1:n,i) */ 
+              /* Compute W(i+1:n,i) */
               // 1. Send the block reflector  A(i+1:n,i) to the GPU
-              magma_dsetvector( i_n, A(i+1, i), 0, 1, dA(i+1, i), 1, queue );          
+              magma_dsetvector( i_n, A(i+1, i), 0, 1, dA(i+1, i), 1, queue );
           
               magma_dsymv(MagmaLower, i_n, c_one, dA(i+1, i+1), ldda, dA(i+1, i), ione, c_zero,
                           dW(i+1, i), ione, queue);
@@ -303,22 +304,22 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
                                       dW(i+1, i), lddw,
                                       W(i+1, i), 0, ldw, queue, &event );
 
-              blasf77_dgemv(MagmaTransStr, &i_n, &i, &c_one, W(i+1, 0), &ldw, 
+              blasf77_dgemv(MagmaTransStr, &i_n, &i, &c_one, W(i+1, 0), &ldw,
                             A(i+1, i), &ione, &c_zero, W(0, i), &ione);
 
-              blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, A(i+1, 0), &lda, 
+              blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, A(i+1, 0), &lda,
                             W(0, i), &ione, &c_zero, f, &ione);
               
-              blasf77_dgemv(MagmaTransStr, &i_n, &i, &c_one, A(i+1, 0), &lda, 
+              blasf77_dgemv(MagmaTransStr, &i_n, &i, &c_one, A(i+1, 0), &lda,
                             A(i+1, i), &ione, &c_zero, W(0, i), &ione);
 
               // 3. Here is where we need it
-			  magma_event_sync(event);
+              magma_event_sync(event);
 
               if (i!=0)
                 blasf77_daxpy(&i_n, &c_one, f, &ione, W(i+1, i), &ione);
      
-              blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, W(i+1, 0), &ldw, 
+              blasf77_dgemv("No transpose", &i_n, &i, &c_neg_one, W(i+1, 0), &ldw,
                             W(0, i), &ione, &c_one, W(i+1, i), &ione);
               blasf77_dscal(&i_n, &tau[i], W(i+1,i), &ione);
               
@@ -333,7 +334,7 @@ magma_dlatrd(char uplo, magma_int_t n, magma_int_t nb,
         }
     }
 
-    free(f);
+    magma_free_cpu(f);
 
     return 0;
 } /* dlatrd_ */

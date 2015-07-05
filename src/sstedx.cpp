@@ -1,12 +1,12 @@
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
     @author Raffaele Solca
 
-    @generated s Wed Oct 24 00:32:52 2012
+    @generated s Mon Nov 25 17:56:00 2013
 */
 #include <stdio.h>
 #include "common_magma.h"
@@ -28,11 +28,11 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
              magmaFloat_ptr dwork, magma_int_t* info, magma_queue_t queue)
 {
 /*
-    -- MAGMA (version 1.0.0) --
+    -- MAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
        .. Scalar Arguments ..
       CHARACTER          RANGE

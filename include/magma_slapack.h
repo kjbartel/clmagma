@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
- * @generated s Wed Oct 24 00:32:41 2012
+ * @generated s Mon Nov 25 17:55:49 2013
  */
 
 #ifndef MAGMA_SLAPACK_H
@@ -63,6 +63,7 @@ extern "C" {
 #define lapackf77_sgels    FORTRAN_NAME( sgels,  SGELS  )
 #define lapackf77_sgeqlf   FORTRAN_NAME( sgeqlf, SGEQLF )
 #define lapackf77_sgeqrf   FORTRAN_NAME( sgeqrf, SGEQRF )
+#define lapackf77_sgesv    FORTRAN_NAME( sgesv,  SGESV  )
 #define lapackf77_sgesvd   FORTRAN_NAME( sgesvd, SGESVD )
 #define lapackf77_sgetrf   FORTRAN_NAME( sgetrf, SGETRF )
 #define lapackf77_sgetri   FORTRAN_NAME( sgetri, SGETRI )
@@ -91,6 +92,8 @@ extern "C" {
 #define lapackf77_slatrd   FORTRAN_NAME( slatrd, SLATRD )
 #define lapackf77_slabrd   FORTRAN_NAME( slabrd, SLABRD )
 #define lapackf77_slauum   FORTRAN_NAME( slauum, SLAUUM )
+#define lapackf77_slavsy   FORTRAN_NAME( slavsy, SLAVSY )
+#define lapackf77_sposv    FORTRAN_NAME( sposv,  SPOSV  )
 #define lapackf77_spotrf   FORTRAN_NAME( spotrf, SPOTRF )
 #define lapackf77_spotrs   FORTRAN_NAME( spotrs, SPOTRS )
 #define lapackf77_spotri   FORTRAN_NAME( spotri, SPOTRI )
@@ -250,6 +253,11 @@ void    lapackf77_sgeqlf(magma_int_t *m, magma_int_t *n,
 void    lapackf77_sgeqrf(magma_int_t *m, magma_int_t *n,
                          float *a, magma_int_t *lda, float *tau,
                          float *work, magma_int_t *lwork, magma_int_t *info);
+void     lapackf77_sgesv(magma_int_t *n, magma_int_t *nrhs,
+                         float *A, magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         float *B, magma_int_t *ldb,
+                         magma_int_t *info );
 void    lapackf77_sgetrf(magma_int_t *m, magma_int_t *n, 
                          float *a, magma_int_t *lda, 
                          magma_int_t *ipiv, magma_int_t *info);
@@ -305,8 +313,8 @@ float  lapackf77_slange(const char *norm, magma_int_t *m, magma_int_t *n,
                          const float *a, magma_int_t *lda, float *work);
 float  lapackf77_slansy(const char *norm, const char *uplo, magma_int_t *n, 
                          const float *a, magma_int_t *lda, float * work);
-float lapackf77_slanst(char* norm, magma_int_t* n, 
-						const float* d, const float* e);
+float  lapackf77_slanst(char* norm, magma_int_t* n, 
+                         const float* d, const float* e);
 float  lapackf77_slansy(const char *norm, const char *uplo, magma_int_t *n, 
                          const float *a, magma_int_t *lda, float * work);
 void    lapackf77_slarfb(const char *side, const char *trans, const char *direct, 
@@ -351,6 +359,17 @@ void    lapackf77_spotri(const char *uplo, magma_int_t *n,
                          float *a, magma_int_t *lda, magma_int_t *info);
 void    lapackf77_slauum(const char *uplo, magma_int_t *n, 
                          float *a, magma_int_t *lda, magma_int_t *info);
+void    lapackf77_slavsy(const char *uplo, const char *trans, const char *diag,
+                         magma_int_t *n, magma_int_t *nrhs,
+                         float *A, magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         float *B, magma_int_t *ldb,
+                         magma_int_t *info );
+void     lapackf77_sposv(const char *uplo,
+                         const magma_int_t *n, const magma_int_t *nrhs,
+                         float *A, const magma_int_t *lda,
+                         float *B,  const magma_int_t *ldb,
+                         magma_int_t *info );
 void    lapackf77_strevc(const char *side, const char *howmny, magma_int_t *select, magma_int_t *n, 
                          float *T,  magma_int_t *ldt,  float *VL, magma_int_t *ldvl,
                          float *VR, magma_int_t *ldvr, magma_int_t *MM, magma_int_t *M, 

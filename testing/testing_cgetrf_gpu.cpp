@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2011
+ *     @date November 2013
  *
- * @generated c Wed Oct 24 00:33:02 2012
+ * @generated c Mon Nov 25 17:56:10 2013
  *
  **/
 // includes, system
@@ -28,8 +28,8 @@
 #define FLOPS(m, n) (      FMULS_GETRF(m, n) +      FADDS_GETRF(m, n) )
 #endif
 
-float get_LU_error(magma_int_t M, magma_int_t N, 
-                    magmaFloatComplex *A,  magma_int_t lda, 
+float get_LU_error(magma_int_t M, magma_int_t N,
+                    magmaFloatComplex *A,  magma_int_t lda,
                     magmaFloatComplex *LU, magma_int_t *IPIV)
 {
     magma_int_t min_mn = min(M,N);
@@ -116,17 +116,17 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
@@ -175,13 +175,13 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-		magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-		magma_cgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
+        magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+        magma_cgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
 
-		magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-		gpu_time = get_time();
-		magma_cgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
-		gpu_time = get_time() - gpu_time;
+        magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+        gpu_time = get_time();
+        magma_cgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
+        gpu_time = get_time() - gpu_time;
         if (info < 0)
             printf("Argument %d of cgetrf had an illegal value.\n", -info);
 
@@ -190,7 +190,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the factorization
            =================================================================== */
-		magma_cgetmatrix( M, N, d_A, 0, ldda, h_A, 0, lda, queue );
+        magma_cgetmatrix( M, N, d_A, 0, ldda, h_A, 0, lda, queue );
         error = get_LU_error(M, N, h_R, lda, h_A, ipiv);
         
         printf("%5d %5d  %6.2f (%6.2f)     %6.2f (%6.2f)      %e\n",

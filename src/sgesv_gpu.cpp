@@ -1,11 +1,11 @@
-/*  
-    -- clMAGMA (version 1.0.0) --
-       Univ. of Tennessee, Knoxville                                                                           
-       Univ. of California, Berkeley                                                                           
-       Univ. of Colorado, Denver                                                                               
-       April 2012                                                                                              
+/*
+    -- clMAGMA (version 1.1.0-beta2) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2013
                                                                                                               
-       @generated s Wed Oct 24 00:32:49 2012
+       @generated s Mon Nov 25 17:55:59 2013
 */
 
 #include <stdio.h>
@@ -13,17 +13,17 @@
 
 
 extern "C" magma_err_t
-magma_sgesv_gpu( magma_int_t n, magma_int_t nrhs, 
+magma_sgesv_gpu( magma_int_t n, magma_int_t nrhs,
                  magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magma_int_t *ipiv, 
-                 magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb, 
+                 magma_int_t *ipiv,
+                 magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb,
                  magma_err_t *info, magma_queue_t queue )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======

@@ -102,14 +102,14 @@ const char *magma2lapack_constants[] =
     "", "", "", "", "", "", "", "",          // 143-150
     "", "", "", "", "", "", "", "", "", "",  // 151-160
     "", "", "", "", "", "", "", "", "", "",  // 161-170
-    "One norm",                              // 171: MagmaOneNorm       
-    "",                                      // 172: MagmaRealOneNorm  
-    "",                                      // 173: MagmaTwoNorm       
-    "Frobenius norm",                        // 174: MagmaFrobeniusNorm 
-    "Infinity norm",                         // 175: MagmaInfNorm       
-    "",                                      // 176: MagmaRealInfNorm  
-    "Maximum norm",                          // 177: MagmaMaxNorm       
-    "",                                      // 178: MagmaRealMaxNorm  
+    "One norm",                              // 171: MagmaOneNorm
+    "",                                      // 172: MagmaRealOneNorm
+    "",                                      // 173: MagmaTwoNorm
+    "Frobenius norm",                        // 174: MagmaFrobeniusNorm
+    "Infinity norm",                         // 175: MagmaInfNorm
+    "",                                      // 176: MagmaRealInfNorm
+    "Maximum norm",                          // 177: MagmaMaxNorm
+    "",                                      // 178: MagmaRealMaxNorm
     "", "",                                  // 179-180
     "", "", "", "", "", "", "", "", "", "",  // 181-190
     "", "", "", "", "", "", "", "", "", "",  // 191-200
@@ -121,9 +121,9 @@ const char *magma2lapack_constants[] =
     "", "", "", "", "", "", "", "", "", "",  // 221-230
     "", "", "", "", "", "", "", "", "", "",  // 231-240
     "Hermitian",                             // 241 MagmaHermGeev
-    "Positive ev Hermitian",                 // 242 MagmaHermPoev 
+    "Positive ev Hermitian",                 // 242 MagmaHermPoev
     "NonSymmetric pos sv",                   // 243 MagmaNonsymPosv
-    "Symmetric pos sv",                      // 244 MagmaSymPosv 
+    "Symmetric pos sv",                      // 244 MagmaSymPosv
     "", "", "", "", "", "",                  // 245-250
     "", "", "", "", "", "", "", "", "", "",  // 251-260
     "", "", "", "", "", "", "", "", "", "",  // 261-270
@@ -194,18 +194,18 @@ const int magma2amdblas_constants[] =
     0,                      // 100
     clAmdBlasRowMajor,      // 101: MagmaRowMajor
     clAmdBlasColumnMajor,   // 102: MagmaColMajor
-    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0,
     clAmdBlasNoTrans,       // 111: MagmaNoTrans
     clAmdBlasTrans,         // 112: MagmaTrans
     clAmdBlasConjTrans,     // 113: MagmaConjTrans
-    0, 0, 0, 0, 0, 0, 0,    
+    0, 0, 0, 0, 0, 0, 0,
     clAmdBlasUpper,         // 121: MagmaUpper
     clAmdBlasLower,         // 122: MagmaLower
     0,                      // 123: MagmaUpperLower
-    0, 0, 0, 0, 0, 0, 0,    
+    0, 0, 0, 0, 0, 0, 0,
     clAmdBlasNonUnit,       // 131: MagmaNonUnit
     clAmdBlasUnit,          // 132: MagmaUnit
-    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0,
     clAmdBlasLeft,          // 141: MagmaLeft
     clAmdBlasRight,         // 142: MagmaRight
     0, 0, 0, 0, 0, 0, 0, 0
@@ -269,18 +269,18 @@ const int magma2cublas_constants[] =
     0,                      // 100
     0,                      // 101: MagmaRowMajor
     0,                      // 102: MagmaColMajor
-    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0,
     CUBLAS_OP_N,            // 111: MagmaNoTrans
     CUBLAS_OP_T,            // 112: MagmaTrans
     CUBLAS_OP_C,            // 113: MagmaConjTrans
-    0, 0, 0, 0, 0, 0, 0,    
+    0, 0, 0, 0, 0, 0, 0,
     CUBLAS_FILL_MODE_UPPER, // 121: MagmaUpper
     CUBLAS_FILL_MODE_LOWER, // 122: MagmaLower
     0,                      // 123: MagmaUpperLower
-    0, 0, 0, 0, 0, 0, 0,    
+    0, 0, 0, 0, 0, 0, 0,
     CUBLAS_DIAG_NON_UNIT,   // 131: MagmaNonUnit
     CUBLAS_DIAG_UNIT,       // 132: MagmaUnit
-    0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0,
     CUBLAS_SIDE_LEFT,       // 141: MagmaLeft
     CUBLAS_SIDE_RIGHT,      // 142: MagmaRight
     0, 0, 0, 0, 0, 0, 0, 0

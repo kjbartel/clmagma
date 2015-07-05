@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 */
 
 // ==== Definition of blocking sizes for AMD Tahiti cards
@@ -11,7 +11,7 @@
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Return nb for potrf based on n
-*/ 
+*/
 extern "C"
 int magma_get_spotrf_nb(int n) {
     if (n <= 1024)
@@ -24,7 +24,7 @@ extern "C"
 int magma_get_dpotrf_nb(int n) {
     if (n <= 4256)
         return 128;
-    else 
+    else
         return 256;
 }
 
@@ -53,7 +53,7 @@ extern "C"
 int magma_get_dgeqrf_nb(int m) {
     if (m <= 2048)
         return 64;
-    else 
+    else
         return 128;
 }
 
@@ -349,24 +349,24 @@ int magma_get_zgetri_nb(int m) {
 /* ////////////////////////////////////////////////////////////////////////////
    -- Return nb for gesvd based on m
 */
-extern "C" 
-int magma_get_sgesvd_nb(int m){
+extern "C"
+int magma_get_sgesvd_nb(int m) {
     return magma_get_sgebrd_nb(m);
 }
 
 extern "C"
-int magma_get_dgesvd_nb(int m){
-	return magma_get_dgebrd_nb(m);
+int magma_get_dgesvd_nb(int m) {
+    return magma_get_dgebrd_nb(m);
 }
 
 extern "C"
-int magma_get_cgesvd_nb(int m){
-	return magma_get_cgebrd_nb(m);
+int magma_get_cgesvd_nb(int m) {
+    return magma_get_cgebrd_nb(m);
 }
 
-extern "C" 
-int magma_get_zgesvd_nb(int m){
-	return magma_get_zgebrd_nb(m);
+extern "C"
+int magma_get_zgesvd_nb(int m) {
+    return magma_get_zgebrd_nb(m);
 }
 
 #endif

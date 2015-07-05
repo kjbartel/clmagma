@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.0.0) --
+     -- clMAGMA (version 1.1.0-beta2) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        April 2012
+        @date November 2013
   
-        @generated s Wed Oct 24 00:32:47 2012
+        @generated s Mon Nov 25 17:55:56 2013
 
 */
 
@@ -14,65 +14,65 @@
 
 magma_err_t
 magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
-		  magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
-		  magma_err_t*   info, magma_queue_t queue )
+          magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
+          magma_err_t*   info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    SPOTRF computes the Cholesky factorization of a real symmetric   
-    positive definite matrix dA.   
+    Purpose
+    =======
+    SPOTRF computes the Cholesky factorization of a real symmetric
+    positive definite matrix dA.
 
-    The factorization has the form   
-       dA = U\*\*H * U,  if UPLO = 'U', or   
-       dA = L  * L\*\*H,  if UPLO = 'L',   
-    where U is an upper triangular matrix and L is lower triangular.   
+    The factorization has the form
+       dA = U\*\*H * U,  if UPLO = 'U', or
+       dA = L  * L\*\*H,  if UPLO = 'L',
+    where U is an upper triangular matrix and L is lower triangular.
 
-    This is the block version of the algorithm, calling Level 3 BLAS.   
+    This is the block version of the algorithm, calling Level 3 BLAS.
 
-    Arguments   
-    =========   
+    Arguments
+    =========
     UPLO    (input) INTEGER
-            = MagmaUpper:  Upper triangle of dA is stored;   
-            = MagmaLower:  Lower triangle of dA is stored.   
+            = MagmaUpper:  Upper triangle of dA is stored;
+            = MagmaLower:  Lower triangle of dA is stored.
 
-    N       (input) INTEGER   
-            The order of the matrix dA.  N >= 0.   
+    N       (input) INTEGER
+            The order of the matrix dA.  N >= 0.
 
-    dA      (input/output) REAL array on the GPU, dimension (LDDA,N)   
-            On entry, the symmetric matrix dA.  If UPLO = 'U', the leading   
-            N-by-N upper triangular part of dA contains the upper   
-            triangular part of the matrix dA, and the strictly lower   
-            triangular part of dA is not referenced.  If UPLO = 'L', the   
-            leading N-by-N lower triangular part of dA contains the lower   
-            triangular part of the matrix dA, and the strictly upper   
-            triangular part of dA is not referenced.   
+    dA      (input/output) REAL array on the GPU, dimension (LDDA,N)
+            On entry, the symmetric matrix dA.  If UPLO = 'U', the leading
+            N-by-N upper triangular part of dA contains the upper
+            triangular part of the matrix dA, and the strictly lower
+            triangular part of dA is not referenced.  If UPLO = 'L', the
+            leading N-by-N lower triangular part of dA contains the lower
+            triangular part of the matrix dA, and the strictly upper
+            triangular part of dA is not referenced.
 
-            On exit, if INFO = 0, the factor U or L from the Cholesky   
-            factorization dA = U\*\*H*U or dA = L*L\*\*H.   
+            On exit, if INFO = 0, the factor U or L from the Cholesky
+            factorization dA = U\*\*H*U or dA = L*L\*\*H.
 
-    LDDA    (input) INTEGER   
+    LDDA    (input) INTEGER
             The leading dimension of the array dA.  LDDA >= max(1,N).
             To benefit from coalescent memory accesses LDDA must be
             dividable by 16.
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
-            > 0:  if INFO = i, the leading minor of order i is not   
-                  positive definite, and the factorization could not be   
-                  completed.   
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+            > 0:  if INFO = i, the leading minor of order i is not
+                  positive definite, and the factorization could not be
+                  completed.
     =====================================================================   */
 
-// produces pointer and offset as two args to magmaBLAS routines 
+// produces pointer and offset as two args to magmaBLAS routines
 #define dA(i,j)  dA, ( (dA_offset) + (i) + (j)*ldda )
 
-// produces pointer as single arg to BLAS routines   
+// produces pointer as single arg to BLAS routines
 #define A(i,j)  &A[ (i) + (j)*lda ]
 
     magma_int_t j, jb, nb;
@@ -98,7 +98,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
     
     nb = magma_get_spotrf_nb( n );
     
-    err = magma_malloc_host( (void**) &work, nb*nb*sizeof(float) );
+    err = magma_smalloc_cpu(  &work, nb*nb );
     if ( err != MAGMA_SUCCESS ) {
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
@@ -122,12 +122,12 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
                 jb = min( nb, n-j );
                 if ( j > 0 ) {
                     chk( magma_ssyrk( MagmaUpper, MagmaTrans, jb, j,
-                        m_one, dA(0,j), ldda,
-                          one, dA(j,j), ldda, queue ));
+                                      m_one, dA(0,j), ldda,
+                                      one, dA(j,j), ldda, queue ));
                 }
                 
-		// start asynchronous data transfer 
-		chk( magma_sgetmatrix_async( jb, jb, dA(j,j), ldda, work, 0, jb, queue, &event ));
+                // start asynchronous data transfer
+                chk( magma_sgetmatrix_async( jb, jb, dA(j,j), ldda, work, 0, jb, queue, &event ));
 
                 // apply all previous updates to block row right of diagonal block
                 if ( j+jb < n ) {
@@ -140,7 +140,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
                 
                 // simultaneous with above sgemm, transfer data, factor
                 // diagonal block on CPU, and test for positive definiteness
-                chk( magma_event_sync( event )); 
+                chk( magma_event_sync( event ));
                 lapackf77_spotrf( MagmaUpperStr, &jb, work, &jb, info );
                 if ( *info != 0 ) {
                     assert( *info > 0 );
@@ -151,7 +151,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
                 
                 // apply diagonal block to block row right of diagonal block
                 if ( j+jb < n ) {
-  		    chk( magma_event_sync( event ));
+                    chk( magma_event_sync( event ));
                     chk( magma_strsm(
                         MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit,
                         jb, n-j-jb,
@@ -167,11 +167,13 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
             for( j = 0; j < n; j += nb ) {
                 // apply all previous updates to diagonal block
                 jb = min( nb, n-j );
-                chk( magma_ssyrk( MagmaLower, MagmaNoTrans, jb, j,
-                    m_one, dA(j, 0), ldda,
-                      one, dA(j, j), ldda, queue ));
-                
-		// start asynchronous data transfer
+                if ( j>0 ) {
+                    chk( magma_ssyrk( MagmaLower, MagmaNoTrans, jb, j,
+                                      m_one, dA(j, 0), ldda,
+                                      one, dA(j, j), ldda, queue ));
+                }
+
+                // start asynchronous data transfer
                 chk( magma_sgetmatrix_async( jb, jb, dA(j,j), ldda, work, 0, jb, queue, &event ));
 
                 // apply all previous updates to block column below diagonal block
@@ -196,7 +198,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
                 
                 // apply diagonal block to block column below diagonal
                 if ( j+jb < n ) {
-	 	    chk( magma_event_sync( event ));
+                    chk( magma_event_sync( event ));
                     chk( magma_strsm(
                         MagmaRight, MagmaLower, MagmaTrans, MagmaNonUnit,
                         n-j-jb, jb,
@@ -208,7 +210,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
     }
     
     chk( magma_queue_sync( queue ));
-    chk( magma_free_host( work ));
+    chk( magma_free_cpu( work ));
     
     return *info;
 }

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated d Wed Oct 24 00:33:04 2012
+       @generated d Mon Nov 25 17:56:10 2013
 
 */
 
@@ -30,9 +30,9 @@
 #endif
 
 int main(int argc, char **argv)
-{        
+{
     real_Double_t    gflops, gpu_perf, cpu_perf, gpu_time, cpu_time;
-	double	error, work[1];
+    double error, work[1];
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
     double c_neg_one = MAGMA_D_NEG_ONE;
@@ -42,10 +42,10 @@ int main(int argc, char **argv)
     magma_int_t N, N0 = 0;
     magma_int_t szeA, szeX, szeY;
     magma_int_t istart = 64;
-	magma_int_t iend = 7070;
+    magma_int_t iend = 7070;
     magma_int_t incx = 1;
     magma_int_t incy = 1;
-    magma_trans_t	trans = MagmaNoTrans;
+    magma_trans_t trans = MagmaNoTrans;
     double alpha = MAGMA_D_MAKE(1., 0.); // MAGMA_D_MAKE(  1.5, -2.3 );
     double beta  = MAGMA_D_MAKE(0., 0.); // MAGMA_D_MAKE( -0.6,  0.8 );
     double *A, *X, *Y, *Ymagma, *Ycpu;
@@ -90,23 +90,23 @@ int main(int argc, char **argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
     }
     
-	lda = ((M+31)/32)*32;
+    lda = ((M+31)/32)*32;
     
     szeA = lda*N;
     szeX = incx*Xm;
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
     printf("  M     N    CPU GFlop/s (sec)   GPU GFlop/s (sec)   error\n");
     printf("======================================================================\n");
-	for( i=istart; i < iend; i = (int)((i+1)*1.1) )
+    for( i=istart; i < iend; i = (int)((i+1)*1.1) )
     {
         M = N = i;
         if ( M0 != 0 ) M = M0;
@@ -159,14 +159,14 @@ int main(int argc, char **argv)
         /*
          * OPENCL BLAS Version
          */
-		// warm-up
-		magma_dgemv( trans, M, N, alpha, dA, 0, lda, dX, 0, incx, beta, dY, 0, incy, queue );
-		clFinish(queue);
+        // warm-up
+        magma_dgemv( trans, M, N, alpha, dA, 0, lda, dX, 0, incx, beta, dY, 0, incy, queue );
+        clFinish(queue);
 
         magma_dsetvector( Ym, Y, 0, incy, dY, 0, incy, queue );
         gpu_time = get_time();
         magma_dgemv( trans, M, N, alpha, dA, 0, lda, dX, 0, incx, beta, dY, 0, incy, queue );
-		clFinish(queue);
+        clFinish(queue);
         gpu_time = get_time() - gpu_time;
         
         magma_dgetvector( Ym, dY, 0, incy, Ymagma, 0, incy, queue );
@@ -183,13 +183,13 @@ int main(int argc, char **argv)
             blastrans = MagmaTransStr;
             
         blasf77_dcopy( &Ym, Y, &incy, Ycpu, &incy );
-		cpu_time = get_time();
-        blasf77_dgemv( blastrans, &M, &N, 
-                        &alpha, A,       &lda, 
-								X,       &incx, 
+        cpu_time = get_time();
+        blasf77_dgemv( blastrans, &M, &N,
+                        &alpha, A,       &lda,
+                                X,       &incx,
                         &beta,  Ycpu, &incy );
-		cpu_time = get_time() - cpu_time;
-		cpu_perf = gflops / cpu_time;
+        cpu_time = get_time() - cpu_time;
+        cpu_perf = gflops / cpu_time;
             
         blasf77_daxpy( &Ym, &c_neg_one, Ymagma, &incy, Ycpu, &incy);
         error = lapackf77_dlange( "M", &Ym, &ione, Ycpu, &Ym, work );

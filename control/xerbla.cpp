@@ -1,9 +1,9 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
  * @author Mark Gates
  * @precisions normal z -> s d c
@@ -18,11 +18,11 @@
 extern "C"
 void magma_xerbla(const char *srname , magma_int_t info)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======

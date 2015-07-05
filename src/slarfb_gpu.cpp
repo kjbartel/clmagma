@@ -1,30 +1,30 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated s Wed Oct 24 00:32:47 2012
+       @generated s Mon Nov 25 17:55:59 2013
 */
 
 #include <stdio.h>
-#include "common_magma.h" 
+#include "common_magma.h"
 
 magma_err_t
 magma_slarfb_gpu( int side, int trans, int direct, int storev,
                   magma_int_t m, magma_int_t n, magma_int_t k,
-                  magmaFloat_ptr dV, size_t dV_offset,   magma_int_t ldv, 
+                  magmaFloat_ptr dV, size_t dV_offset,   magma_int_t ldv,
                   magmaFloat_ptr dT, size_t dT_offset,   magma_int_t ldt,
-                  magmaFloat_ptr dC, size_t dC_offset,   magma_int_t ldc, 
+                  magmaFloat_ptr dC, size_t dC_offset,   magma_int_t ldc,
                   magmaFloat_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
-		  magma_queue_t queue)
+                  magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -86,11 +86,13 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
     WORK    (workspace) REAL array, dimension (LDWORK,K)
 
     LDWORK  (input) INTEGER
-            The leading dimension of the array WORK. 
+            The leading dimension of the array WORK.
             If SIDE == 'L', LDWORK >= max(1,N);
-            if SIDE == 'R', LDWORK >= max(1,M); 
+            if SIDE == 'R', LDWORK >= max(1,M);
     ===================================================================      */
 
+    /* TODO: replace with updated larfb_gpu from CUDA MAGMA */
+    
 #define dV(i)       dV, (i)
 #define dT(i)       dT, (i)
 #define dC(i)       dC, (i)
@@ -105,54 +107,54 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
     }
 
     magma_int_t transt;
-    if (trans == MagmaNoTrans) 
+    if (trans == MagmaNoTrans)
       transt = MagmaTrans;
     else
       transt = MagmaNoTrans;
 
     if ( side  == MagmaLeft ) {
 
-    if ( storev == MagmaColumnwise ) 
+    if ( storev == MagmaColumnwise )
       {
-	magma_sgemm( MagmaTrans, MagmaNoTrans,
+        magma_sgemm( MagmaTrans, MagmaNoTrans,
                      n, k, m,
                      c_one,  dC(dC_offset),    ldc,
-		     dV(dV_offset),    ldv,
+                     dV(dV_offset),    ldv,
                      c_zero, dwork(dwork_offset), ldwork, queue);
 
         if (direct == MagmaForward)
             magma_strmm( MagmaRight, MagmaUpper, transt, MagmaNonUnit,
-                         n, k, 
-                         c_one, dT(dT_offset),    ldt, 
-			 dwork(dwork_offset), ldwork, queue);
+                         n, k,
+                         c_one, dT(dT_offset),    ldt,
+                         dwork(dwork_offset), ldwork, queue);
         else
             magma_strmm( MagmaRight, MagmaLower, transt, MagmaNonUnit,
-                         n, k, 
-                         c_one, dT(dT_offset),    ldt, 
-			 dwork(dwork_offset), ldwork, queue);
+                         n, k,
+                         c_one, dT(dT_offset),    ldt,
+                         dwork(dwork_offset), ldwork, queue);
 
-        magma_sgemm( MagmaNoTrans, MagmaTrans, 
-                     m, n, k, 
+        magma_sgemm( MagmaNoTrans, MagmaTrans,
+                     m, n, k,
                      c_neg_one, dV(dV_offset),    ldv,
-		     dwork(dwork_offset), ldwork, 
+                     dwork(dwork_offset), ldwork,
                      c_one,     dC(dC_offset),    ldc, queue);
     }
     else {
-        magma_sgemm( MagmaNoTrans, MagmaTrans, 
-                     m, k, n, 
+        magma_sgemm( MagmaNoTrans, MagmaTrans,
+                     m, k, n,
                      c_one,  dC(dC_offset),    ldc,
-		     dV(dV_offset),    ldv, 
+                     dV(dV_offset),    ldv,
                      c_zero, dwork(dwork_offset), ldwork, queue);
 
         magma_strmm( MagmaRight, MagmaUpper, transt, MagmaNonUnit,
-                     m, k, 
-                     c_one, dT(dT_offset),    ldt, 
-		     dwork(dwork_offset), ldwork, queue);
-	
-        magma_sgemm( MagmaNoTrans, MagmaNoTrans, 
-                     m, n, k, 
+                     m, k,
+                     c_one, dT(dT_offset),    ldt,
+                     dwork(dwork_offset), ldwork, queue);
+        
+        magma_sgemm( MagmaNoTrans, MagmaNoTrans,
+                     m, n, k,
                      c_neg_one, dwork(dwork_offset), ldwork,
-		     dV(dV_offset),    ldv,
+                     dV(dV_offset),    ldv,
                      c_one,     dC(dC_offset),    ldc, queue);
     }
     }
@@ -166,7 +168,7 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
                          c_one,  dC(dC_offset),    ldc,
                          dV(dV_offset),    ldv,
                          c_zero, dwork(dwork_offset), ldwork, queue);
-	    // ??? ldwork replaced by k for case n < k
+            // ??? ldwork replaced by k for case n < k
 
             if (direct == MagmaForward)
                 magma_strmm( MagmaRight, MagmaUpper, transt, MagmaNonUnit,
@@ -181,7 +183,7 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
 
             magma_sgemm( MagmaNoTrans, MagmaTrans,
                          m, n, k,
-                         c_neg_one, dwork(dwork_offset), ldwork, 
+                         c_neg_one, dwork(dwork_offset), ldwork,
                          dV(dV_offset),    ldv,
                          c_one,     dC(dC_offset),    ldc, queue);
         }

@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
     @precisions normal d -> s
 
@@ -25,7 +25,7 @@
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing dsyevd
 */
-int main( int argc, char** argv) 
+int main( int argc, char** argv)
 {
     real_Double_t      gpu_time, cpu_time;
     double *h_A, *h_R, *h_work;
@@ -78,24 +78,24 @@ int main( int argc, char** argv)
         checkres = false;
     }
 
-	/* Initialize */
+    /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
 
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
-	}
+    }
 
     /* Query for workspace sizes */
     double      aux_work[1];
@@ -132,8 +132,8 @@ int main( int argc, char** argv)
         /* warm up run */
         magma_dsyevd(jobz, uplo,
                      N, h_R, N, w1,
-                     h_work, lwork, 
-                     iwork, liwork, 
+                     h_work, lwork,
+                     iwork, liwork,
                      &info, queue);
         
         lapackf77_dlacpy( MagmaUpperLowerStr, &N, &N, h_A, &N, h_R, &N );
@@ -177,9 +177,9 @@ int main( int argc, char** argv)
           double *tau, temp1, temp2;
 
           lapackf77_dsyt21(&ione, lapack_const(uplo), &N, &izero,
-                           h_A, &N, 
-                           w1, h_work,  
-                           h_R, &N, 
+                           h_A, &N,
+                           w1, h_work,
+                           h_R, &N,
                            h_R, &N,
                            tau, h_work, &result[0]);
 

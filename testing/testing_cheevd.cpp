@@ -1,13 +1,13 @@
 /*
-    -- MAGMA (version 1.0.0) --
+    -- MAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
     @author Stan Tomov
 
-    @generated c Wed Oct 24 00:33:04 2012
+    @generated c Mon Nov 25 17:56:10 2013
 
 */
 
@@ -27,9 +27,9 @@
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing cheevd
 */
-int main( int argc, char** argv) 
+int main( int argc, char** argv)
 {
-    real_Double_t	gpu_time, cpu_time;
+    real_Double_t gpu_time, cpu_time;
 
     magmaFloatComplex *h_A, *h_R, *h_work;
     float *rwork, *w1, *w2;
@@ -81,24 +81,24 @@ int main( int argc, char** argv)
         checkres = false;
     }
     
-	/* Initialize */
+    /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
 
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
-	}
+    }
 
     /* Query for workspace sizes */
     magmaFloatComplex aux_work[1];
@@ -142,9 +142,9 @@ int main( int argc, char** argv)
         /* warm up run */
         magma_cheevd(jobz, uplo,
                      N, h_R, N, w1,
-                     h_work, lwork, 
-                     rwork, lrwork, 
-                     iwork, liwork, 
+                     h_work, lwork,
+                     rwork, lrwork,
+                     iwork, liwork,
                      &info, queue);
         
         lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &N, h_R, &N );

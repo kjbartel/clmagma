@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2012
+ *     @date November 2013
  *
- * @generated c Wed Oct 24 00:33:02 2012
+ * @generated c Mon Nov 25 17:56:10 2013
  *
  **/
 
@@ -39,7 +39,7 @@
 int main(int argc, char **argv)
 {
     real_Double_t gflops, gpu_perf, gpu_time;
-	float	Rnorm, Anorm, Xnorm, *work;
+    float Rnorm, Anorm, Xnorm, *work;
     magmaFloatComplex *hA, *hB, *hX;
     magmaFloatComplex_ptr dA, dB;
     magma_int_t N = 0, n2, lda, ldb, ldda, lddb;
@@ -51,14 +51,14 @@ int main(int argc, char **argv)
     magmaFloatComplex mz_one = MAGMA_C_NEG_ONE;
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
-	magma_int_t NRHS = 100;
+    magma_int_t NRHS = 100;
 
     if (argc != 1){
-        for(i = 1; i<argc; i++){        
+        for(i = 1; i<argc; i++){
             if (strcmp("-N", argv[i])==0)
                 N = atoi(argv[++i]);
-			if (strcmp("-R", argv[i])==0)
-				NRHS = atoi(argv[++i]);
+            if (strcmp("-R", argv[i])==0)
+                NRHS = atoi(argv[++i]);
         }
         if (N>0) size[0] = size[6] = N;
         else exit(1);
@@ -70,16 +70,16 @@ int main(int argc, char **argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
         fprintf( stderr, "magma_queue_create failed: %d\n", err );
         exit(-1);
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     n2   = N * N;
     ldda = ((N+31)/32) * 32;
    // ldda = N;
-	lddb = ldda;
+    lddb = ldda;
     TESTING_MALLOC_HOST( hA, magmaFloatComplex, n2 );
     TESTING_MALLOC_HOST( hB, magmaFloatComplex, N*NRHS );
     TESTING_MALLOC_HOST( hX, magmaFloatComplex, N*NRHS );
@@ -99,19 +99,19 @@ int main(int argc, char **argv)
     TESTING_MALLOC_DEV(  dB, magmaFloatComplex, lddb*NRHS );
     
     printf("\n\n");
-	printf("    N   NRHS   GPU GFlop/s (sec)   ||B - AX|| / ||A||*||X||\n");
+    printf("    N   NRHS   GPU GFlop/s (sec)   ||B - AX|| / ||A||*||X||\n");
     printf("===========================================================\n");
     for(i=0; i<7; i++){
         N   = size[i];
         lda = N;
-		ldb = lda;
+        ldb = lda;
         n2  = lda*N;
-		szeB = ldb*NRHS;
+        szeB = ldb*NRHS;
         ldda = ((N+31)/32)*32;
-	//	ldda = N;
-		lddb = ldda;
-		gflops = ( FLOPS_POTRF( (float)N ) +
-		                   FLOPS_POTRS( (float)N, (float)NRHS ) ) / 1e9;
+        //ldda = N;
+        lddb = ldda;
+        gflops = ( FLOPS_POTRF( (float)N ) +
+                   FLOPS_POTRS( (float)N, (float)NRHS ) ) / 1e9;
 
         /* Initialize the matrix */
         lapackf77_clarnv( &ione, ISEED, &n2, hA );
@@ -120,22 +120,22 @@ int main(int argc, char **argv)
         for( int i = 0; i < N; ++i ) {
             MAGMA_C_SET2REAL( hA(i,i), MAGMA_C_REAL(hA(i,i)) + N );
             for( int j = 0; j < i; ++j ) {
-	      hA(i, j) = MAGMA_C_CNJG( hA(j,i) );
+                hA(i, j) = MAGMA_C_CNJG( hA(j,i) );
             }
         }
         
-		/* Warm up to measure the performance */
-		magma_csetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
-		magma_csetmatrix( N, NRHS, hB, 0, lda, dB, 0, lddb, queue );
-		magma_cposv_gpu( MagmaUpper, N, NRHS, dA, 0, ldda, dB, 0, lddb, &info, queue );
+        /* Warm up to measure the performance */
+        magma_csetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
+        magma_csetmatrix( N, NRHS, hB, 0, lda, dB, 0, lddb, queue );
+        magma_cposv_gpu( MagmaUpper, N, NRHS, dA, 0, ldda, dB, 0, lddb, &info, queue );
         
         /* ====================================================================
-           Performs operation using MAGMA 
+           Performs operation using MAGMA
            =================================================================== */
         magma_csetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
-		magma_csetmatrix( N, NRHS, hB, 0, lda, dB, 0, lddb, queue );
-		gpu_time = get_time();
-		magma_cposv_gpu( MagmaUpper, N, NRHS, dA, 0, ldda, dB, 0, lddb, &info, queue );
+        magma_csetmatrix( N, NRHS, hB, 0, lda, dB, 0, lddb, queue );
+        gpu_time = get_time();
+        magma_cposv_gpu( MagmaUpper, N, NRHS, dA, 0, ldda, dB, 0, lddb, &info, queue );
         gpu_time = get_time() - gpu_time;
         if (info != 0)
             printf( "magma_cposv had error %d.\n", info );
@@ -146,18 +146,18 @@ int main(int argc, char **argv)
            Residual
            =================================================================== */
         magma_cgetmatrix( N, NRHS, dB, 0, lddb, hX, 0, ldb, queue );
-		Anorm = lapackf77_clange("I", &N, &N,    hA, &lda, work);
+        Anorm = lapackf77_clange("I", &N, &N,    hA, &lda, work);
         Xnorm = lapackf77_clange("I", &N, &NRHS, hX, &ldb, work);
 
-		blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &N, &NRHS, &N,
-						&z_one,  hA, &lda,
-						hX, &ldb,
-						&mz_one, hB, &ldb );
+        blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &N, &NRHS, &N,
+                        &z_one,  hA, &lda,
+                        hX, &ldb,
+                        &mz_one, hB, &ldb );
 
-		Rnorm = lapackf77_clange("I", &N, &NRHS, hB, &ldb, work);
+        Rnorm = lapackf77_clange("I", &N, &NRHS, hB, &ldb, work);
 
              printf( "%5d  %5d   %7.2f (%7.2f)   %8.2e\n",
-			                 N, NRHS, gpu_perf, gpu_time, Rnorm/(Anorm*Xnorm) );
+                             N, NRHS, gpu_perf, gpu_time, Rnorm/(Anorm*Xnorm) );
 
         if (argc != 1)
             break;

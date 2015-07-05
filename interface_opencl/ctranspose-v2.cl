@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated c Wed Oct 24 00:32:58 2012
+       @generated c Mon Nov 25 17:56:04 2013
 
 */
 //#include "common_magma.h"
@@ -14,175 +14,175 @@
 #define PRECISION_c
 
 #define CSIZE_1SHARED 32
-#define __mul24( x, y )  ((x)*(y))
 
 #if defined(PRECISION_c) || defined(PRECISION_z)
 typedef float2 magmaFloatComplex;
 #endif
 
-__kernel void ctranspose3_32( __global magmaFloatComplex *B, int offsetB, int ldb, 
-                                __global magmaFloatComplex *A, int offsetA, int lda,
-                                int m, int m32, int n, int n32)
+__kernel void ctranspose3_32(
+    __global magmaFloatComplex *B, int offsetB, int ldb,
+    __global magmaFloatComplex *A, int offsetA, int lda,
+    int m, int m32, int n, int n32)
 {
-         __local magmaFloatComplex a[32][CSIZE_1SHARED+1];
-
-        int inx = get_local_id(0);
-        int iny = get_local_id(1);
-        int ibx = get_group_id(0)*32;
-        int iby = get_group_id(1)*32;
-
-		A += offsetA;
-		B += offsetB;
-
-        A += ibx + inx + __mul24( iby + iny, lda );
-        B += iby + inx + __mul24( ibx + iny, ldb );
-
-        int t2 = iby+iny;
-        if (ibx+inx<m)
-        {
-          if (t2   <n) {
-             a[iny+0][inx] = A[0*lda];
-                   if        (t2+ 8<n) {
+     __local magmaFloatComplex a[32][CSIZE_1SHARED+1];
+    
+    int inx = get_local_id(0);
+    int iny = get_local_id(1);
+    int ibx = get_group_id(0)*32;
+    int iby = get_group_id(1)*32;
+    
+    A += offsetA;
+    B += offsetB;
+    
+    A += ibx + inx + (iby + iny)*lda;
+    B += iby + inx + (ibx + iny)*ldb;
+    
+    int t2 = iby + iny;
+    if (ibx + inx < m) {
+        if (t2 < n) {
+            a[iny+0][inx] = A[0*lda];
+            if (t2 + 8 < n) {
                 a[iny+8][inx] = A[8*lda];
-                            if (t2 + 16<n) {
-                   a[iny+16][inx] = A[16*lda];
-                               if (t2 + 24<n)
-                      a[iny+24][inx] = A[24*lda];
+                if (t2 + 16 < n) {
+                    a[iny+16][inx] = A[16*lda];
+                    if (t2 + 24 < n)
+                        a[iny+24][inx] = A[24*lda];
                 }
-                   }
-                 }
-              }
-
-        barrier(CLK_LOCAL_MEM_FENCE);
+            }
+        }
+    }
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
 
 #if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c) || defined(PRECISION_z)
-        if (iby + inx < n){
-            if (ibx + iny <m){
-                B[0*ldb] = a[inx][iny+0];
-                if (ibx + iny + 8 <m){
-                    B[8*ldb] = a[inx][iny+8];
-                    if (ibx + iny +16 <m){
-                        B[16*ldb] = a[inx][iny+16];
-                        if (ibx + iny + 24 <m)
-                            B[24*ldb] = a[inx][iny+24];
-                    }
+    if (iby + inx < n) {
+        if (ibx + iny < m) {
+            B[0*ldb] = a[inx][iny+0];
+            if (ibx + iny + 8 < m) {
+                B[8*ldb] = a[inx][iny+8];
+                if (ibx + iny + 16 < m) {
+                    B[16*ldb] = a[inx][iny+16];
+                    if (ibx + iny + 24 < m)
+                        B[24*ldb] = a[inx][iny+24];
                 }
             }
         }
+    }
 #else
-        if (iby + inx < n){
-            if (ibx + iny <m){
-                B[0*ldb] = a[inx][iny+0];
-                if (ibx + iny + 8 <m){
-                    B[8*ldb] = a[inx][iny+8];
-                }
-            }                
-            if (iby + inx + 16 < n) {
-                if (ibx + iny <m){
-                    B[0*ldb+16] = a[inx+16][iny+0];
-                    if (ibx + iny + 8 < m){
-                        B[8*ldb+16] = a[inx+16][iny+8];
-                    }
+    if (iby + inx < n) {
+        if (ibx + iny < m) {
+            B[0*ldb] = a[inx][iny+0];
+            if (ibx + iny + 8 < m) {
+                B[8*ldb] = a[inx][iny+8];
+            }
+        }
+        if (iby + inx + 16 < n) {
+            if (ibx + iny < m) {
+                B[0*ldb+16] = a[inx+16][iny+0];
+                if (ibx + iny + 8 < m) {
+                    B[8*ldb+16] = a[inx+16][iny+8];
                 }
             }
         }
-        
-        barrier(CLK_LOCAL_MEM_FENCE);
-        A += CSIZE_1SHARED;
-        B += __mul24( 16, ldb);
-
-        a[iny+0][inx] = A[0*lda];
-        a[iny+8][inx] = A[8*lda];
-        a[iny+16][inx] = A[16*lda];
-        a[iny+24][inx] = A[24*lda];
-
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        if (iby + inx < n){
-            if (ibx + iny + 16 <m){
-                B[0*ldb] = a[inx][iny+0];
-                if (ibx + iny + 24 <m){
-                    B[8*ldb] = a[inx][iny+8];
-                }
-            }                
-            if (iby + inx + 16 < n) {
-                if (ibx + iny + 16 <m){
-                    B[0*ldb+16] = a[inx+16][iny+0];
-                    if (ibx + iny + 24 <m){
-                        B[8*ldb+16] = a[inx+16][iny+8];
-                    }
+    }
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
+    A += CSIZE_1SHARED;
+    B += 16*ldb;
+    
+    a[iny+ 0][inx] = A[ 0*lda];
+    a[iny+ 8][inx] = A[ 8*lda];
+    a[iny+16][inx] = A[16*lda];
+    a[iny+24][inx] = A[24*lda];
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    if (iby + inx < n) {
+        if (ibx + iny + 16 < m) {
+            B[0*ldb] = a[inx][iny+0];
+            if (ibx + iny + 24 < m) {
+                B[8*ldb] = a[inx][iny+8];
+            }
+        }
+        if (iby + inx + 16 < n) {
+            if (ibx + iny + 16 < m) {
+                B[0*ldb+16] = a[inx+16][iny+0];
+                if (ibx + iny + 24 < m) {
+                    B[8*ldb+16] = a[inx+16][iny+8];
                 }
             }
         }
+    }
 #endif
 
 }
 
 
 
-__kernel void ctranspose2_32( __global magmaFloatComplex *B, int offsetB, int ldb, 
-                                __global magmaFloatComplex *A, int offsetA, int lda, 
-                                int m, int m32, int n, int n32)
-{        
-        __local magmaFloatComplex a[32][CSIZE_1SHARED+1];
-        
-        int inx = get_local_id(0);
-        int iny = get_local_id(1);
-        int ibx = get_group_id(0)*32;
-        int iby = get_group_id(1)*32;
-        
-        int dx, dy;
-        if (ibx+32<m)
-           dx = 0;
-        else
-           dx = m32;
+__kernel void ctranspose2_32(
+    __global magmaFloatComplex *B, int offsetB, int ldb,
+    __global magmaFloatComplex *A, int offsetA, int lda,
+    int m, int m32, int n, int n32)
+{
+    __local magmaFloatComplex a[32][CSIZE_1SHARED+1];
+    
+    int inx = get_local_id(0);
+    int iny = get_local_id(1);
+    int ibx = get_group_id(0)*32;
+    int iby = get_group_id(1)*32;
+    
+    int dx, dy;
+    if (ibx + 32 < m)
+       dx = 0;
+    else
+       dx = m32;
 
-        if (iby+32<n)
-           dy = 0;
-        else
-           dy = n32;
+    if (iby + 32 < n)
+       dy = 0;
+    else
+       dy = n32;
 
-		A += offsetA;
-		B += offsetB;
+    A += offsetA;
+    B += offsetB;
 
-        A += ibx + inx -dx + __mul24( iby + iny - dy, lda );
-        B += iby + inx -dy + __mul24( ibx + iny - dx, ldb );
-        
-        a[iny+0][inx] = A[0*lda];
-        a[iny+8][inx] = A[8*lda];
-        a[iny+16][inx] = A[16*lda];
-        a[iny+24][inx] = A[24*lda];
-        
-        barrier(CLK_LOCAL_MEM_FENCE);
-        
-#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c) || defined(PRECISION_z) 
-        B[0*ldb] = a[inx][iny+0];
-        B[8*ldb] = a[inx][iny+8];
-        B[16*ldb] = a[inx][iny+16];
-        B[24*ldb] = a[inx][iny+24];
-#else 
-        B[0*ldb]    = a[inx][iny+0];
-        B[8*ldb]    = a[inx][iny+8];
-        B[0*ldb+16] = a[inx+16][iny+0];
-        B[8*ldb+16] = a[inx+16][iny+8];
+    A += ibx + inx - dx + (iby + iny - dy)*lda;
+    B += iby + inx - dy + (ibx + iny - dx)*ldb;
+    
+    a[iny+ 0][inx] = A[ 0*lda];
+    a[iny+ 8][inx] = A[ 8*lda];
+    a[iny+16][inx] = A[16*lda];
+    a[iny+24][inx] = A[24*lda];
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+#if defined(PRECISION_s) || defined(PRECISION_d) || defined(PRECISION_c) || defined(PRECISION_z)
+    B[ 0*ldb] = a[inx][iny+ 0];
+    B[ 8*ldb] = a[inx][iny+ 8];
+    B[16*ldb] = a[inx][iny+16];
+    B[24*ldb] = a[inx][iny+24];
+#else
+    B[0*ldb]    = a[inx   ][iny+0];
+    B[8*ldb]    = a[inx   ][iny+8];
+    B[0*ldb+16] = a[inx+16][iny+0];
+    B[8*ldb+16] = a[inx+16][iny+8];
 
-        barrier(CLK_LOCAL_MEM_FENCE);
-        A += CSIZE_1SHARED;
-        B += __mul24( 16, ldb);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    A += CSIZE_1SHARED;
+    B += 16*ldb;
 
-        a[iny+0][inx] = A[0*lda];
-        a[iny+8][inx] = A[8*lda];
-        a[iny+16][inx] = A[16*lda];
-        a[iny+24][inx] = A[24*lda];
+    a[iny+ 0][inx] = A[ 0*lda];
+    a[iny+ 8][inx] = A[ 8*lda];
+    a[iny+16][inx] = A[16*lda];
+    a[iny+24][inx] = A[24*lda];
 
-        barrier(CLK_LOCAL_MEM_FENCE);
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-        B[0*ldb] = a[inx][iny+0];
-        B[8*ldb] = a[inx][iny+8];
-        B[0*ldb+16] = a[inx+16][iny+0];
-        B[8*ldb+16] = a[inx+16][iny+8];
+    B[0*ldb]    = a[inx   ][iny+0];
+    B[8*ldb]    = a[inx   ][iny+8];
+    B[0*ldb+16] = a[inx+16][iny+0];
+    B[8*ldb+16] = a[inx+16][iny+8];
 #endif
-} 
+}
 
 //
 //        m, n - dimensions in the source (input) matrix
@@ -190,9 +190,9 @@ __kernel void ctranspose2_32( __global magmaFloatComplex *B, int offsetB, int ld
 //             Note that ldi >= m and ldo >= n.
 //
 /*
-extern "C" void 
-magmablas_stranspose2(float *odata, int ldo, 
-                      float *idata, int ldi, 
+extern "C" void
+magmablas_stranspose2(float *odata, int ldo,
+                      float *idata, int ldi,
                       int m, int n )
 {
     // Quick return
@@ -201,7 +201,7 @@ magmablas_stranspose2(float *odata, int ldo,
 
     dim3 threads( SSIZE_1SHARED, 8, 1 );
     dim3 grid( (m+31)/32, (n+31)/32, 1 );
-    stranspose3_32<<< grid, threads, 0, magma_stream >>>( odata, ldo, idata, ldi, 
+    stranspose3_32<<< grid, threads, 0, magma_stream >>>( odata, ldo, idata, ldi,
                                          // m, m%32, n, n%32);
                                          m, (32-m%32)%32, n, (32-n%32)%32);
 }

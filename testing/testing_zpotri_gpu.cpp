@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       August 2012
+       @date November 2013
 
        @precisions normal z -> s d c
 
@@ -26,7 +26,7 @@
 */
 #define h_A(i,j) h_A[ i + j*lda ]
 
-int main( int argc, char** argv) 
+int main( int argc, char** argv)
 {
     real_Double_t    gflops, gpu_perf, cpu_perf, gpu_time, cpu_time;
 
@@ -43,7 +43,7 @@ int main( int argc, char** argv)
     double      work[1], matnorm;
     
     if (argc != 1){
-        for(i = 1; i<argc; i++){        
+        for(i = 1; i<argc; i++){
             if (strcmp("-N", argv[i])==0)
                 N = atoi(argv[++i]);
         }
@@ -57,16 +57,16 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
         fprintf( stderr, "magma_queue_create failed: %d\n", err );
         exit(-1);
@@ -83,7 +83,7 @@ int main( int argc, char** argv)
     printf("========================================================\n");
     for(i=0; i<10; i++){
         N   = size[i];
-        lda = N; 
+        lda = N;
         n2  = lda*N;
         gflops = FLOPS_ZPOTRI( (double)N ) / 1e9;
         
@@ -97,13 +97,13 @@ int main( int argc, char** argv)
             for(i=0; i<N; i++) {
                 MAGMA_Z_SET2REAL( h_A[i*lda+i], ( MAGMA_Z_REAL(h_A[i*lda+i]) + 1.*N ) );
                 for(j=0; j<i; j++)
-					h_A(i, j) = MAGMA_Z_CNJG( h_A(j,i) );
+                    h_A(i, j) = MAGMA_Z_CNJG( h_A(j,i) );
             }
         }
         lapackf77_zlacpy( MagmaFullStr, &N, &N, h_A, &lda, h_R, &lda );
 
         /* ====================================================================
-           Performs operation using MAGMA 
+           Performs operation using MAGMA
            =================================================================== */
         /* factorize matrix */
         magma_zsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
@@ -115,20 +115,20 @@ int main( int argc, char** argv)
         //h_R[ 10 + 10*lda ] = MAGMA_Z_MAKE( 0.0, 0.0 );
         //magma_zsetmatrix( N, N, h_R, lda, d_A, ldda );
        
-	    //warm-up
+        //warm-up
      //   magma_zpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
         
     //    magma_zsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-		gpu_time = get_time();
+        gpu_time = get_time();
         magma_zpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
-		gpu_time = get_time()-gpu_time;
+        gpu_time = get_time()-gpu_time;
         if (info != 0)
             printf("magma_zpotri_gpu returned error %d\n", (int) info);
 
         gpu_perf = gflops / gpu_time;
         
         /* =====================================================================
-           Performs operation using LAPACK 
+           Performs operation using LAPACK
            =================================================================== */
         cpu_time = get_time();
         lapackf77_zpotri(lapack_const(uplo), &N, h_A, &lda, &info);
@@ -144,7 +144,7 @@ int main( int argc, char** argv)
         magma_zgetmatrix( N, N, d_A, 0, ldda, h_R, 0, lda, queue );
         matnorm = lapackf77_zlange("f", &N, &N, h_A, &lda, work);
         blasf77_zaxpy(&n2, &c_neg_one, h_A, &ione, h_R, &ione);
-        printf("%5d    %6.2f         %6.2f        %e\n", 
+        printf("%5d    %6.2f         %6.2f        %e\n",
                (int) size[i], cpu_perf, gpu_perf,
                lapackf77_zlange("f", &N, &N, h_R, &lda, work) / matnorm);
         

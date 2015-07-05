@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2011
+ *     @date November 2013
  *
- * @generated c Wed Oct 24 00:33:02 2012
+ * @generated c Mon Nov 25 17:56:10 2013
  *
  **/
 
@@ -39,22 +39,22 @@ int main( int argc, char** argv)
 //#if defined(PRECISION_s)
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
         fprintf( stderr, "magma_queue_create failed: %d\n", err );
         exit(-1);
     }
   
-	real_Double_t gflops, gpu_perf, gpu_time, cpu_perf, cpu_time;
+    real_Double_t gflops, gpu_perf, gpu_time, cpu_perf, cpu_time;
     float           matnorm, work[1];
     magmaFloatComplex  c_one     = MAGMA_C_ONE;
     magmaFloatComplex  c_neg_one = MAGMA_C_NEG_ONE;
@@ -122,7 +122,7 @@ int main( int argc, char** argv)
     lapackf77_cgeqrf(&M, &N, h_A, &M, tau, tmp, &lhwork, &info);
     l1 = (magma_int_t)MAGMA_C_REAL( tmp[0] );
     lhwork = -1;
-    lapackf77_cunmqr( MagmaLeftStr, MagmaConjTransStr, 
+    lapackf77_cunmqr( MagmaLeftStr, MagmaConjTransStr,
                       &M, &nrhs, &min_mn, h_A, &lda, tau,
                       h_X, &ldb, tmp, &lhwork, &info);
     l2 = (magma_int_t)MAGMA_C_REAL( tmp[0] );
@@ -142,7 +142,7 @@ int main( int argc, char** argv)
         ldb = lda = M;
         n2    = lda*N;
         ldda  = ((M+31)/32)*32;
-        gflops = (FLOPS_GEQRF( (float)M, (float)N ) 
+        gflops = (FLOPS_GEQRF( (float)M, (float)N )
                  + FLOPS_GEQRS( (float)M, (float)N, (float)nrhs )) / 1e9;
 
         /* Initialize the matrices */
@@ -156,17 +156,17 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-		/* Warm up to measure the performance */
-		magma_csetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
+        /* Warm up to measure the performance */
+        magma_csetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
         magma_csetmatrix( M, nrhs, h_B, 0, ldb, d_B, 0, lddb, queue );
-        magma_cgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda, 
+        magma_cgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda,
                          d_B, 0, lddb, hwork, lworkgpu, &info, queue);
         
-		magma_csetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
+        magma_csetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
         magma_csetmatrix( M, nrhs, h_B, 0, ldb, d_B, 0, lddb, queue );
         
-		gpu_time = get_time();
-        magma_cgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda, 
+        gpu_time = get_time();
+        magma_cgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda,
                          d_B, 0, lddb, hwork, lworkgpu, &info, queue);
         gpu_time = get_time() - gpu_time;
         if (info < 0)
@@ -178,9 +178,9 @@ int main( int argc, char** argv)
         magma_cgetmatrix( N, nrhs, d_B, 0, lddb, h_X, 0, ldb, queue );
 
         // compute the residual
-        blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &M, &nrhs, &N, 
-                       &c_neg_one, h_A, &lda, 
-                                   h_X, &ldb, 
+        blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &M, &nrhs, &N,
+                       &c_neg_one, h_A, &lda,
+                                   h_X, &ldb,
                        &c_one,     h_R, &ldb);
         matnorm = lapackf77_clange("f", &M, &N, h_A, &lda, work);
 
@@ -197,9 +197,9 @@ int main( int argc, char** argv)
         if (info < 0)
           printf("Argument %d of lapackf77_cgels had an illegal value.\n", -info);
 
-        blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &M, &nrhs, &N, 
-                       &c_neg_one, h_A2, &lda, 
-                                   h_X,  &ldb, 
+        blasf77_cgemm( MagmaNoTransStr, MagmaNoTransStr, &M, &nrhs, &N,
+                       &c_neg_one, h_A2, &lda,
+                                   h_X,  &ldb,
                        &c_one,     h_B,  &ldb);
 
         printf("%5d %5d   %6.1f       %6.1f       %7.2e   %7.2e\n",

@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
- * @generated d Wed Oct 24 00:32:56 2012
+ * @generated d Mon Nov 25 17:56:04 2013
  */
 
 #include <stdio.h>
@@ -18,74 +18,74 @@
 
 magma_err_t
 magma_dinplace_transpose(
-	cl_mem A, size_t offset, int lda, int m, magma_queue_t queue )
+    cl_mem A, size_t offset, int lda, int m, magma_queue_t queue )
 {
-	cl_int ciErrNum;                // Error code var
-//	int in = m / NB;
-	int in = m / DSIZE_2SHARED;
-	cl_kernel ckKernel=NULL;
-	if (in&1)
-	{
-		//printf ("running odd kernel\n");
-		ckKernel = rt->KernelPool["dinplace_T_odd_kernel"];
-	}
-	else
-	{
-		//printf ("running even kernel\n");
-		ckKernel = rt->KernelPool["dinplace_T_even_kernel"];
-	}
-	
-	if (!ckKernel)
-	{
-		printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
-		return MAGMA_ERR_UNKNOWN;
-	}
-	
-	int nn = 0, half;
-	
-	if (in&1)
-		half = in/2+1; 
-	else
-		half = in/2;
-	
-	ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(cl_mem), (void*)&A      );
-	ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&offset );
-	ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&lda    );
-	ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&half   );
-	if (ciErrNum != CL_SUCCESS)
-	{
-		printf("Error: clSetKernelArg at %d in file %s!\n", __LINE__, __FILE__);
-		return MAGMA_ERR_UNKNOWN;
-	}
-	
-	size_t GlobalWorkSize[2]={0,0}, LocalWorkSize[2]={0,0};
-	
-//	LocalWorkSize[0] = NB;
-//	LocalWorkSize[1] = NB/2;
-	
-	LocalWorkSize[0] = DSIZE_2SHARED;
-	LocalWorkSize[1] = DSIZE_2SHARED/2;
-	
-	if (in&1)
-	{
-		GlobalWorkSize[0] = (in    )*LocalWorkSize[0];
-		GlobalWorkSize[1] = (in/2+1)*LocalWorkSize[1];
-	}
-	else
-	{
-		GlobalWorkSize[0] = (in+1)*LocalWorkSize[0];
-		GlobalWorkSize[1] = (in/2)*LocalWorkSize[1];
-	}
-	
-	// launch kernel
-	ciErrNum = clEnqueueNDRangeKernel(
-		queue, ckKernel, 2, NULL, GlobalWorkSize, LocalWorkSize, 0, NULL, NULL);
-	if (ciErrNum != CL_SUCCESS)
-	{
-		printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
-			__LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
-		return MAGMA_ERR_UNKNOWN;
-	}
-	
-	return MAGMA_SUCCESS;
+    cl_int ciErrNum;                // Error code var
+    //int in = m / NB;
+    int in = m / DSIZE_2SHARED;
+    cl_kernel ckKernel=NULL;
+    if (in&1)
+    {
+        //printf ("running odd kernel\n");
+        ckKernel = rt->KernelPool["dinplace_T_odd_kernel"];
+    }
+    else
+    {
+        //printf ("running even kernel\n");
+        ckKernel = rt->KernelPool["dinplace_T_even_kernel"];
+    }
+    
+    if (!ckKernel)
+    {
+        printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
+        return MAGMA_ERR_UNKNOWN;
+    }
+    
+    int nn = 0, half;
+    
+    if (in&1)
+        half = in/2+1;
+    else
+        half = in/2;
+    
+    ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(cl_mem), (void*)&A      );
+    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&offset );
+    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&lda    );
+    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&half   );
+    if (ciErrNum != CL_SUCCESS)
+    {
+        printf("Error: clSetKernelArg at %d in file %s!\n", __LINE__, __FILE__);
+        return MAGMA_ERR_UNKNOWN;
+    }
+    
+    size_t GlobalWorkSize[2]={0,0}, LocalWorkSize[2]={0,0};
+    
+    //LocalWorkSize[0] = NB;
+    //LocalWorkSize[1] = NB/2;
+    
+    LocalWorkSize[0] = DSIZE_2SHARED;
+    LocalWorkSize[1] = DSIZE_2SHARED/2;
+    
+    if (in&1)
+    {
+        GlobalWorkSize[0] = (in    )*LocalWorkSize[0];
+        GlobalWorkSize[1] = (in/2+1)*LocalWorkSize[1];
+    }
+    else
+    {
+        GlobalWorkSize[0] = (in+1)*LocalWorkSize[0];
+        GlobalWorkSize[1] = (in/2)*LocalWorkSize[1];
+    }
+    
+    // launch kernel
+    ciErrNum = clEnqueueNDRangeKernel(
+        queue, ckKernel, 2, NULL, GlobalWorkSize, LocalWorkSize, 0, NULL, NULL);
+    if (ciErrNum != CL_SUCCESS)
+    {
+        printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
+            __LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
+        return MAGMA_ERR_UNKNOWN;
+    }
+    
+    return MAGMA_SUCCESS;
 }

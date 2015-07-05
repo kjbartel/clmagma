@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated d Wed Oct 24 00:32:48 2012
+       @generated d Mon Nov 25 17:55:59 2013
 */
 
 #include <stdio.h>
@@ -14,10 +14,10 @@
 #include "common_magma.h"
 
 /* ////////////////////////////////////////////////////////////////////////////
-   -- Auxiliary function: 'a' is pointer to the current panel holding the 
+   -- Auxiliary function: 'a' is pointer to the current panel holding the
       Householder vectors for the QR factorization of the panel. This routine
       puts ones on the diagonal and zeros in the upper triangular part of 'a'.
-      The upper triangular values are stored in work. Than the inverse is 
+      The upper triangular values are stored in work. Than the inverse is
       calculated in place in work, so as final result work holds the inverse
       of the upper triangular diagonal block.
  */
@@ -41,16 +41,16 @@ void dsplit_diag_block(int ib, double *a, int lda, double *work){
 }
 
 extern "C" magma_err_t
-magma_dgeqrf_gpu( magma_int_t m, magma_int_t n, 
+magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
                   magmaDouble_ptr dA, size_t dA_offset,  magma_int_t ldda,
-                  double *tau, magmaDouble_ptr dT, size_t dT_offset, 
+                  double *tau, magmaDouble_ptr dT, size_t dT_offset,
                   magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       October 2012
+       @date November 2013
 
     Purpose
     =======
@@ -86,7 +86,7 @@ magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
             The scalar factors of the elementary reflectors (see Further
             Details).
 
-    dT      (workspace/output)  DOUBLE_PRECISION array on the GPU, 
+    dT      (workspace/output)  DOUBLE_PRECISION array on the GPU,
             dimension (2*MIN(M, N) + (N+31)/32*32 )*NB,
             where NB can be obtained through magma_get_dgeqrf_nb(M).
             It starts with MIN(M,N)*NB block that store the triangular T
@@ -148,7 +148,7 @@ magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
     lwork  = (m + n + nb)*nb;
     lhwork = lwork - m*nb;
 
-    if (MAGMA_SUCCESS != magma_malloc_host( (void**)&work, lwork*sizeof(double) )) {
+    if (MAGMA_SUCCESS != magma_dmalloc_cpu( &work, lwork )) {
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
     }
@@ -183,21 +183,21 @@ magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
                                         ut, 0, old_ib,
                                         d_ref(old_i), old_ib, queue, &event[0] );
             }
-			
-			magma_event_sync(event[1]);
+            
+            magma_event_sync(event[1]);
             lapackf77_dgeqrf(&rows, &ib, work_ref(i), &ldwork, tau+i, hwork, &lhwork, info);
             /* Form the triangular factor of the block reflector
                H = H(i) H(i+1) . . . H(i+ib-1) */
-            lapackf77_dlarft( MagmaForwardStr, MagmaColumnwiseStr, 
-                              &rows, &ib, 
+            lapackf77_dlarft( MagmaForwardStr, MagmaColumnwiseStr,
+                              &rows, &ib,
                               work_ref(i), &ldwork, tau+i, hwork, &ib);
 
             /* Put 0s in the upper triangular part of a panel (and 1s on the
                diagonal); copy the upper triangular in ut and invert it     */
-	    magma_event_sync(event[0]);
+            magma_event_sync(event[0]);
             dsplit_diag_block(ib, work_ref(i), ldwork, ut);
             magma_dsetmatrix( rows, ib, work_ref(i), 0, ldwork, a_ref(i,i), ldda, queue);
-			
+            
             if (i + ib < n) {
                 /* Send the triangular factor T to the GPU */
                 magma_dsetmatrix( ib, ib, hwork, 0, ib, t_ref(i), nb, queue );
@@ -205,15 +205,15 @@ magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
                 if (i+nb < k-nb){
                     /* Apply H' to A(i:m,i+ib:i+2*ib) from the left */
                     magma_dlarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
-                                      rows, ib, ib, 
-                                      a_ref(i, i   ), ldda, t_ref(i),  nb, 
+                                      rows, ib, ib,
+                                      a_ref(i, i   ), ldda, t_ref(i),  nb,
                                       a_ref(i, i+ib), ldda, dd_ref(0), lddwork, queue);
                 }
                 else {
                     cols = n-i-ib;
                     magma_dlarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
-                                      rows, cols, ib, 
-                                      a_ref(i, i   ), ldda, t_ref(i),  nb, 
+                                      rows, cols, ib,
+                                      a_ref(i, i   ), ldda, t_ref(i),  nb,
                                       a_ref(i, i+ib), ldda, dd_ref(0), lddwork, queue);
                     /* Fix the diagonal block */
                     magma_dsetmatrix( ib, ib, ut, 0, ib, d_ref(i), ib , queue);
@@ -237,7 +237,7 @@ magma_dgeqrf_gpu( magma_int_t m, magma_int_t n,
         magma_dsetmatrix( rows, ib, work, 0, rows, a_ref(i, i), ldda, queue );
     }
 
-    magma_free_host( work );
+    magma_free_cpu( work );
     return *info;
 } /* magma_dgeqrf */
 

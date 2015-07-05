@@ -1,9 +1,9 @@
-/*  
-    -- clMAGMA (version 1.0.0) --
-       Univ. of Tennessee, Knoxville                                                                           
-       Univ. of California, Berkeley                                                                           
-       Univ. of Colorado, Denver                                                                               
-       April 2012                                                                                              
+/*
+    -- clMAGMA (version 1.1.0-beta2) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2013
                                                                                                               
        @precisions normal z -> s d c
 */
@@ -13,17 +13,17 @@
 
 
 extern "C" magma_err_t
-magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs, 
+magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs,
                  magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magma_int_t *ipiv, 
-                 magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb, 
+                 magma_int_t *ipiv,
+                 magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb,
                  magma_int_t *info, magma_queue_t queue)
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -81,8 +81,8 @@ magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs,
     magma_int_t i1, i2, inc;
 
     *info = 0;
-    if ( (! notran) && 
-         (! lapackf77_lsame(lapack_const(trans_), lapack_const(MagmaTrans))) && 
+    if ( (! notran) &&
+         (! lapackf77_lsame(lapack_const(trans_), lapack_const(MagmaTrans))) &&
          (! lapackf77_lsame(lapack_const(trans_), lapack_const(MagmaConjTrans))) ) {
         *info = -1;
     } else if (n < 0) {
@@ -103,8 +103,8 @@ magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs,
     if (n == 0 || nrhs == 0) {
         return *info;
     }
-	
-	work=(magmaDoubleComplex*)malloc( n*nrhs*sizeof(magmaDoubleComplex) );
+    
+    magma_zmalloc_cpu( &work, n*nrhs );
     if ( !work ) {
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
@@ -116,9 +116,9 @@ magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs,
         inc = 1;
 
         /* Solve A * X = B. */
-		magma_zgetmatrix( n, nrhs, dB, dB_offset, lddb, work, 0, n, queue );
+        magma_zgetmatrix( n, nrhs, dB, dB_offset, lddb, work, 0, n, queue );
         lapackf77_zlaswp(&nrhs, work, &n, &i1, &i2, ipiv, &inc);
-		magma_zsetmatrix( n, nrhs, work, 0, n, dB, dB_offset, lddb, queue );
+        magma_zsetmatrix( n, nrhs, work, 0, n, dB, dB_offset, lddb, queue );
 
         if ( nrhs == 1) {
             chk(magma_ztrsv(MagmaLower, MagmaNoTrans, MagmaUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue));
@@ -135,15 +135,15 @@ magma_zgetrs_gpu(magma_trans_t trans, magma_int_t n, magma_int_t nrhs,
             chk(magma_ztrsv(MagmaUpper, trans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
             chk(magma_ztrsv(MagmaLower, trans, MagmaUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
         } else {
-			chk(magma_ztrsm(MagmaLeft, MagmaUpper, trans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            chk(magma_ztrsm(MagmaLeft, MagmaUpper, trans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
             chk(magma_ztrsm(MagmaLeft, MagmaLower, trans, MagmaUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
         }
 
-		magma_zgetmatrix( n, nrhs, dB, dB_offset, lddb, work, 0, n, queue );
+        magma_zgetmatrix( n, nrhs, dB, dB_offset, lddb, work, 0, n, queue );
         lapackf77_zlaswp(&nrhs, work, &n, &i1, &i2, ipiv, &inc);
         magma_zsetmatrix( n, nrhs, work, 0, n, dB, dB_offset, lddb, queue );
     }
-    free(work);
+    magma_free_cpu(work);
 
     return *info;
 }

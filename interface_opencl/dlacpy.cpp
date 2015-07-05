@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       August 2012
+       @date November 2013
 
-       @generated d Wed Oct 24 00:32:57 2012
+       @generated d Mon Nov 25 17:56:04 2013
 
 */
 
@@ -14,11 +14,11 @@
 #include "magmablas.h"
 #include "CL_MAGMA_RT.h"
 
-extern "C" void 
+extern "C" void
 magmablas_dlacpy( magma_uplo_t uplo, magma_int_t m, magma_int_t n,
                   magmaDouble_ptr dA, size_t dA_offset, magma_int_t lda,
                   magmaDouble_ptr dB, size_t dB_offset, magma_int_t ldb,
-				  magma_queue_t queue)
+                  magma_queue_t queue)
 {
 /*
     Note
@@ -63,8 +63,8 @@ magmablas_dlacpy( magma_uplo_t uplo, magma_int_t m, magma_int_t n,
 
   =====================================================================   */
 
-	size_t LocalWorkSize[1] = {64};
-	size_t GlobalWorkSize[1] = {(m/64+(m%64 != 0))*64};
+    size_t LocalWorkSize[1] = {64};
+    size_t GlobalWorkSize[1] = {(m/64+(m%64 != 0))*64};
     
     if ( m == 0 || n == 0 )
         return;
@@ -76,38 +76,38 @@ magmablas_dlacpy( magma_uplo_t uplo, magma_int_t m, magma_int_t n,
         fprintf(stderr, "lacpy lower is not implemented\n");
     }
     else {
-		cl_int ciErrNum;
-		cl_kernel ckKernel = NULL;
-		ckKernel = rt->KernelPool["dlacpy_kernel"]; 
-		if(!ckKernel){
-			printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
-			return;
-		}
-		
-		int offset_A = (int)dA_offset;
-		int offset_B = (int)dB_offset;
-		int nn = 0;
-		ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(cl_int),           (void*)&m);
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int),           (void*)&n );
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_mem),           (void*)&dA);
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int),		      (void*)&offset_A );
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int),		      (void*)&lda );
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_mem),           (void*)&dB);
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int),		      (void*)&offset_B );
-		ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int),		      (void*)&ldb );
-		if (ciErrNum != CL_SUCCESS){
-			printf("Error: clSetKernelArg at %d in file %s, %s\n", __LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
-			return;
-		}
+        cl_int ciErrNum;
+        cl_kernel ckKernel = NULL;
+        ckKernel = rt->KernelPool["dlacpy_kernel"];
+        if(!ckKernel){
+            printf ("Error: cannot locate kernel in line %d, file %s\n", __LINE__, __FILE__);
+            return;
+        }
+        
+        int offset_A = (int)dA_offset;
+        int offset_B = (int)dB_offset;
+        int nn = 0;
+        ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&m        );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&n        );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_mem), (void*)&dA       );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&offset_A );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&lda      );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_mem), (void*)&dB       );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&offset_B );
+        ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(cl_int), (void*)&ldb      );
+        if (ciErrNum != CL_SUCCESS){
+            printf("Error: clSetKernelArg at %d in file %s, %s\n", __LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
+            return;
+        }
 
-		// launch kernel
-		ciErrNum = clEnqueueNDRangeKernel(
-			queue, ckKernel, 1, NULL, GlobalWorkSize, LocalWorkSize, 0, NULL, NULL);
-		if (ciErrNum != CL_SUCCESS)
-		{
-			printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
-				__LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
-			return;
-		}
-	}
+        // launch kernel
+        ciErrNum = clEnqueueNDRangeKernel(
+            queue, ckKernel, 1, NULL, GlobalWorkSize, LocalWorkSize, 0, NULL, NULL);
+        if (ciErrNum != CL_SUCCESS)
+        {
+            printf("Error: clEnqueueNDRangeKernel at %d in file %s \"%s\"\n",
+                __LINE__, __FILE__, rt->GetErrorCode(ciErrNum));
+            return;
+        }
+    }
 }

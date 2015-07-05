@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
-       @generated c Wed Oct 24 00:32:53 2012
+       @generated c Mon Nov 25 17:56:00 2013
 
 */
 #include <stdio.h>
@@ -29,98 +29,98 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
             magmaFloatComplex *work, magma_int_t lwork,
             float *rwork, magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    CGEEV computes for an N-by-N complex nonsymmetric matrix A, the   
-    eigenvalues and, optionally, the left and/or right eigenvectors.   
+    Purpose
+    =======
+    CGEEV computes for an N-by-N complex nonsymmetric matrix A, the
+    eigenvalues and, optionally, the left and/or right eigenvectors.
 
-    The right eigenvector v(j) of A satisfies   
-                     A * v(j) = lambda(j) * v(j)   
-    where lambda(j) is its eigenvalue.   
-    The left eigenvector u(j) of A satisfies   
-                  u(j)**H * A = lambda(j) * u(j)**H   
-    where u(j)**H denotes the conjugate transpose of u(j).   
+    The right eigenvector v(j) of A satisfies
+                     A * v(j) = lambda(j) * v(j)
+    where lambda(j) is its eigenvalue.
+    The left eigenvector u(j) of A satisfies
+                  u(j)**H * A = lambda(j) * u(j)**H
+    where u(j)**H denotes the conjugate transpose of u(j).
 
-    The computed eigenvectors are normalized to have Euclidean norm   
-    equal to 1 and largest component real.   
+    The computed eigenvectors are normalized to have Euclidean norm
+    equal to 1 and largest component real.
 
-    Arguments   
-    =========   
-    JOBVL   (input) CHARACTER*1   
-            = 'N': left eigenvectors of A are not computed;   
-            = 'V': left eigenvectors of are computed.   
+    Arguments
+    =========
+    JOBVL   (input) CHARACTER*1
+            = 'N': left eigenvectors of A are not computed;
+            = 'V': left eigenvectors of are computed.
 
-    JOBVR   (input) CHARACTER*1   
-            = 'N': right eigenvectors of A are not computed;   
-            = 'V': right eigenvectors of A are computed.   
+    JOBVR   (input) CHARACTER*1
+            = 'N': right eigenvectors of A are not computed;
+            = 'V': right eigenvectors of A are computed.
 
-    N       (input) INTEGER   
-            The order of the matrix A. N >= 0.   
+    N       (input) INTEGER
+            The order of the matrix A. N >= 0.
 
-    A       (input/output) COMPLEX*16 array, dimension (LDA,N)   
-            On entry, the N-by-N matrix A.   
-            On exit, A has been overwritten.   
+    A       (input/output) COMPLEX*16 array, dimension (LDA,N)
+            On entry, the N-by-N matrix A.
+            On exit, A has been overwritten.
 
-    LDA     (input) INTEGER   
-            The leading dimension of the array A.  LDA >= max(1,N).   
+    LDA     (input) INTEGER
+            The leading dimension of the array A.  LDA >= max(1,N).
 
-    W       (output) COMPLEX*16 array, dimension (N)   
-            W contains the computed eigenvalues.   
+    W       (output) COMPLEX*16 array, dimension (N)
+            W contains the computed eigenvalues.
 
-    VL      (output) COMPLEX*16 array, dimension (LDVL,N)   
-            If JOBVL = 'V', the left eigenvectors u(j) are stored one   
-            after another in the columns of VL, in the same order   
-            as their eigenvalues.   
-            If JOBVL = 'N', VL is not referenced.   
-            u(j) = VL(:,j), the j-th column of VL.   
+    VL      (output) COMPLEX*16 array, dimension (LDVL,N)
+            If JOBVL = 'V', the left eigenvectors u(j) are stored one
+            after another in the columns of VL, in the same order
+            as their eigenvalues.
+            If JOBVL = 'N', VL is not referenced.
+            u(j) = VL(:,j), the j-th column of VL.
 
-    LDVL    (input) INTEGER   
-            The leading dimension of the array VL.  LDVL >= 1; if   
-            JOBVL = 'V', LDVL >= N.   
+    LDVL    (input) INTEGER
+            The leading dimension of the array VL.  LDVL >= 1; if
+            JOBVL = 'V', LDVL >= N.
 
-    VR      (output) COMPLEX*16 array, dimension (LDVR,N)   
-            If JOBVR = 'V', the right eigenvectors v(j) are stored one   
-            after another in the columns of VR, in the same order   
-            as their eigenvalues.   
-            If JOBVR = 'N', VR is not referenced.   
-            v(j) = VR(:,j), the j-th column of VR.   
+    VR      (output) COMPLEX*16 array, dimension (LDVR,N)
+            If JOBVR = 'V', the right eigenvectors v(j) are stored one
+            after another in the columns of VR, in the same order
+            as their eigenvalues.
+            If JOBVR = 'N', VR is not referenced.
+            v(j) = VR(:,j), the j-th column of VR.
 
-    LDVR    (input) INTEGER   
-            The leading dimension of the array VR.  LDVR >= 1; if   
-            JOBVR = 'V', LDVR >= N.   
+    LDVR    (input) INTEGER
+            The leading dimension of the array VR.  LDVR >= 1; if
+            JOBVR = 'V', LDVR >= N.
 
-    WORK    (workspace/output) COMPLEX*16 array, dimension (MAX(1,LWORK))   
-            On exit, if INFO = 0, WORK(1) returns the optimal LWORK.   
+    WORK    (workspace/output) COMPLEX*16 array, dimension (MAX(1,LWORK))
+            On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 
-    LWORK   (input) INTEGER   
-            The dimension of the array WORK.  LWORK >= (1+nb)*N.   
+    LWORK   (input) INTEGER
+            The dimension of the array WORK.  LWORK >= (1+nb)*N.
 
-            If LWORK = -1, then a workspace query is assumed; the routine   
-            only calculates the optimal size of the WORK array, returns   
-            this value as the first entry of the WORK array, and no error   
-            message related to LWORK is issued by XERBLA.   
+            If LWORK = -1, then a workspace query is assumed; the routine
+            only calculates the optimal size of the WORK array, returns
+            this value as the first entry of the WORK array, and no error
+            message related to LWORK is issued by XERBLA.
 
-    RWORK   (workspace) DOUBLE PRECISION array, dimension (2*N)   
+    RWORK   (workspace) DOUBLE PRECISION array, dimension (2*N)
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value.   
-            > 0:  if INFO = i, the QR algorithm failed to compute all the   
-                  eigenvalues, and no eigenvectors have been computed;   
-                  elements and i+1:N of W contain eigenvalues which have   
-                  converged.   
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value.
+            > 0:  if INFO = i, the QR algorithm failed to compute all the
+                  eigenvalues, and no eigenvectors have been computed;
+                  elements and i+1:N of W contain eigenvalues which have
+                  converged.
     =====================================================================    */
 
     magma_int_t c__1 = 1;
     magma_int_t c__0 = 0;
     
-    magma_int_t a_dim1, a_offset, vl_dim1, vl_offset, vr_dim1, vr_offset, i__1, 
+    magma_int_t a_dim1, a_offset, vl_dim1, vl_offset, vr_dim1, vr_offset, i__1,
             i__2, i__3;
     float d__1, d__2;
     magmaFloatComplex z__1, z__2;
@@ -178,7 +178,7 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         if (lwork < minwrk && ! lquery) {
             *info = -12;
         }
-    }   
+    }
 
     if (*info != 0) {
         magma_xerbla( __func__, -(*info) );
@@ -195,7 +195,7 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
    
     // if eigenvectors are needed
 #if defined(VERSION3)
-    if (MAGMA_SUCCESS != magma_malloc(&dT, nb*n*sizeof(magmaFloatComplex) )) {
+    if (MAGMA_SUCCESS != magma_cmalloc( &dT, nb*n )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
@@ -236,14 +236,14 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
                 ierr);
     }
 
-    /* Balance the matrix   
-       (CWorkspace: none)   
+    /* Balance the matrix
+       (CWorkspace: none)
        (RWorkspace: need N) */
     ibal = 1;
     lapackf77_cgebal("B", &n, &a[a_offset], &lda, &ilo, &ihi, &rwork[ibal], &ierr);
 
-    /* Reduce to upper Hessenberg form   
-       (CWorkspace: need 2*N, prefer N+N*NB)   
+    /* Reduce to upper Hessenberg form
+       (CWorkspace: need 2*N, prefer N+N*NB)
        (RWorkspace: none) */
     itau = 1;
     iwrk = itau + n;
@@ -261,10 +261,10 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
      *  Version 2 - LAPACK consistent HRD
      */
     magma_cgehrd2(n, ilo, ihi, &a[a_offset], lda,
-                  &work[itau], &work[iwrk], &i__1, &ierr);    
+                  &work[itau], &work[iwrk], &i__1, &ierr);
 #elif defined(VERSION3)
-    /*  
-     * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored, 
+    /*
+     * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored,
      */
     magma_cgehrd(n, ilo, ihi, &a[a_offset], lda,
                  &work[itau], &work[iwrk], i__1, dT, 0, &ierr, queue);
@@ -273,14 +273,14 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
     //printf("    Time for cgehrd = %5.2f sec\n", GetTimerValue(start,end)/1000.);
 
     if (wantvl) {
-      /*        Want left eigenvectors   
+      /*        Want left eigenvectors
                 Copy Householder vectors to VL */
         side[0] = 'L';
-        lapackf77_clacpy(MagmaLowerStr, &n, &n, 
+        lapackf77_clacpy(MagmaLowerStr, &n, &n,
                          &a[a_offset], &lda, &vl[vl_offset], &ldvl);
 
-        /* Generate unitary matrix in VL   
-           (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)   
+        /* Generate unitary matrix in VL
+           (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)
            (RWorkspace: none) */
         i__1 = lwork - iwrk + 1;
 
@@ -289,42 +289,42 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         /*
          * Version 1 & 2 - LAPACK
          */
-        lapackf77_cunghr(&n, &ilo, &ihi, &vl[vl_offset], &ldvl, 
+        lapackf77_cunghr(&n, &ilo, &ihi, &vl[vl_offset], &ldvl,
                          &work[itau], &work[iwrk], &i__1, &ierr);
 #elif defined(VERSION3)
         /*
          * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored
          */
-        magma_cunghr(n, ilo, ihi, &vl[vl_offset], ldvl, &work[itau], 
+        magma_cunghr(n, ilo, ihi, &vl[vl_offset], ldvl, &work[itau],
                      dT, 0, nb, &ierr, queue);
 #endif
         //end = get_current_time();
         //printf("    Time for cunghr = %5.2f sec\n", GetTimerValue(start,end)/1000.);
 
-        /* Perform QR iteration, accumulating Schur vectors in VL   
-           (CWorkspace: need 1, prefer HSWORK (see comments) )   
+        /* Perform QR iteration, accumulating Schur vectors in VL
+           (CWorkspace: need 1, prefer HSWORK (see comments) )
            (RWorkspace: none) */
         iwrk = itau;
         i__1 = lwork - iwrk + 1;
         lapackf77_chseqr("S", "V", &n, &ilo, &ihi, &a[a_offset], &lda, geev_w_array,
                 &vl[vl_offset], &ldvl, &work[iwrk], &i__1, info);
 
-        if (wantvr) 
+        if (wantvr)
           {
-            /* Want left and right eigenvectors   
+            /* Want left and right eigenvectors
                Copy Schur vectors to VR */
             side[0] = 'B';
             lapackf77_clacpy("F", &n, &n, &vl[vl_offset], &ldvl, &vr[vr_offset], &ldvr);
           }
 
     } else if (wantvr) {
-        /*  Want right eigenvectors   
+        /*  Want right eigenvectors
             Copy Householder vectors to VR */
         side[0] = 'R';
         lapackf77_clacpy("L", &n, &n, &a[a_offset], &lda, &vr[vr_offset], &ldvr);
 
-        /* Generate unitary matrix in VR   
-           (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)   
+        /* Generate unitary matrix in VR
+           (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)
            (RWorkspace: none) */
         i__1 = lwork - iwrk + 1;
         //start = get_current_time();
@@ -332,28 +332,28 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         /*
          * Version 1 & 2 - LAPACK
          */
-        lapackf77_cunghr(&n, &ilo, &ihi, &vr[vr_offset], &ldvr, 
+        lapackf77_cunghr(&n, &ilo, &ihi, &vr[vr_offset], &ldvr,
                          &work[itau], &work[iwrk], &i__1, &ierr);
 #elif defined(VERSION3)
         /*
          * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored
          */
-        magma_cunghr(n, ilo, ihi, &vr[vr_offset], ldvr, 
+        magma_cunghr(n, ilo, ihi, &vr[vr_offset], ldvr,
                      &work[itau], dT, 0, nb, &ierr, queue);
 #endif
         //end = get_current_time();
         //printf("    Time for cunghr = %5.2f sec\n", GetTimerValue(start,end)/1000.);
 
-        /* Perform QR iteration, accumulating Schur vectors in VR   
-           (CWorkspace: need 1, prefer HSWORK (see comments) )   
+        /* Perform QR iteration, accumulating Schur vectors in VR
+           (CWorkspace: need 1, prefer HSWORK (see comments) )
            (RWorkspace: none) */
         iwrk = itau;
         i__1 = lwork - iwrk + 1;
-        lapackf77_chseqr("S", "V", &n, &ilo, &ihi, &a[a_offset], &lda, geev_w_array, 
+        lapackf77_chseqr("S", "V", &n, &ilo, &ihi, &a[a_offset], &lda, geev_w_array,
                 &vr[vr_offset], &ldvr, &work[iwrk], &i__1, info);
     } else {
-      /*  Compute eigenvalues only   
-          (CWorkspace: need 1, prefer HSWORK (see comments) )   
+      /*  Compute eigenvalues only
+          (CWorkspace: need 1, prefer HSWORK (see comments) )
           (RWorkspace: none) */
         iwrk = itau;
         i__1 = lwork - iwrk + 1;
@@ -367,20 +367,20 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
     }
 
     if (wantvl || wantvr) {
-        /*  Compute left and/or right eigenvectors   
-            (CWorkspace: need 2*N)   
+        /*  Compute left and/or right eigenvectors
+            (CWorkspace: need 2*N)
             (RWorkspace: need 2*N) */
         irwork = ibal + n;
         lapackf77_ctrevc(side, "B", select, &n, &a[a_offset], &lda, &vl[vl_offset], &ldvl,
-                &vr[vr_offset], &ldvr, &n, &nout, &work[iwrk], &rwork[irwork], 
+                &vr[vr_offset], &ldvr, &n, &nout, &work[iwrk], &rwork[irwork],
                 &ierr);
     }
 
     if (wantvl) {
-        /*  Undo balancing of left eigenvectors   
-            (CWorkspace: none)   
+        /*  Undo balancing of left eigenvectors
+            (CWorkspace: none)
             (RWorkspace: need N) */
-        lapackf77_cgebak("B", "L", &n, &ilo, &ihi, &rwork[ibal], &n, 
+        lapackf77_cgebak("B", "L", &n, &ilo, &ihi, &rwork[ibal], &n,
                          &vl[vl_offset], &ldvl, &ierr);
 
         /* Normalize left eigenvectors and make largest component real */
@@ -388,7 +388,7 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
             scl = 1. / cblas_scnrm2(n, &vl[i__ * vl_dim1 + 1], 1);
             cblas_csscal(n, scl, &vl[i__ * vl_dim1 + 1], 1);
             i__2 = n;
-            for (k = 1; k <= i__2; ++k) 
+            for (k = 1; k <= i__2; ++k)
             {
                 i__3 = k + i__ * vl_dim1;
                 /* Computing 2nd power */
@@ -415,10 +415,10 @@ magma_cgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
     }
 
     if (wantvr) {
-      /*  Undo balancing of right eigenvectors   
-          (CWorkspace: none)   
+      /*  Undo balancing of right eigenvectors
+          (CWorkspace: none)
           (RWorkspace: need N) */
-        lapackf77_cgebak("B", "R", &n, &ilo, &ihi, &rwork[ibal], &n, 
+        lapackf77_cgebak("B", "R", &n, &ilo, &ihi, &rwork[ibal], &n,
                          &vr[vr_offset], &ldvr, &ierr);
 
         /* Normalize right eigenvectors and make largest component real */
@@ -458,11 +458,11 @@ L50:
         /* Computing MAX */
         i__3 = n - *info;
         i__2 = max(i__3,1);
-        lapackf77_clascl("G", &c__0, &c__0, &cscale, &anrm, &i__1, &c__1, 
+        lapackf77_clascl("G", &c__0, &c__0, &cscale, &anrm, &i__1, &c__1,
                 geev_w_array + *info, &i__2, &ierr);
         if (*info > 0) {
             i__1 = ilo - 1;
-            lapackf77_clascl("G", &c__0, &c__0, &cscale, &anrm, &i__1, &c__1, 
+            lapackf77_clascl("G", &c__0, &c__0, &cscale, &anrm, &i__1, &c__1,
                     geev_w_array, &n, &ierr);
         }
     }

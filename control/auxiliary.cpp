@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 */
 
 #include "common_magma.h"
@@ -41,7 +41,7 @@ void chk_helper( int err, const char* func, const char* file, int line )
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Get current time
-*/ 
+*/
 #if defined( _WIN32 ) || defined( _WIN64 )
 struct timezone
 {
@@ -106,7 +106,7 @@ void magma_gettime_f(unsigned int *time)
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- End elapsed time
-*/ 
+*/
 extern "C"
 double GetTimerValue(magma_timestr_t time_1, magma_timestr_t time_2)
 {
@@ -133,47 +133,13 @@ void magma_gettimervalue_f(unsigned int *start, unsigned int *end, double *resul
 */
 double get_time( void )
 {
-	struct timeval t;
-	gettimeofday( &t, NULL );
-	return t.tv_sec + t.tv_usec*1e-6;
+    struct timeval t;
+    gettimeofday( &t, NULL );
+    return t.tv_sec + t.tv_usec*1e-6;
 }
 
 /* ////////////////////////////////////////////////////////////////////////////
-   -- Print the available GPU devices
-*/
-extern "C"
-void printout_devices( )
-{
-#if 0  // CUDA
-    int ndevices;
-    cuDeviceGetCount( &ndevices );
-    for( int idevice = 0; idevice < ndevices; idevice++ ) {
-        char name[200];
-#if CUDA_VERSION > 3010 
-        size_t totalMem;
-#else
-        unsigned int totalMem;
-#endif
-
-        int clock;
-        int major, minor;
-        CUdevice dev;
-
-        cuDeviceGet( &dev, idevice );
-        cuDeviceGetName( name, sizeof(name), dev );
-        cuDeviceComputeCapability( &major, &minor, dev );
-        cuDeviceTotalMem( &totalMem, dev );
-        cuDeviceGetAttribute( &clock,
-                              CU_DEVICE_ATTRIBUTE_CLOCK_RATE, dev );
-        printf( "device %d: %s, %.1f MHz clock, %.1f MB memory, capability %d.%d\n",
-                idevice, name, clock/1000.f, totalMem/1024.f/1024.f, major, minor );
-    }
-#endif // CUDA
-}
-
-
-/* ////////////////////////////////////////////////////////////////////////////
-   -- Auxiliary function: ipiv(i) indicates that row i has been swapped with 
+   -- Auxiliary function: ipiv(i) indicates that row i has been swapped with
       ipiv(i) from top to bottom. This function rearranges ipiv into newipiv
       where row i has to be moved to newipiv(i). The new pivoting allows for
       parallel processing vs the original one assumes a specific ordering and
@@ -288,33 +254,33 @@ int sp_cat(char *lp, char *rpp[], magma_int_t *rnp, magma_int_t*np, magma_int_t 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Auxiliary function magma_cabs
 */
-extern "C" 
+extern "C"
 double magma_cabs(magmaDoubleComplex z)
 {
-	double __x = z.x;
-	double __y = z.y;
+    double __x = z.x;
+    double __y = z.y;
 
-	double __s = max(abs(__x), abs(__y));
-	if(__s == 0.0)
-		return __s;
-	__x /= __s;
-	__y /= __s;
-	return __s * sqrt(__x * __x + __y * __y);
+    double __s = max(abs(__x), abs(__y));
+    if(__s == 0.0)
+        return __s;
+    __x /= __s;
+    __y /= __s;
+    return __s * sqrt(__x * __x + __y * __y);
 }
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Auxiliary function magma_cabsf
 */
-extern "C" 
+extern "C"
 float magma_cabsf(magmaFloatComplex z)
 {
-	float __x = z.x;
-	float __y = z.y;
+    float __x = z.x;
+    float __y = z.y;
 
-	float __s = max(abs(__x), abs(__y));
-	if(__s == 0.0)
-		return __s;
-	__x /= __s;
-	__y /= __s;
-	return __s * sqrt(__x * __x + __y * __y);
+    float __s = max(abs(__x), abs(__y));
+    if(__s == 0.0)
+        return __s;
+    __x /= __s;
+    __y /= __s;
+    return __s * sqrt(__x * __x + __y * __y);
 }

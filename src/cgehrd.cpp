@@ -1,120 +1,120 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated c Wed Oct 24 00:32:53 2012
+       @generated c Mon Nov 25 17:56:00 2013
 
 */
 
 #include <stdio.h>
 #include "common_magma.h"
 
-extern "C" magma_int_t 
-magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi, 
+extern "C" magma_int_t
+magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
              magmaFloatComplex *a, magma_int_t lda,
-             magmaFloatComplex *tau, 
+             magmaFloatComplex *tau,
              magmaFloatComplex *work, magma_int_t lwork,
              magmaFloatComplex_ptr dT, size_t dT_offset,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    CGEHRD reduces a COMPLEX general matrix A to upper Hessenberg form H by   
-    an orthogonal similarity transformation:  Q' * A * Q = H . This version 
+    Purpose
+    =======
+    CGEHRD reduces a COMPLEX general matrix A to upper Hessenberg form H by
+    an orthogonal similarity transformation:  Q' * A * Q = H . This version
     stores the triangular matrices used in the factorization so that they can
     be applied directly (i.e., without being recomputed) later. As a result,
-    the application of Q is much faster.  
+    the application of Q is much faster.
 
-    Arguments   
-    =========   
-    N       (input) INTEGER   
-            The order of the matrix A.  N >= 0.   
+    Arguments
+    =========
+    N       (input) INTEGER
+            The order of the matrix A.  N >= 0.
 
-    ILO     (input) INTEGER   
-    IHI     (input) INTEGER   
-            It is assumed that A is already upper triangular in rows   
-            and columns 1:ILO-1 and IHI+1:N. ILO and IHI are normally   
-            set by a previous call to CGEBAL; otherwise they should be   
-            set to 1 and N respectively. See Further Details.   
-            1 <= ILO <= IHI <= N, if N > 0; ILO=1 and IHI=0, if N=0.   
+    ILO     (input) INTEGER
+    IHI     (input) INTEGER
+            It is assumed that A is already upper triangular in rows
+            and columns 1:ILO-1 and IHI+1:N. ILO and IHI are normally
+            set by a previous call to CGEBAL; otherwise they should be
+            set to 1 and N respectively. See Further Details.
+            1 <= ILO <= IHI <= N, if N > 0; ILO=1 and IHI=0, if N=0.
 
-    A       (input/output) COMPLEX array, dimension (LDA,N)   
-            On entry, the N-by-N general matrix to be reduced.   
-            On exit, the upper triangle and the first subdiagonal of A   
-            are overwritten with the upper Hessenberg matrix H, and the   
-            elements below the first subdiagonal, with the array TAU,   
-            represent the orthogonal matrix Q as a product of elementary   
-            reflectors. See Further Details.   
+    A       (input/output) COMPLEX array, dimension (LDA,N)
+            On entry, the N-by-N general matrix to be reduced.
+            On exit, the upper triangle and the first subdiagonal of A
+            are overwritten with the upper Hessenberg matrix H, and the
+            elements below the first subdiagonal, with the array TAU,
+            represent the orthogonal matrix Q as a product of elementary
+            reflectors. See Further Details.
 
-    LDA     (input) INTEGER   
-            The leading dimension of the array A.  LDA >= max(1,N).   
+    LDA     (input) INTEGER
+            The leading dimension of the array A.  LDA >= max(1,N).
 
-    TAU     (output) COMPLEX array, dimension (N-1)   
-            The scalar factors of the elementary reflectors (see Further   
-            Details). Elements 1:ILO-1 and IHI:N-1 of TAU are set to   
-            zero.   
+    TAU     (output) COMPLEX array, dimension (N-1)
+            The scalar factors of the elementary reflectors (see Further
+            Details). Elements 1:ILO-1 and IHI:N-1 of TAU are set to
+            zero.
 
-    WORK    (workspace/output) COMPLEX array, dimension (LWORK)   
-            On exit, if INFO = 0, WORK(1) returns the optimal LWORK.   
+    WORK    (workspace/output) COMPLEX array, dimension (LWORK)
+            On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 
-    LWORK   (input) INTEGER   
-            The length of the array WORK.  LWORK >= max(1,N).   
-            For optimum performance LWORK >= N*NB, where NB is the   
-            optimal blocksize.   
+    LWORK   (input) INTEGER
+            The length of the array WORK.  LWORK >= max(1,N).
+            For optimum performance LWORK >= N*NB, where NB is the
+            optimal blocksize.
 
-            If LWORK = -1, then a workspace query is assumed; the routine   
-            only calculates the optimal size of the WORK array, returns   
-            this value as the first entry of the WORK array, and no error   
-            message related to LWORK is issued by XERBLA.   
+            If LWORK = -1, then a workspace query is assumed; the routine
+            only calculates the optimal size of the WORK array, returns
+            this value as the first entry of the WORK array, and no error
+            message related to LWORK is issued by XERBLA.
 
     dT      (output)  COMPLEX array on the GPU, dimension N*NB,
-            where NB is the optimal blocksize. It stores the NB*NB blocks 
+            where NB is the optimal blocksize. It stores the NB*NB blocks
             of the triangular T matrices, used the the reduction.
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value.   
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value.
 
-    Further Details   
-    ===============   
-    The matrix Q is represented as a product of (ihi-ilo) elementary   
-    reflectors   
+    Further Details
+    ===============
+    The matrix Q is represented as a product of (ihi-ilo) elementary
+    reflectors
 
-       Q = H(ilo) H(ilo+1) . . . H(ihi-1).   
+       Q = H(ilo) H(ilo+1) . . . H(ihi-1).
 
-    Each H(i) has the form   
+    Each H(i) has the form
 
-       H(i) = I - tau * v * v'   
+       H(i) = I - tau * v * v'
 
-    where tau is a complex scalar, and v is a complex vector with   
-    v(1:i) = 0, v(i+1) = 1 and v(ihi+1:n) = 0; v(i+2:ihi) is stored on   
-    exit in A(i+2:ihi,i), and tau in TAU(i).   
+    where tau is a complex scalar, and v is a complex vector with
+    v(1:i) = 0, v(i+1) = 1 and v(ihi+1:n) = 0; v(i+2:ihi) is stored on
+    exit in A(i+2:ihi,i), and tau in TAU(i).
 
-    The contents of A are illustrated by the following example, with   
-    n = 7, ilo = 2 and ihi = 6:   
+    The contents of A are illustrated by the following example, with
+    n = 7, ilo = 2 and ihi = 6:
 
-    on entry,                        on exit,   
+    on entry,                        on exit,
 
-    ( a   a   a   a   a   a   a )    (  a   a   h   h   h   h   a )   
-    (     a   a   a   a   a   a )    (      a   h   h   h   h   a )   
-    (     a   a   a   a   a   a )    (      h   h   h   h   h   h )   
-    (     a   a   a   a   a   a )    (      v2  h   h   h   h   h )   
-    (     a   a   a   a   a   a )    (      v2  v3  h   h   h   h )   
-    (     a   a   a   a   a   a )    (      v2  v3  v4  h   h   h )   
-    (                         a )    (                          a )   
+    ( a   a   a   a   a   a   a )    (  a   a   h   h   h   h   a )
+    (     a   a   a   a   a   a )    (      a   h   h   h   h   a )
+    (     a   a   a   a   a   a )    (      h   h   h   h   h   h )
+    (     a   a   a   a   a   a )    (      v2  h   h   h   h   h )
+    (     a   a   a   a   a   a )    (      v2  v3  h   h   h   h )
+    (     a   a   a   a   a   a )    (      v2  v3  v4  h   h   h )
+    (                         a )    (                          a )
 
-    where a denotes an element of the original matrix A, h denotes a   
-    modified element of the upper Hessenberg matrix H, and vi denotes an   
-    element of the vector defining H(i).   
+    where a denotes an element of the original matrix A, h denotes a
+    modified element of the upper Hessenberg matrix H, and vi denotes an
+    element of the vector defining H(i).
 
     This implementation follows the hybrid algorithm and notations described in
 
@@ -171,7 +171,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
 
     magmaFloatComplex_ptr da;
     size_t da_offset = 0;
-    if (MAGMA_SUCCESS != magma_malloc( &da, (N*ldda + 2*N*nb + nb*nb)*sizeof(magmaFloatComplex) )) {
+    if (MAGMA_SUCCESS != magma_cmalloc( &da, (N*ldda + 2*N*nb + nb*nb) )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
@@ -179,21 +179,21 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     magmaFloatComplex_ptr d_A    = da;
     size_t d_A_offset = da_offset;
     //cuDoubleComplex *d_work = da + (N+nb)*ldda;
-	magmaFloatComplex_ptr d_work = da;
-	size_t d_work_offset = da_offset+(N+nb)*ldda;
+    magmaFloatComplex_ptr d_work = da;
+    size_t d_work_offset = da_offset+(N+nb)*ldda;
 
     magma_int_t i__;
 
     magmaFloatComplex *t;
-    t = (magmaFloatComplex*) malloc(nb*nb*sizeof(magmaFloatComplex));
+    magma_cmalloc_cpu( &t, nb*nb );
     if ( t == NULL ) {
         magma_free( da );
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
     }
-	magmaFloatComplex_ptr d_t;
+    magmaFloatComplex_ptr d_t;
     d_t = d_work;
-	size_t d_t_offset = d_work_offset+nb*ldda;
+    size_t d_t_offset = d_work_offset+nb*ldda;
 
     czero_nbxnb_block(nb, d_A, d_A_offset+N*ldda, ldda, queue);
 
@@ -211,7 +211,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     iws = 1;
     if (nb > 1 && nb < nh) {
 
-      /*  Determine when to cross over from blocked to unblocked code   
+      /*  Determine when to cross over from blocked to unblocked code
           (last block is always handled by unblocked code)              */
       if (nb < nh) {
 
@@ -219,13 +219,13 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
         iws = n * nb;
         if (lwork < iws) {
 
-          /*    Not enough workspace to use optimal NB:  determine the   
-                minimum value of NB, and reduce NB or force use of   
+          /*    Not enough workspace to use optimal NB:  determine the
+                minimum value of NB, and reduce NB or force use of
                 unblocked code                                          */
           nbmin = nb;
           if (lwork >= n * nbmin)
             nb = lwork / n;
-          else 
+          else
             nb = 1;
         }
       }
@@ -246,35 +246,35 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
         /* Computing MIN */
         ib = min(nb, ihi - i__);
 
-        /*   Reduce columns i:i+ib-1 to Hessenberg form, returning the   
-             matrices V and T of the block reflector H = I - V*T*V'   
+        /*   Reduce columns i:i+ib-1 to Hessenberg form, returning the
+             matrices V and T of the block reflector H = I - V*T*V'
              which performs the reduction, and also the matrix Y = A*V*T */
 
         /*   Get the current panel (no need for the 1st iteration) */
         magma_cgetmatrix( ihi-i__+1, ib,
                           d_A, (d_A_offset + (i__ - ilo)*ldda + i__ - 1), ldda,
-                          a   + (i__ -  1 )*lda  + i__ - 1, 0, lda, queue );      
+                          a   + (i__ -  1 )*lda  + i__ - 1, 0, lda, queue );
         
-        magma_clahr2(ihi, i__, ib, 
-                     d_A, d_A_offset +(i__ - ilo)*ldda, 
+        magma_clahr2(ihi, i__, ib,
+                     d_A, d_A_offset +(i__ - ilo)*ldda,
                      d_A, d_A_offset + N*ldda + 1,
-                     a   + (i__ -   1 )*(lda) , lda, 
+                     a   + (i__ -   1 )*(lda) , lda,
                      &tau[i__], t, nb, work, ldwork, queue);
 
         /* Copy T from the CPU to D_T on the GPU */
         //d_t = dT + (i__ - ilo)*nb;
-		d_t = dT;
-		d_t_offset = dT_offset + (i__ - ilo)*nb;
+        d_t = dT;
+        d_t_offset = dT_offset + (i__ - ilo)*nb;
         magma_csetmatrix( nb, nb, t, 0, nb, d_t, d_t_offset, nb, queue );
 
-        magma_clahru(n, ihi, i__ - 1, ib, 
+        magma_clahru(n, ihi, i__ - 1, ib,
                      a   + (i__ -  1 )*(lda), lda,
-                     d_A, d_A_offset + (i__ - ilo)*ldda, 
+                     d_A, d_A_offset + (i__ - ilo)*ldda,
                      d_A, d_A_offset + (i__ - ilo)*ldda + i__ - 1,
-                     d_A, d_A_offset + N*ldda, 
-					 d_t, d_t_offset, 
-					 d_work, d_work_offset, 
-					 queue);
+                     d_A, d_A_offset + N*ldda,
+                     d_t, d_t_offset,
+                     d_work, d_work_offset,
+                     queue);
       }
     }
 
@@ -287,7 +287,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     MAGMA_C_SET2REAL( work[0], (float) iws );
     
     magma_free( da );
-    free(t);
+    magma_free_cpu(t);
  
     return *info;
 } /* magma_cgehrd */

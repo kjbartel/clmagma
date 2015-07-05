@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated c Wed Oct 24 00:32:50 2012
+       @generated c Mon Nov 25 17:55:59 2013
 
 */
 
@@ -15,14 +15,14 @@
 extern "C" magma_err_t
 magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
              magmaFloatComplex *a, magma_int_t lda,
-             magmaFloatComplex *tau, magmaFloatComplex_ptr dT, size_t dT_offset, 
+             magmaFloatComplex *tau, magmaFloatComplex_ptr dT, size_t dT_offset,
              magma_int_t nb, magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -46,10 +46,10 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
             The number of elementary reflectors whose product defines the
             matrix Q. N >= K >= 0.
 
-    A       (input/output) COMPLEX array A, dimension (LDDA,N). 
+    A       (input/output) COMPLEX array A, dimension (LDDA,N).
             On entry, the i-th column must contain the vector
             which defines the elementary reflector H(i), for
-            i = 1,2,...,k, as returned by CGEQRF_GPU in the 
+            i = 1,2,...,k, as returned by CGEQRF_GPU in the
             first k columns of its array argument A.
             On exit, the M-by-N matrix Q.
 
@@ -62,7 +62,7 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
 
     DT      (input) COMPLEX array on the GPU device.
             DT contains the T matrices used in blocking the elementary
-            reflectors H(i), e.g., this can be the 6th argument of 
+            reflectors H(i), e.g., this can be the 6th argument of
             magma_cgeqrf_gpu.
 
     NB      (input) INTEGER
@@ -84,9 +84,9 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
     static magma_int_t i, ib, ki, kk, iinfo;
     magma_int_t lddwork = min(m, n);
     magmaFloatComplex *work;
-	magmaFloatComplex_ptr da, dwork;
-	size_t da_offset, dwork_offset;
-	magma_event_t event = NULL;
+    magmaFloatComplex_ptr da, dwork;
+    size_t da_offset, dwork_offset;
+    magma_event_t event = NULL;
 
     *info = 0;
     if (m < 0) {
@@ -109,17 +109,17 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
     /* Allocate GPU work space */
     ldda = ((m+31)/32)*32;
     lddwork = ((lddwork+31)/32)*32;
-    if (MAGMA_SUCCESS != magma_malloc( &da, ((n)*ldda + nb*lddwork )*sizeof(magmaFloatComplex))) {
+    if (MAGMA_SUCCESS != magma_cmalloc( &da, ((n)*ldda + nb*lddwork ) )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
-	da_offset = 0;
+    da_offset = 0;
     dwork = da;
-	dwork_offset = da_offset + (n)*ldda;
+    dwork_offset = da_offset + (n)*ldda;
 
     /* Allocate CPU work space */
     lwork = n * nb;
-    work = (magmaFloatComplex *)malloc(lwork*sizeof(magmaFloatComplex));
+    magma_cmalloc_cpu( &work, lwork );
     if( work == NULL ) {
         magma_free( da );
         *info = MAGMA_ERR_HOST_ALLOC;
@@ -145,11 +145,11 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
         i__1 = m - kk;
         i__2 = n - kk;
         i__3 = k - kk;
-        lapackf77_cungqr(&i__1, &i__2, &i__3, 
+        lapackf77_cungqr(&i__1, &i__2, &i__3,
                          a_ref(kk, kk), &lda,
                          &tau[kk], work, &lwork, &iinfo);
-		
-		magma_csetmatrix(i__1, i__2, a_ref(kk, kk), 0, lda, da_ref(kk, kk), ldda, queue);
+        
+        magma_csetmatrix(i__1, i__2, a_ref(kk, kk), 0, lda, da_ref(kk, kk), ldda, queue);
       }
 
     if (kk > 0)
@@ -162,7 +162,7 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
             /* Send the current panel to the GPU */
             i__2 = m - i;
             cpanel_to_q(MagmaUpper, ib, a_ref(i,i), lda, work);
-			magma_csetmatrix(i__2, ib, a_ref(i, i), 0, lda, da_ref(i, i), ldda, queue);
+            magma_csetmatrix(i__2, ib, a_ref(i, i), 0, lda, da_ref(i, i), ldda, queue);
                              
             if (i + ib < n)
               {
@@ -175,10 +175,10 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
               }
 
             /* Apply H to rows i:m of current block on the CPU */
-            lapackf77_cungqr(&i__2, &ib, &ib, 
-                             a_ref(i, i), &lda, 
+            lapackf77_cungqr(&i__2, &ib, &ib,
+                             a_ref(i, i), &lda,
                              &tau[i], work, &lwork, &iinfo);
-			magma_csetmatrix_async( i__2, ib,
+            magma_csetmatrix_async( i__2, ib,
                                     a_ref(i,i), 0, lda,
                                     da_ref(i,i), ldda, queue, &event );
 
@@ -187,12 +187,12 @@ magma_cungqr(magma_int_t m, magma_int_t n, magma_int_t k,
             magmablas_claset(MagmaFull, i, i__2 - i, da_ref(0,i), ldda, queue);
           }
       }
-	
-	magma_cgetmatrix(m, n, da_ref(0, 0), ldda, a_ref(0, 0), 0, lda, queue);
     
-   //cudaStreamDestroy(stream);
+    magma_cgetmatrix(m, n, da_ref(0, 0), ldda, a_ref(0, 0), 0, lda, queue);
+    
+    //cudaStreamDestroy(stream);
     magma_free( da );
-    free(work);
+    magma_free_cpu(work);
 
     return *info;
 } /* magma_cungqr */

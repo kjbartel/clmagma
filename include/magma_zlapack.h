@@ -1,9 +1,9 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
  * @precisions normal z -> s d c
  */
@@ -63,6 +63,7 @@ extern "C" {
 #define lapackf77_zgels    FORTRAN_NAME( zgels,  ZGELS  )
 #define lapackf77_zgeqlf   FORTRAN_NAME( zgeqlf, ZGEQLF )
 #define lapackf77_zgeqrf   FORTRAN_NAME( zgeqrf, ZGEQRF )
+#define lapackf77_zgesv    FORTRAN_NAME( zgesv,  ZGESV  )
 #define lapackf77_zgesvd   FORTRAN_NAME( zgesvd, ZGESVD )
 #define lapackf77_zgetrf   FORTRAN_NAME( zgetrf, ZGETRF )
 #define lapackf77_zgetri   FORTRAN_NAME( zgetri, ZGETRI )
@@ -91,6 +92,8 @@ extern "C" {
 #define lapackf77_zlatrd   FORTRAN_NAME( zlatrd, ZLATRD )
 #define lapackf77_zlabrd   FORTRAN_NAME( zlabrd, ZLABRD )
 #define lapackf77_zlauum   FORTRAN_NAME( zlauum, ZLAUUM )
+#define lapackf77_zlavhe   FORTRAN_NAME( zlavhe, ZLAVHE )
+#define lapackf77_zposv    FORTRAN_NAME( zposv,  ZPOSV  )
 #define lapackf77_zpotrf   FORTRAN_NAME( zpotrf, ZPOTRF )
 #define lapackf77_zpotrs   FORTRAN_NAME( zpotrs, ZPOTRS )
 #define lapackf77_zpotri   FORTRAN_NAME( zpotri, ZPOTRI )
@@ -250,6 +253,11 @@ void    lapackf77_zgeqlf(magma_int_t *m, magma_int_t *n,
 void    lapackf77_zgeqrf(magma_int_t *m, magma_int_t *n,
                          magmaDoubleComplex *a, magma_int_t *lda, magmaDoubleComplex *tau,
                          magmaDoubleComplex *work, magma_int_t *lwork, magma_int_t *info);
+void     lapackf77_zgesv(magma_int_t *n, magma_int_t *nrhs,
+                         magmaDoubleComplex *A, magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         magmaDoubleComplex *B, magma_int_t *ldb,
+                         magma_int_t *info );
 void    lapackf77_zgetrf(magma_int_t *m, magma_int_t *n, 
                          magmaDoubleComplex *a, magma_int_t *lda, 
                          magma_int_t *ipiv, magma_int_t *info);
@@ -305,8 +313,8 @@ double  lapackf77_zlange(const char *norm, magma_int_t *m, magma_int_t *n,
                          const magmaDoubleComplex *a, magma_int_t *lda, double *work);
 double  lapackf77_zlanhe(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaDoubleComplex *a, magma_int_t *lda, double * work);
-double lapackf77_zlanht(char* norm, magma_int_t* n, 
-						const double* d, const magmaDoubleComplex* e);
+double  lapackf77_zlanht(char* norm, magma_int_t* n, 
+                         const double* d, const magmaDoubleComplex* e);
 double  lapackf77_zlansy(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaDoubleComplex *a, magma_int_t *lda, double * work);
 void    lapackf77_zlarfb(const char *side, const char *trans, const char *direct, 
@@ -351,6 +359,17 @@ void    lapackf77_zpotri(const char *uplo, magma_int_t *n,
                          magmaDoubleComplex *a, magma_int_t *lda, magma_int_t *info);
 void    lapackf77_zlauum(const char *uplo, magma_int_t *n, 
                          magmaDoubleComplex *a, magma_int_t *lda, magma_int_t *info);
+void    lapackf77_zlavhe(const char *uplo, const char *trans, const char *diag,
+                         magma_int_t *n, magma_int_t *nrhs,
+                         magmaDoubleComplex *A, magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         magmaDoubleComplex *B, magma_int_t *ldb,
+                         magma_int_t *info );
+void     lapackf77_zposv(const char *uplo,
+                         const magma_int_t *n, const magma_int_t *nrhs,
+                         magmaDoubleComplex *A, const magma_int_t *lda,
+                         magmaDoubleComplex *B,  const magma_int_t *ldb,
+                         magma_int_t *info );
 void    lapackf77_ztrevc(const char *side, const char *howmny, magma_int_t *select, magma_int_t *n, 
                          magmaDoubleComplex *T,  magma_int_t *ldt,  magmaDoubleComplex *VL, magma_int_t *ldvl,
                          magmaDoubleComplex *VR, magma_int_t *ldvr, magma_int_t *MM, magma_int_t *M, 

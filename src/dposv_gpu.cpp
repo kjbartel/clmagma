@@ -1,11 +1,11 @@
-/*  
-    -- clMAGMA (version 1.0.0) --
-       Univ. of Tennessee, Knoxville                                                                           
-       Univ. of California, Berkeley                                                                           
-       Univ. of Colorado, Denver                                                                               
-       April 2012                                                                                              
+/*
+    -- clMAGMA (version 1.1.0-beta2) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2013
                                                                                                               
-       @generated d Wed Oct 24 00:32:48 2012
+       @generated d Mon Nov 25 17:55:56 2013
 */
 
 #include <stdio.h>
@@ -13,16 +13,16 @@
 
 
 extern "C" magma_err_t
-magma_dposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs, 
-                 magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda, 
-                 magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb, 
-				 magma_err_t *info, magma_queue_t queue )
+magma_dposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+                 magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
+                 magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb,
+                 magma_err_t *info, magma_queue_t queue )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
  
     Purpose
     =======
@@ -52,17 +52,17 @@ magma_dposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
             The number of right hand sides, i.e., the number of columns
             of the matrix B.  NRHS >= 0.
 
-    dA      (input/output) DOUBLE_PRECISION array on the GPU, dimension (LDDA,N)   
-            On entry, the symmetric matrix dA.  If UPLO = 'U', the leading   
-            N-by-N upper triangular part of dA contains the upper   
-            triangular part of the matrix dA, and the strictly lower   
-            triangular part of dA is not referenced.  If UPLO = 'L', the   
-            leading N-by-N lower triangular part of dA contains the lower   
-            triangular part of the matrix dA, and the strictly upper   
-            triangular part of dA is not referenced.   
+    dA      (input/output) DOUBLE_PRECISION array on the GPU, dimension (LDDA,N)
+            On entry, the symmetric matrix dA.  If UPLO = 'U', the leading
+            N-by-N upper triangular part of dA contains the upper
+            triangular part of the matrix dA, and the strictly lower
+            triangular part of dA is not referenced.  If UPLO = 'L', the
+            leading N-by-N lower triangular part of dA contains the lower
+            triangular part of the matrix dA, and the strictly upper
+            triangular part of dA is not referenced.
 
-            On exit, if INFO = 0, the factor U or L from the Cholesky   
-            factorization dA = U**T*U or dA = L*L**T.   
+            On exit, if INFO = 0, the factor U or L from the Cholesky
+            factorization dA = U**T*U or dA = L*L**T.
 
     LDDA    (input) INTEGER
             The leading dimension of the array A.  LDA >= max(1,N).
@@ -81,15 +81,15 @@ magma_dposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     magma_err_t ret;
     
-    *info = 0 ; 
+    *info = 0 ;
     if( (uplo != MagmaUpper) && (uplo != MagmaLower) )
-        *info = -1; 
+        *info = -1;
     if( n < 0 )
-        *info = -2; 
-    if( nrhs < 0) 
-        *info = -3; 
+        *info = -2;
+    if( nrhs < 0)
+        *info = -3;
     if ( ldda < max(1, n) )
-        *info = -5; 
+        *info = -5;
     if ( lddb < max(1, n) )
         *info = -7;
     if (*info != 0) {

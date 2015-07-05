@@ -1,8 +1,8 @@
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    September 2012
+    @date November 2013
 
     @author Raffaele Solca
 
@@ -188,9 +188,9 @@ magma_dlaex3(magma_int_t k, magma_int_t n, magma_int_t n1, double* d,
 
     magmaDouble_ptr dq2= dwork;
     magmaDouble_ptr ds = dq2;
-	size_t ds_offset = n*(n/2+1);
+    size_t ds_offset = n*(n/2+1);
     magmaDouble_ptr dq = ds;
-	size_t dq_offset = ds_offset + n*(n/2+1);
+    size_t dq_offset = ds_offset + n*(n/2+1);
     magma_int_t lddq = n/2 + 1;
 
     magma_int_t i,iq2,j,n12,n2,n23,tmp,lq2;

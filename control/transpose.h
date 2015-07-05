@@ -2,15 +2,15 @@
  *
  * @file transpose.h
  *
- *  clMAGMA (version 1.0.0) --
+ *  clMAGMA (version 1.1.0-beta2) --
  *  Univ. of Tennessee, Knoxville
  *  Univ. of California, Berkeley
  *  Univ. of Colorado, Denver
- *  April 2012
+ *  @date November 2013
  *
  * @version 1.0.0
  * @author Mathieu Faverge
- * @date 2010-11
+ * @date November 2013
  *
  * Macro to transpose matrices before and after computation
  * in LU kernels

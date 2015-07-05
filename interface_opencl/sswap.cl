@@ -1,16 +1,15 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      August 2012
+ *      @date November 2013
  *
- * @generated s Wed Oct 24 00:32:59 2012
+ * @generated s Mon Nov 25 17:56:04 2013
  */
 
 #define PRECISION_s
 #define BLOCK_SIZE 64
-#define __mul24( x, y )  ((x)*(y))
 
 #if defined(PRECISION_c) || defined(PRECISION_z)
 typedef float float;
@@ -22,14 +21,34 @@ typedef struct {
 
 __kernel void magmagpu_sswap(__global float *dA1, __global float *dA2, magmagpu_sswap_params_t params )
 {
-    unsigned int x = get_local_id(0) + __mul24(get_local_size(0), get_group_id(0));
-	unsigned int offset1 = __mul24( x, params.lda1);
-	unsigned int offset2 = __mul24( x, params.lda2);
-	if( x < params.n ){
-		__global float *A1  = dA1 + params.offset_dA1 + offset1;
-		__global float *A2  = dA2 + params.offset_dA2 + offset2;
-		float temp = *A1;
-		*A1 = *A2;
-		*A2 = temp;
-	}
+    unsigned int x = get_local_id(0) + get_local_size(0)*get_group_id(0);
+    unsigned int offset1 = x*params.lda1;
+    unsigned int offset2 = x*params.lda2;
+    if( x < params.n ){
+        __global float *A1  = dA1 + params.offset_dA1 + offset1;
+        __global float *A2  = dA2 + params.offset_dA2 + offset2;
+        float temp = *A1;
+        *A1 = *A2;
+        *A2 = temp;
+    }
 }
+
+// empty kernel, benchmark in iwocl 2013
+__kernel void sswap_empty_kernel(int i0, int i1, int i2, int i3, int i4, 
+                                 int i5, int i6, int i7, int i8, int i9,
+                                 float d0, float d1, float d2, float d3, float d4, 
+                                 __global float *dA, __global float *dB, __global float *dC)
+{
+    int x = get_local_id(0);
+
+    for(int i=0;i<i0;i++)
+    {
+        dC[i+x] += d1*dC[i+x] + d2*dA[i]*dB[i];
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for(int i=0;i<i0;i++)
+    {
+        dC[i+x] += d1*dC[i+x] + d2*dA[i]*dB[i];
+    }
+}
+

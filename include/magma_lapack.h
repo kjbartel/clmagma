@@ -1,9 +1,9 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  */
 
 #ifndef MAGMA_LAPACK_H
@@ -12,9 +12,9 @@
 #ifndef FORTRAN_NAME
 #  if defined(ADD_)
 #    define FORTRAN_NAME(lcname, UCNAME)  lcname##_
-#  elif defined(NOCHANGE)               
+#  elif defined(NOCHANGE)
 #    define FORTRAN_NAME(lcname, UCNAME)  lcname
-#  elif defined(UPCASE)                 
+#  elif defined(UPCASE)
 #    define FORTRAN_NAME(lcname, UCNAME)  UCNAME
 #  else
 #    error No Fortran calling convention given. Define one of ADD_, NOCHANGE, or UPCASE
@@ -39,15 +39,15 @@ extern "C" {
 #define lapackf77_dlabad FORTRAN_NAME( dlabad, DLABAD )
 #define lapackf77_zcgesv FORTRAN_NAME( zcgesv, ZCGESV )
 #define lapackf77_dsgesv FORTRAN_NAME( dsgesv, DSGESV )
-                                               
+
 #define lapackf77_dsterf FORTRAN_NAME( dsterf, DSTERF )
 #define lapackf77_ssterf FORTRAN_NAME( ssterf, SSTERF )
-                                               
+
 #define lapackf77_zlag2c FORTRAN_NAME( zlag2c, ZLAG2C )
 #define lapackf77_clag2z FORTRAN_NAME( clag2z, CLAG2Z )
 #define lapackf77_dlag2s FORTRAN_NAME( dlag2s, DLAG2S )
 #define lapackf77_slag2d FORTRAN_NAME( slag2d, SLAG2D )
-                                               
+
 #define lapackf77_dlapy2 FORTRAN_NAME( dlapy2, DLAPY2 )
 #define lapackf77_slapy2 FORTRAN_NAME( slapy2, SLAPY2 )
 
@@ -61,9 +61,9 @@ double   lapackf77_dlamch(const char *cmach);
 void     lapackf77_slabad(float  *Small, float  *large);
 void     lapackf77_dlabad(double *Small, double *large);
 
-void     lapackf77_zcgesv(magma_int_t *n, magma_int_t *nrhs, magmaDoubleComplex *A, magma_int_t *lda, magma_int_t *IPIV, magmaDoubleComplex *B, magma_int_t *ldb, 
+void     lapackf77_zcgesv(magma_int_t *n, magma_int_t *nrhs, magmaDoubleComplex *A, magma_int_t *lda, magma_int_t *IPIV, magmaDoubleComplex *B, magma_int_t *ldb,
                           magmaDoubleComplex *X, magma_int_t *ldx, magmaDoubleComplex *work, magmaFloatComplex *swork, double *rwork, magma_int_t *iter, magma_int_t *info);
-void     lapackf77_dsgesv(magma_int_t *n, magma_int_t *nrhs, double          *A, magma_int_t *lda, magma_int_t *IPIV, double          *B, magma_int_t *ldb, 
+void     lapackf77_dsgesv(magma_int_t *n, magma_int_t *nrhs, double          *A, magma_int_t *lda, magma_int_t *IPIV, double          *B, magma_int_t *ldb,
                           double          *X, magma_int_t *ldx, double          *work, float          *swork,                magma_int_t *iter, magma_int_t *info);
 
 void     lapackf77_dsterf(magma_int_t *, double *, double *, magma_int_t *);

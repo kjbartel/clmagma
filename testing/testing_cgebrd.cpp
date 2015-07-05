@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2012
+ *     @date November 2013
  *
- * @generated c Wed Oct 24 00:33:03 2012
+ * @generated c Mon Nov 25 17:56:10 2013
  *
  **/
 
@@ -78,18 +78,18 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
 
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
@@ -118,7 +118,7 @@ int main( int argc, char** argv)
     /* To avoid uninitialized variable warning */
     h_PT    = NULL;
     chkwork = NULL;
-    rwork   = NULL; 
+    rwork   = NULL;
 
     if ( checkres ) {
         lchkwork = max(minmn * nb, M+N);
@@ -126,7 +126,7 @@ int main( int argc, char** argv)
         lchkwork = max(lchkwork, minmn*minmn);
         TESTING_MALLOC( h_PT,    magmaFloatComplex, lda*N   );
         TESTING_MALLOC( chkwork, magmaFloatComplex, lchkwork );
-#if defined(PRECISION_z) || defined(PRECISION_c) 
+#if defined(PRECISION_z) || defined(PRECISION_c)
         TESTING_MALLOC( rwork, float, 5*minmn );
 #endif
     }
@@ -155,12 +155,12 @@ int main( int argc, char** argv)
            =================================================================== */
         gpu_time = get_time();
         if ( uselapack ) {
-            lapackf77_cgebrd( &M, &N, h_Q, &lda, 
-                              diag, offdiag, tauq, taup, 
+            lapackf77_cgebrd( &M, &N, h_Q, &lda,
+                              diag, offdiag, tauq, taup,
                               h_work, &lhwork, &info);
         } else {
-            magma_cgebrd( M, N, h_Q, lda, 
-                          diag, offdiag, tauq, taup, 
+            magma_cgebrd( M, N, h_Q, lda,
+                          diag, offdiag, tauq, taup,
                           h_work, lhwork, &info, queue );
         }
         gpu_time = get_time() - gpu_time;
@@ -186,16 +186,16 @@ int main( int argc, char** argv)
             // Test 1:  Check the decomposition A := Q * B * PT
             //      2:  Check the orthogonality of Q
             //      3:  Check the orthogonality of PT
-#if defined(PRECISION_z) || defined(PRECISION_c) 
-            lapackf77_cbdt01(&M, &N, &ione, 
-                             h_A, &lda, h_Q, &lda, 
+#if defined(PRECISION_z) || defined(PRECISION_c)
+            lapackf77_cbdt01(&M, &N, &ione,
+                             h_A, &lda, h_Q, &lda,
                              diag, offdiag, h_PT, &lda,
                              chkwork, rwork, &result[0]);
             lapackf77_cunt01("Columns", &M, &minmn, h_Q,  &lda, chkwork, &lchkwork, rwork, &result[1]);
             lapackf77_cunt01("Rows",    &minmn, &N, h_PT, &lda, chkwork, &lchkwork, rwork, &result[2]);
 #else
-            lapackf77_cbdt01(&M, &N, &ione, 
-                             h_A, &lda, h_Q, &lda, 
+            lapackf77_cbdt01(&M, &N, &ione,
+                             h_A, &lda, h_Q, &lda,
                              diag, offdiag, h_PT, &lda,
                              chkwork, &result[0]);
             lapackf77_cunt01("Columns", &M, &minmn, h_Q,  &lda, chkwork, &lchkwork, &result[1]);
@@ -207,7 +207,7 @@ int main( int argc, char** argv)
            Performs operation using LAPACK
            =================================================================== */
         cpu_time = get_time();
-        lapackf77_cgebrd(&M, &N, h_A, &lda, 
+        lapackf77_cgebrd(&M, &N, h_A, &lda,
                          diag, offdiag, tauq, taup,
                          h_work, &lhwork, &info);
         cpu_time = get_time() - cpu_time;
@@ -245,7 +245,7 @@ int main( int argc, char** argv)
     if ( checkres ) {
         TESTING_FREE( h_PT );
         TESTING_FREE( chkwork );
-#if defined(PRECISION_z) || defined(PRECISION_c) 
+#if defined(PRECISION_z) || defined(PRECISION_c)
         TESTING_FREE( rwork );
 #endif
     }

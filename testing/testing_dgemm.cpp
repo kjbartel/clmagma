@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2012
+ *     @date November 2013
  *
- * @generated d Wed Oct 24 00:33:04 2012
+ * @generated d Mon Nov 25 17:56:08 2013
  *
  **/
 
@@ -33,9 +33,10 @@ int main( int argc, char** argv)
     double      error, work[1];
     int         transA = MagmaNoTrans;
     int         transB = MagmaNoTrans;
+    double Cnorm;
 
     magma_int_t istart = 1024;
-    magma_int_t iend   = 6240;
+    magma_int_t iend   = 8194;
     magma_int_t M, M0 = 0;
     magma_int_t N, N0 = 0;
     magma_int_t K, K0 = 0;
@@ -127,16 +128,16 @@ int main( int argc, char** argv)
     
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
@@ -209,46 +210,49 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using MAGMA-BLAS
            =================================================================== */
-	magma_dsetmatrix( Am, An, h_A, 0, lda, d_A, 0, ldda, queue );
-	magma_dsetmatrix( Bm, Bn, h_B, 0, ldb, d_B, 0, lddb, queue );
-	magma_dsetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue ); 
-	
-	magma_dgemm( transA, transB, M, N, K,
+        magma_dsetmatrix( Am, An, h_A, 0, lda, d_A, 0, ldda, queue );
+        magma_dsetmatrix( Bm, Bn, h_B, 0, ldb, d_B, 0, lddb, queue );
+        magma_dsetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+    
+        magma_dgemm( transA, transB, M, N, K,
                      alpha, d_A, 0, ldda,
                      d_B, 0, lddb,
                      beta,  d_C, 0, lddc, queue );
-	magma_dsetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
-	magma_queue_sync( queue );
+        magma_dsetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+        magma_queue_sync( queue );
 
         gpu_time = get_time();
-        magma_dgemm( transA, transB, M, N, K, 
-		     alpha, d_A, 0, ldda,
-		     d_B, 0, lddb,
-		     beta,  d_C, 0, lddc, queue );
-	magma_queue_sync( queue);
+        magma_dgemm( transA, transB, M, N, K,
+                     alpha, d_A, 0, ldda,
+                     d_B, 0, lddb,
+                     beta,  d_C, 0, lddc, queue );
+        magma_queue_sync( queue);
         gpu_time = get_time() - gpu_time;
         gpu_perf = gflops / gpu_time;
         
         magma_dgetmatrix( M, N, d_C, 0, lddc, h_C2, 0, ldc, queue );
         
         /* =====================================================================
-           Performs operation using CUDA-BLAS
+           Performs operation using CPU-BLAS
            =================================================================== */
 
         cpu_time = get_time();
         blasf77_dgemm( lapack_const(transA), lapack_const(transB),
-		       &M, &N, &K, 
-		       &alpha, h_A, &lda,
-		       h_B, &ldb,
-		       &beta,  h_C, &ldc );
-        cpu_time = get_time() - cpu_time; 
+                       &M, &N, &K,
+                       &alpha, h_A, &lda,
+                       h_B, &ldb,
+                       &beta,  h_C, &ldc );
+        cpu_time = get_time() - cpu_time;
         cpu_perf = gflops / cpu_time;
         
+        // |C_magma - C_lapack| / |C_lapack|
+        Cnorm = lapackf77_dlange( "M", &M, &N, h_C, &ldc, work );
+
         /* =====================================================================
            Error Computation and Performance Compariosn
            =================================================================== */
         blasf77_daxpy(&szeC, &mzone, h_C, &ione, h_C2, &ione);
-        error = lapackf77_dlange("M", &M, &N, h_C2, &ldc, work);
+        error = lapackf77_dlange("M", &M, &N, h_C2, &ldc, work)/Cnorm;
         printf("%5d %5d %5d    %8.2f (%6.2f)    %6.2f (%6.2f)    %e\n",
                M, N, K, gpu_perf, gpu_time, cpu_perf, cpu_time, error);
     }

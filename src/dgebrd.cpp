@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.0.0) --
+     -- clMAGMA (version 1.1.0-beta2) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        April 2012
+        @date November 2013
 
-        @generated d Wed Oct 24 00:32:50 2012
+        @generated d Mon Nov 25 17:56:00 2013
 
 */
 
@@ -21,15 +21,15 @@
 magma_err_t
 magma_dgebrd(magma_int_t m, magma_int_t n,
              double *a, magma_int_t lda, double *d, double *e,
-             double *tauq, double *taup, 
-             double *work, magma_int_t lwork, 
+             double *tauq, double *taup,
+             double *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.0.0) --
+/*  -- MAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       October 2012
+       @date November 2013
 
     Purpose
     =======
@@ -185,9 +185,9 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
     }
 
     size_t da_offset = 0;
-    if (MAGMA_SUCCESS != magma_malloc( &da, (n*ldda + (m + n)*nb )*sizeof(double))) {
+    if (MAGMA_SUCCESS != magma_dmalloc( &da, (n*ldda + (m + n)*nb ) )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
-        return *info; 
+        return *info;
     }
     
     //dwork = da + (n)*ldda;
@@ -214,10 +214,10 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
 
         /*   Get the current panel (no need for the 1st iteration) */
         if ( i > 0 ) {
-	  magma_dgetmatrix( nrow, nb, dA(i, i), ldda, A( i, i), 0, lda, queue );
-	  magma_dgetmatrix( nb, ncol - nb,
-			    dA(i, i+nb), ldda,
-			    A( i, i+nb), 0, lda, queue );
+            magma_dgetmatrix( nrow, nb, dA(i, i), ldda, A( i, i), 0, lda, queue );
+            magma_dgetmatrix( nb, ncol - nb,
+                              dA(i, i+nb), ldda,
+                              A( i, i+nb), 0, lda, queue );
         }
 
         magma_dlabrd_gpu(nrow, ncol, nb,
@@ -225,7 +225,7 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
                          d+i, e+i, tauq+i, taup+i,
                          work,             ldwrkx, dwork, dwork_offset, ldwrkx,  // x, dx
                          work+(ldwrkx*nb), ldwrky, dwork, dwork_offset+(ldwrkx*nb), ldwrky, // y, dy
-			 queue );
+                         queue );
 
         /*  Update the trailing submatrix A(i+nb:m,i+nb:n), using an update
             of the form  A := A - V*Y' - X*U' */
@@ -238,14 +238,14 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
                           work  +               (ldwrkx+1)*nb, 0, ldwrky,
                           dwork, dwork_offset + (ldwrkx+1)*nb, ldwrky, queue );
 
-        magma_dgemm( MagmaNoTrans, MagmaTrans, 
-                     nrow, ncol, nb, 
+        magma_dgemm( MagmaNoTrans, MagmaTrans,
+                     nrow, ncol, nb,
                      c_neg_one, dA(i+nb, i   ),      ldda,
-		     dwork, dwork_offset+(ldwrkx+1)*nb, ldwrky,
+                     dwork, dwork_offset+(ldwrkx+1)*nb, ldwrky,
                      c_one,     dA(i+nb, i+nb), ldda, queue );
 
-        magma_dgemm( MagmaNoTrans, MagmaNoTrans, 
-                     nrow, ncol, nb, 
+        magma_dgemm( MagmaNoTrans, MagmaNoTrans,
+                     nrow, ncol, nb,
                      c_neg_one, dwork, dwork_offset+nb, ldwrkx,
                                 dA( i,    i+nb ), ldda,
                      c_one,     dA( i+nb, i+nb ), ldda, queue );
@@ -273,7 +273,7 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
     if ( 0 < (minmn-nx) )
       magma_dgetmatrix( nrow, ncol, dA(i, i), ldda, A( i, i), 0, lda, queue );
 
-    lapackf77_dgebrd( &nrow, &ncol, 
+    lapackf77_dgebrd( &nrow, &ncol,
                       A(i, i), &lda, d+i, e+i,
                       tauq+i, taup+i, work, &lwork, &iinfo);
     work[0] = MAGMA_D_MAKE(lwkopt, 0.);
@@ -281,4 +281,3 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
     magma_free( da );
     return *info;
 } /* magma_dgebrd */
-

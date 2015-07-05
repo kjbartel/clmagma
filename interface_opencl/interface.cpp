@@ -1,15 +1,16 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
  * @author Mark Gates
  */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "magma.h"
 #include "CL_MAGMA_RT.h"
@@ -20,6 +21,9 @@
 // globals
 cl_platform_id gPlatform;
 cl_context     gContext;
+
+magma_event_t  *gevent;
+
 
 // Run time global variable used for LU
 CL_MAGMA_RT *rt;
@@ -47,9 +51,11 @@ magma_init()
     assert( err == 0 );
 
     // Initialize kernels related to LU
-	rt = CL_MAGMA_RT::Instance();
+    rt = CL_MAGMA_RT::Instance();
     rt->Init(gPlatform, gContext);
     
+    gevent = NULL;
+
     return err;
 }
 
@@ -67,16 +73,40 @@ magma_finalize()
     return err;
 }
 
+// --------------------
+// Print the available GPU devices. Used in testing.
+void magma_print_devices()
+{
+    cl_uint ndevices;
+
+    clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &ndevices);
+    cl_device_id* Devices = (cl_device_id *)malloc(ndevices * sizeof(cl_device_id));
+    clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, ndevices, Devices, NULL);
+
+    for(unsigned int i = 0; i < ndevices; i++)
+      {
+        char deviceName[1024], driver[1024];
+        cl_ulong mem_size, alloc_size;
+        memset(deviceName, '\0', 1024);
+
+        clGetDeviceInfo(Devices[i], CL_DEVICE_NAME, sizeof(deviceName), deviceName, NULL);
+        clGetDeviceInfo(Devices[i], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &mem_size, NULL);
+        clGetDeviceInfo(Devices[i], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &alloc_size, NULL);
+        clGetDeviceInfo(Devices[i], CL_DRIVER_VERSION, sizeof(driver), driver, NULL);
+        printf ("Device: %s (memory  %3.1f GB, max allocation  %3.1f GB, driver  %s)\n",
+                deviceName, mem_size/1.e9, alloc_size/1.e9, driver);
+      }
+    free( Devices );
+}
+
 
 // ========================================
 // memory allocation
-// #include "CL/cl_ext.h"
 magma_err_t
 magma_malloc( magma_ptr* ptrPtr, size_t size )
 {
     cl_int err;
     *ptrPtr = clCreateBuffer( gContext, CL_MEM_READ_WRITE, size, NULL, &err );
-    // *ptrPtr = clCreateBuffer( gContext, CL_MEM_READ_WRITE | CL_MEM_USE_PERSISTENT_MEM_AMD, size, NULL, &err );
     return err;
 }
 
@@ -90,7 +120,7 @@ magma_free( magma_ptr ptr )
 
 // --------------------
 magma_err_t
-magma_malloc_host( void** ptrPtr, size_t size )
+magma_malloc_cpu( void** ptrPtr, size_t size )
 {
     *ptrPtr = malloc( size );
     if ( *ptrPtr == NULL ) {
@@ -103,7 +133,7 @@ magma_malloc_host( void** ptrPtr, size_t size )
 
 // --------------------
 magma_err_t
-magma_free_host( void* ptr )
+magma_free_cpu( void* ptr )
 {
     free( ptr );
     return MAGMA_SUCCESS;
@@ -114,9 +144,9 @@ magma_free_host( void* ptr )
 // device & queue support
 magma_err_t
 magma_get_devices(
-	magma_device_t* devices,
-	magma_int_t     size,
-	magma_int_t*    numPtr )
+    magma_device_t* devices,
+    magma_int_t     size,
+    magma_int_t*    numPtr )
 {
     cl_int err;
     //err = clGetDeviceIDs( gPlatform, CL_DEVICE_TYPE_GPU, 1, size, devices, num );
@@ -129,12 +159,58 @@ magma_get_devices(
 }
 
 // --------------------
+magma_int_t 
+magma_num_gpus( void )
+{
+    const char *ngpu_str = getenv("MAGMA_NUM_GPUS");
+    cl_uint ngpu = 1;
+    if ( ngpu_str != NULL ) {
+        char* endptr;
+        ngpu = strtol( ngpu_str, &endptr, 10 );
+
+        cl_uint ndevices;    
+        clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &ndevices);
+
+        if ( ngpu < 1 || *endptr != '\0' ) {
+          ngpu = 1;
+          fprintf( stderr, "$MAGMA_NUM_GPUS=%s is an invalid number; using %d GPU.\n",
+                   ngpu_str, ngpu );
+        }
+        else if ( ngpu > MagmaMaxGPUs || ngpu > ndevices ) {
+          ngpu = ((ndevices < MagmaMaxGPUs)? ndevices : MagmaMaxGPUs);
+          fprintf( stderr, "$MAGMA_NUM_GPUS=%s exceeds MagmaMaxGPUs=%d or available GPUs=%d; using %d GPUs.\n",
+                   ngpu_str, MagmaMaxGPUs, ndevices, ngpu );
+        }
+        assert( 1 <= ngpu && ngpu <= ndevices );
+    }
+    return (magma_int_t)ngpu;
+}
+
+// --------------------                                                                                                      
+magma_int_t 
+magma_queue_meminfo( magma_queue_t queue )
+{
+    cl_device_id dev;
+    clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(cl_device_id), &dev, NULL);
+  
+    cl_ulong mem_size;
+    clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &mem_size, NULL);   
+    mem_size /= sizeof(magmaDoubleComplex); 
+
+    return mem_size;
+}
+
+// --------------------
 magma_err_t
 magma_queue_create( magma_device_t device, magma_queue_t* queuePtr )
 {
     assert( queuePtr != NULL );
     cl_int err;
+    #ifdef TRACING
+    *queuePtr = clCreateCommandQueue( gContext, device, CL_QUEUE_PROFILING_ENABLE, &err );
+    #else
     *queuePtr = clCreateCommandQueue( gContext, device, 0, &err );
+    #endif
     return err;
 }
 
@@ -151,12 +227,25 @@ magma_err_t
 magma_queue_sync( magma_queue_t queue )
 {
     cl_int err = clFinish( queue );
+    clFlush( queue );
     return err;
 }
 
 
 // ========================================
 // event support
+magma_err_t
+magma_setevent( magma_event_t* event )
+{
+  #ifdef TRACING
+    gevent = event;
+  #else
+    printf("%s not implemented\n", __func__ );
+  #endif
+
+  return 0;
+}
+
 magma_err_t
 magma_event_create( magma_event_t* event )
 {

@@ -1,22 +1,29 @@
 
              clMAGMA Release Notes
-	
+
 -----------------------------------------------------
 
-clMAGMA is an OpenCL port of MAGMA, intended for a single GPU. 
-It supports AMD GPUs. 
+clMAGMA is an OpenCL port of MAGMA. It supports AMD GPUs. 
 
-Included are routines for the following algorithms:
+Routines are included for the following algorithms:
 
-    * LU, QR, and Cholesky factorizations in both real and complex
-      arithmetic (single and double);
-    * Hessenberg, bidiagonal, and tridiagonal reductions in both real
-      and complex arithmetic (single and double);
-    * Linear solvers based on LU, QR, and Cholesky in both real and
-      complex arithmetic (single and double);
-    * Eigen and singular value problem solvers in both real and
-      complex arithmetic (single and double);
+    * LU, QR, and Cholesky factorizations, with multi-GPU support
+    * Hessenberg, bidiagonal, and tridiagonal reductions
+    * Linear solvers based on LU, QR, and Cholesky
+    * Eigenvalue and singular value problem solvers
     * Orthogonal transformation routines.
+
+Most routines have all four precisions:
+single (s), double (d), single-complex (c), double-complex (z).
+
+ 1.1.0 - 11-18-2013
+    * Performance improvements
+    * Add LU, QR, and Cholesky factorizations and solvers with CPU interfaces
+    * Add multi-buffer LU, QR, and Cholesky factorizations that overcome size 
+      limitations for single memory allocation, enabling the solution of large 
+      problems
+    * Add multiGPU implementations for the LU, QR, and Cholesky factorizations.
+    * Add 'make shared' target to make a shared library.
 
  1.0.0 - 10-24-2012
     * Add eigen and singular value problem solvers in both real and

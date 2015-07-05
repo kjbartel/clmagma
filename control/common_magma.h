@@ -2,11 +2,11 @@
  *
  * @file common_magma.h
  *
- *  clMAGMA (version 1.0.0) --
+ *  clMAGMA (version 1.1.0-beta2) --
  *  Univ. of Tennessee, Knoxville
  *  Univ. of California, Berkeley
  *  Univ. of Colorado, Denver
- *  April 2012
+ *  @date November 2013
  *
  *
  **/
@@ -55,10 +55,10 @@
 #endif
 
 /** ****************************************************************************
- *  Determine if weak symbols are allowed 
+ *  Determine if weak symbols are allowed
  */
 #if defined(linux) || defined(__linux) || defined(__linux__)
-#if defined(__GNUC_EXCL__) || defined(__GNUC__) 
+#if defined(__GNUC_EXCL__) || defined(__GNUC__)
 #define MAGMA_HAVE_WEAK    1
 #endif
 #endif
@@ -77,19 +77,19 @@
 #endif
 
 /** ****************************************************************************
- *  Define magma_[sd]sqrt functions 
+ *  Define magma_[sd]sqrt functions
  *    - sqrt alone cannot be catched by the generation script because of tsqrt
  */
 
 #define magma_dsqrt sqrt
 #define magma_ssqrt sqrt
 
-/** **************************************************************************** 
+/** ****************************************************************************
  *  Define macros for error checking
  */
 void chk_helper( int err, const char* func, const char* file, int line );
 
-// if debugging is enabled, assert that all functions return correctly                                                       
+// if debugging is enabled, assert that all functions return correctly
 #ifndef NDEBUG
 #  define chk( err ) chk_helper( err, __func__, __FILE__, __LINE__  )
 #else

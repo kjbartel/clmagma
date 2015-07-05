@@ -1,9 +1,9 @@
 /*
-	-- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       @date November 2013
 */
 #include "common_magma.h"
 

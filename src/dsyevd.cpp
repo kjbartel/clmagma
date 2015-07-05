@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
        @author Stan Tomov
        @author Mark Gates
@@ -23,11 +23,11 @@ magma_dsyevd(magma_vec_t jobz, magma_vec_t uplo,
              magma_int_t *iwork, magma_int_t liwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.0.0) --
+/*  -- MAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
     Purpose
     =======
@@ -152,12 +152,12 @@ magma_dsyevd(magma_vec_t jobz, magma_vec_t uplo,
 
     magmaDouble_ptr dwork;
 
-    wantz = lapackf77_lsame(lapack_const(jobz_), MagmaVectorsStr);
+    wantz = lapackf77_lsame(lapack_const(jobz_), MagmaVecStr);
     lower = lapackf77_lsame(lapack_const(uplo_), MagmaLowerStr);
     lquery = lwork == -1 || liwork == -1;
 
     *info = 0;
-    if (! (wantz || lapackf77_lsame(lapack_const(jobz_), MagmaNoVectorsStr))) {
+    if (! (wantz || lapackf77_lsame(lapack_const(jobz_), MagmaNoVecStr))) {
         *info = -1;
     } else if (! (lower || lapackf77_lsame(lapack_const(uplo_), MagmaUpperStr))) {
         *info = -2;
@@ -271,7 +271,7 @@ magma_dsyevd(magma_vec_t jobz, magma_vec_t uplo,
         start = get_current_time();
 #endif
         
-        if (MAGMA_SUCCESS != magma_malloc( &dwork, 3*n*(n/2 + 1)*sizeof(double) )) {
+        if (MAGMA_SUCCESS != magma_dmalloc( &dwork, 3*n*(n/2 + 1) )) {
             *info = MAGMA_ERR_DEVICE_ALLOC;
             return *info;
         }

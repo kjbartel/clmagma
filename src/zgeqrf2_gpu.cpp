@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
        @precisions normal z -> s d c
 
@@ -12,17 +12,21 @@
 #include <stdio.h>
 #include "common_magma.h"
 
+// using 2 queues, 1 for comm, 1 for comp.
+extern cl_context     gContext;
+
+
 magma_err_t
 magma_zgeqrf2_gpu( magma_int_t m, magma_int_t n,
                    magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
                    magmaDoubleComplex *tau, magma_err_t *info,
-		   magma_queue_t queue)
+                   magma_queue_t* queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -77,8 +81,10 @@ magma_zgeqrf2_gpu( magma_int_t m, magma_int_t n,
     =====================================================================    */
 
     #define dA(a_1,a_2)    dA, (dA_offset + (a_1) + (a_2)*(ldda))
-    #define work_ref(a_1)  ( work + (a_1))
+    #define work_ref(a_1)  work, (a_1)
+    #define work_href(a_1) ( work + (a_1))
     #define hwork          ( work + (nb)*(m))
+    #define hhwork         work, ((nb)*(m))  
 
     magmaDoubleComplex_ptr dwork;
     magmaDoubleComplex  *work;
@@ -110,18 +116,26 @@ magma_zgeqrf2_gpu( magma_int_t m, magma_int_t n,
     lhwork = lwork - (m)*nb;
 
     
-    if ( MAGMA_SUCCESS != magma_malloc( &dwork, n*nb*sizeof(magmaDoubleComplex))) {
+    if ( MAGMA_SUCCESS != magma_zmalloc( &dwork, n*nb )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
-    
-    if ( MAGMA_SUCCESS != magma_malloc_host((void**)&work, lwork*sizeof(magmaDoubleComplex)) ) {
+
+    /*    
+    if ( MAGMA_SUCCESS != magma_zmalloc_cpu( &work, lwork ) ) {
         *info = MAGMA_ERR_HOST_ALLOC;
         magma_free( dwork );
         return *info;
     }
-    
-    magma_event_t event[2] = {NULL, NULL};                                                            
+    */
+
+    cl_mem buffer = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 
+                                   sizeof(magmaDoubleComplex)*lwork, NULL, NULL);
+    work = (magmaDoubleComplex*)clEnqueueMapBuffer(queue[0], buffer, CL_TRUE, 
+                                                   CL_MAP_READ | CL_MAP_WRITE, 
+                                                   0, lwork*sizeof(magmaDoubleComplex), 
+                                                   0, NULL, NULL, NULL);
+
 
     nbmin = 2;
     nx    = nb;
@@ -134,58 +148,62 @@ magma_zgeqrf2_gpu( magma_int_t m, magma_int_t n,
         for (i = 0; i < k-nx; i += nb) {
             ib = min(k-i, nb);
             rows = m -i;
-	    
-	    magma_queue_sync( queue );
-	    magma_zgetmatrix_async(rows, ib, dA(i, i), ldda, work_ref(i), 0, ldwork, queue, &event[0]);
+            
+            magma_queue_sync( queue[1] );
+            chk(magma_zgetmatrix_async(rows, ib, dA(i, i), ldda, work_ref(i), ldwork, queue[0], NULL));
           
             if (i>0){
                 /* Apply H' to A(i:m,i+2*ib:n) from the left */
                 magma_zlarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                   m-old_i, n-old_i-2*old_ib, old_ib,
                                   dA(old_i, old_i         ), ldda, dwork,0,      lddwork,
-                                  dA(old_i, old_i+2*old_ib), ldda, dwork,old_ib, lddwork, queue);
+                                  dA(old_i, old_i+2*old_ib), ldda, dwork,old_ib, lddwork, queue[1]);
 
-		magma_zsetmatrix_async( old_ib, old_ib, work_ref(old_i), 0, ldwork,
-					dA(old_i, old_i), ldda, queue, &event[1]); 
+                chk(magma_zsetmatrix_async( old_ib, old_ib, work_ref(old_i), ldwork,
+                                            dA(old_i, old_i), ldda, queue[1], NULL));
             }
 
-	    magma_event_sync(event[0]);
-            lapackf77_zgeqrf(&rows, &ib, work_ref(i), &ldwork, tau+i, hwork, &lhwork, info);
+            magma_queue_sync(queue[0]);
+            lapackf77_zgeqrf(&rows, &ib, work_href(i), &ldwork, tau+i, hwork, &lhwork, info);
    
-	    if (i > 0) {
-	      magma_event_sync(event[1]);
-	    }
-
-	    /* Form the triangular factor of the block reflector
+            /* Form the triangular factor of the block reflector
                H = H(i) H(i+1) . . . H(i+ib-1) */
-            lapackf77_zlarft( MagmaForwardStr, MagmaColumnwiseStr, 
-                              &rows, &ib, 
-                              work_ref(i), &ldwork, tau+i, hwork, &ib);
+            lapackf77_zlarft( MagmaForwardStr, MagmaColumnwiseStr,
+                              &rows, &ib,
+                              work_href(i), &ldwork, tau+i, hwork, &ib);
 
-            zpanel_to_q( MagmaUpper, ib, work_ref(i), ldwork, hwork+ib*ib );
-	    magma_zsetmatrix(rows, ib, work_ref(i), 0, ldwork, dA(i,i), ldda, queue);
-            zq_to_panel( MagmaUpper, ib, work_ref(i), ldwork, hwork+ib*ib );
-	    
-            if (i + ib < n) 
-	      {
-		magma_zsetmatrix(ib, ib, hwork, 0, ib, dwork, 0, lddwork, queue);
-		
-                if (i+nb < k-nx)
+            zpanel_to_q( MagmaUpper, ib, work_href(i), ldwork, hwork+ib*ib );
+
+            /* download the i-th V matrix */
+            chk(magma_zsetmatrix_async(rows, ib, work_ref(i), ldwork, dA(i,i), ldda, queue[0], NULL));
+
+            /* download the T matrix */
+            magma_queue_sync( queue[1] );
+            chk(magma_zsetmatrix_async( ib, ib, hhwork, ib, dwork, 0, lddwork, queue[0], NULL));
+            magma_queue_sync( queue[0] );
+
+            if (i + ib < n)
+              {
+                
+                if (i+nb < k-nx) {
                     /* Apply H' to A(i:m,i+ib:i+2*ib) from the left */
                     magma_zlarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
-                                      rows, ib, ib, 
-                                      dA(i, i   ), ldda, dwork,0,  lddwork, 
-                                      dA(i, i+ib), ldda, dwork,ib, lddwork, queue);
+                                      rows, ib, ib,
+                                      dA(i, i   ), ldda, dwork,0,  lddwork,
+                                      dA(i, i+ib), ldda, dwork,ib, lddwork, queue[1]);
+                    zq_to_panel( MagmaUpper, ib, work_href(i), ldwork, hwork+ib*ib );
+                }
                 else {
                     magma_zlarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
-                                      rows, n-i-ib, ib, 
-                                      dA(i, i   ), ldda, dwork,0,  lddwork, 
-                                      dA(i, i+ib), ldda, dwork,ib, lddwork, queue);
-		    magma_zsetmatrix(ib, ib, work_ref(i), 0, ldwork, dA(i,i), ldda, queue);
+                                      rows, n-i-ib, ib,
+                                      dA(i, i   ), ldda, dwork,0,  lddwork,
+                                      dA(i, i+ib), ldda, dwork,ib, lddwork, queue[1]);
+                    zq_to_panel( MagmaUpper, ib, work_href(i), ldwork, hwork+ib*ib );
+                    chk(magma_zsetmatrix_async(ib, ib, work_ref(i), ldwork, dA(i,i), ldda, queue[1], NULL));
                 }
                 old_i  = i;
                 old_ib = ib;
-	      }
+              }
         }
     } else {
         i = 0;
@@ -197,15 +215,21 @@ magma_zgeqrf2_gpu( magma_int_t m, magma_int_t n,
     if (i < k) {
         ib   = n-i;
         rows = m-i;
-	magma_zgetmatrix(rows, ib, dA(i, i), ldda, work, 0, rows, queue);
-
+        magma_zgetmatrix_async(rows, ib, dA(i, i), ldda, work, 0, rows, queue[1], NULL);
+        magma_queue_sync(queue[1]);
+        
         lhwork = lwork - rows*ib;
         lapackf77_zgeqrf(&rows, &ib, work, &rows, tau+i, work+ib*rows, &lhwork, info);
         
-	magma_zsetmatrix(rows, ib, work, 0, rows, dA(i, i), ldda, queue);
+        magma_zsetmatrix_async(rows, ib, work, 0, rows, dA(i, i), ldda, queue[1], NULL);
     }
 
-    magma_free_host(work);
+    magma_queue_sync(queue[0]);
+    magma_queue_sync(queue[1]);
+
+    // magma_free_cpu(work);
+    clEnqueueUnmapMemObject(queue[0], buffer, work, 0, NULL, NULL);
+    clReleaseMemObject(buffer);
 
     return *info;
 } /* magma_zgeqrf2_gpu */

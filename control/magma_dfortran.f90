@@ -1,11 +1,11 @@
 !
-!   -- MAGMA (version 1.0.0) --
+!   -- MAGMA (version 1.1.0-beta2) --
 !      Univ. of Tennessee, Knoxville
 !      Univ. of California, Berkeley
 !      Univ. of Colorado, Denver
-!      October 2012
+!      @date November 2013
 !
-!   @generated d Wed Oct 24 00:32:43 2012
+!   @generated d Mon Nov 25 17:55:51 2013
 !
 
 #define PRECISION_d

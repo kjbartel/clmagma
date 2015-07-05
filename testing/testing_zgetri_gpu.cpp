@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       August 2012
+       @date November 2013
 
        @precisions normal z -> s d c
 
@@ -72,23 +72,23 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
     }
     
-	/* Allocate memory */
+    /* Allocate memory */
     n2   = N * N;
     ldda = ((N+31)/32) * 32;
     TESTING_MALLOC(    ipiv,  magma_int_t,     N      );
@@ -125,10 +125,10 @@ int main( int argc, char** argv)
            Performs operation using MAGMA
            =================================================================== */
         //warm-up
-		magma_zgetri_gpu( N,    d_A, 0, ldda, ipiv, dwork, 0, ldwork, &info, queue );
+        magma_zgetri_gpu( N,    d_A, 0, ldda, ipiv, dwork, 0, ldwork, &info, queue );
         
-		magma_zsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-		gpu_time = get_time();
+        magma_zsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
+        gpu_time = get_time();
         magma_zgetri_gpu( N,    d_A, 0, ldda, ipiv, dwork, 0, ldwork, &info, queue );
         gpu_time = get_time()-gpu_time;
         if (info != 0)

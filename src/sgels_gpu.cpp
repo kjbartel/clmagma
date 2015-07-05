@@ -1,25 +1,27 @@
-/*  
-    -- clMAGMA (version 1.0.0) --
-       Univ. of Tennessee, Knoxville                                                            Univ. of California, Berkeley
-       Univ. of Colorado, Denver                                                                               
-       April 2012                                                                                              
-       @generated s Wed Oct 24 00:32:49 2012
+/*
+    -- clMAGMA (version 1.1.0-beta2) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2013
+       
+       @generated s Mon Nov 25 17:56:00 2013
 
 */
 #include "common_magma.h"
 
 extern "C" magma_int_t
 magma_sgels_gpu( magma_trans_t trans, magma_int_t m, magma_int_t n, magma_int_t nrhs,
-                 magmaFloat_ptr dA, size_t dA_offset,  magma_int_t ldda, 
-                 magmaFloat_ptr dB, size_t dB_offset,  magma_int_t lddb, 
-                 float *hwork, magma_int_t lwork, 
+                 magmaFloat_ptr dA, size_t dA_offset,  magma_int_t ldda,
+                 magmaFloat_ptr dB, size_t dB_offset,  magma_int_t lddb,
+                 float *hwork, magma_int_t lwork,
                  magma_int_t *info, magma_queue_t queue )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -64,7 +66,7 @@ magma_sgels_gpu( magma_trans_t trans, magma_int_t m, magma_int_t n, magma_int_t 
 
     LWORK   (input) INTEGER
             The dimension of the array HWORK, LWORK >= max(1,NRHS).
-            For optimum performance LWORK >= (M-N+NB)*(NRHS + 2*NB), where 
+            For optimum performance LWORK >= (M-N+NB)*(NRHS + 2*NB), where
             NB is the blocksize given by magma_get_sgeqrf_nb( M ).
 
             If LWORK = -1, then a workspace query is assumed; the routine
@@ -78,7 +80,7 @@ magma_sgels_gpu( magma_trans_t trans, magma_int_t m, magma_int_t n, magma_int_t 
 
    #define a_ref(a_1,a_2) dA, (dA_offset+(a_1)+(a_2)*(ldda))
 
-	magmaFloat_ptr dT;
+    magmaFloat_ptr dT;
     float *tau;
     magma_int_t k;
 
@@ -124,29 +126,29 @@ magma_sgels_gpu( magma_trans_t trans, magma_int_t m, magma_int_t n, magma_int_t 
     int ldtwork = ( 2*k + ((n+31)/32)*32 )*nb;
     if (nb < nrhs)
       ldtwork = ( 2*k + ((n+31)/32)*32 )*nrhs;
-    if (MAGMA_SUCCESS != magma_malloc( &dT, ldtwork*sizeof(float) )) {
+    if (MAGMA_SUCCESS != magma_smalloc( &dT, ldtwork )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
     
-    tau = (float*) malloc( k * sizeof(float) );
+    magma_smalloc_cpu( &tau, k );
     if( tau == NULL ) {
         magma_free( dT );
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
     }
-	
-	size_t dT_offset = 0;
+    
+    size_t dT_offset = 0;
     magma_sgeqrf_gpu( m, n, dA, dA_offset, ldda, tau, dT, dT_offset, info, queue );
 
     if ( *info == 0 ) {
-        magma_sgeqrs_gpu( m, n, nrhs, 
-                          dA, dA_offset, ldda, tau, dT, dT_offset, 
+        magma_sgeqrs_gpu( m, n, nrhs,
+                          dA, dA_offset, ldda, tau, dT, dT_offset,
                           dB, dB_offset, lddb, hwork, lwork, info, queue );
     }
     
     magma_free( dT );
-    free(tau);
+    magma_free_cpu(tau);
     return *info;
 }
 

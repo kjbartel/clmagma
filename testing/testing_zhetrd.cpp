@@ -1,9 +1,9 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2011
+ *     @date November 2013
  *
  * @precisions normal z -> c d s
  *
@@ -37,7 +37,7 @@ int main( int argc, char** argv)
     
     double           eps;
     magmaDoubleComplex *h_A, *h_R, *h_Q, *h_work, *work;
-	magmaDoubleComplex *h_R1, *h_work1;
+    magmaDoubleComplex *h_R1, *h_work1;
     magmaDoubleComplex *tau;
     double          *diag, *offdiag, *rwork;
     double           result[2] = {0., 0.};
@@ -87,28 +87,28 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
     }
     
-	eps = lapackf77_dlamch( "E" );
+    eps = lapackf77_dlamch( "E" );
     lda = N;
     n2  = lda * N;
     nb  = magma_get_zhetrd_nb(N);
     /* We suppose the magma nb is bigger than lapack nb */
-    lwork = N*nb; 
+    lwork = N*nb;
 
     /* Allocate host memory for the matrix */
     TESTING_MALLOC_HOST( h_A,    magmaDoubleComplex, lda*N );
@@ -123,12 +123,12 @@ int main( int argc, char** argv)
     /* To avoid uninitialized variable warning */
     h_Q   = NULL;
     work  = NULL;
-    rwork = NULL; 
+    rwork = NULL;
 
     if ( checkres ) {
         TESTING_MALLOC( h_Q,  magmaDoubleComplex, lda*N );
         TESTING_MALLOC( work, magmaDoubleComplex, 2*N*N );
-#if defined(PRECISION_z) || defined(PRECISION_c) 
+#if defined(PRECISION_z) || defined(PRECISION_c)
         TESTING_MALLOC( rwork, double, N );
 #endif
     }
@@ -162,12 +162,12 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-		// warm-up
-        magma_zhetrd(uplo[0], N, h_R1, lda, diag, offdiag, 
+        // warm-up
+        magma_zhetrd(uplo[0], N, h_R1, lda, diag, offdiag,
                      tau, h_work1, lwork, &info, queue);
 
         gpu_time = get_time();
-        magma_zhetrd(uplo[0], N, h_R, lda, diag, offdiag, 
+        magma_zhetrd(uplo[0], N, h_R, lda, diag, offdiag,
                      tau, h_work, lwork, &info, queue);
         gpu_time = get_time() - gpu_time;
         if ( info < 0 )
@@ -183,27 +183,27 @@ int main( int argc, char** argv)
             lapackf77_zlacpy(uplo, &N, &N, h_R, &lda, h_Q, &lda);
             lapackf77_zungtr(uplo, &N, h_Q, &lda, tau, h_work, &lwork, &info);
 
-#if defined(PRECISION_z) || defined(PRECISION_c) 
-            lapackf77_zhet21(&itwo, uplo, &N, &ione, 
+#if defined(PRECISION_z) || defined(PRECISION_c)
+            lapackf77_zhet21(&itwo, uplo, &N, &ione,
                              h_A, &lda, diag, offdiag,
-                             h_Q, &lda, h_R, &lda, 
+                             h_Q, &lda, h_R, &lda,
                              tau, work, rwork, &result[0]);
 
-            lapackf77_zhet21(&ithree, uplo, &N, &ione, 
+            lapackf77_zhet21(&ithree, uplo, &N, &ione,
                              h_A, &lda, diag, offdiag,
-                             h_Q, &lda, h_R, &lda, 
+                             h_Q, &lda, h_R, &lda,
                              tau, work, rwork, &result[1]);
 
 #else
 
-            lapackf77_zhet21(&itwo, uplo, &N, &ione, 
+            lapackf77_zhet21(&itwo, uplo, &N, &ione,
                              h_A, &lda, diag, offdiag,
-                             h_Q, &lda, h_R, &lda, 
+                             h_Q, &lda, h_R, &lda,
                              tau, work, &result[0]);
 
-            lapackf77_zhet21(&ithree, uplo, &N, &ione, 
+            lapackf77_zhet21(&ithree, uplo, &N, &ione,
                              h_A, &lda, diag, offdiag,
-                             h_Q, &lda, h_R, &lda, 
+                             h_Q, &lda, h_R, &lda,
                              tau, work, &result[1]);
 
 #endif
@@ -213,7 +213,7 @@ int main( int argc, char** argv)
            Performs operation using LAPACK
            =================================================================== */
         cpu_time = get_time();
-        lapackf77_zhetrd(uplo, &N, h_A, &lda, diag, offdiag, tau, 
+        lapackf77_zhetrd(uplo, &N, h_A, &lda, diag, offdiag, tau,
                          h_work, &lwork, &info);
         cpu_time = get_time() - cpu_time;
 
@@ -251,7 +251,7 @@ int main( int argc, char** argv)
     if ( checkres ) {
         TESTING_FREE( h_Q );
         TESTING_FREE( work );
-#if defined(PRECISION_z) || defined(PRECISION_c) 
+#if defined(PRECISION_z) || defined(PRECISION_c)
         TESTING_FREE( rwork );
 #endif
     }

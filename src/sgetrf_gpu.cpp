@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated s Wed Oct 24 00:32:48 2012
+       @generated s Mon Nov 25 17:56:00 2013
 
 */
 
@@ -13,16 +13,16 @@
 #include "common_magma.h"
 
 magma_err_t
-magma_sgetrf_gpu(magma_int_t m, magma_int_t n, 
+magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
                  magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
                  magma_int_t *ipiv, magma_int_t *info,
                  magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -102,10 +102,10 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
     nb     = magma_get_sgetrf_nb(m);
     s      = mindim / nb;
 
-    if (nb <= 1 || nb >= min(m,n)) 
+    if (nb <= 1 || nb >= min(m,n))
       {
         // use CPU code
-        err = magma_malloc_host( (void**) &work, m*n*sizeof(float) );
+        err = magma_smalloc_cpu(  &work, m*n );
         if ( err != MAGMA_SUCCESS ) {
           *info = MAGMA_ERR_HOST_ALLOC;
           return *info;
@@ -115,9 +115,9 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
         lapackf77_sgetrf(&m, &n, work, &m, ipiv, info);
         chk( magma_ssetmatrix( m, n, work, 0, m, dA, dA_offset, ldda, queue ));
 
-        magma_free_host(work);
+        magma_free_cpu(work);
       }
-    else 
+    else
       {
         size_t dAT_offset;
 
@@ -128,7 +128,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
         lddat   = maxn;
         lddwork = maxm;
 
-        if ( MAGMA_SUCCESS != magma_malloc( &dAP, nb*maxm*sizeof(float))) {
+        if ( MAGMA_SUCCESS != magma_smalloc( &dAP, nb*maxm )) {
           *info = MAGMA_ERR_DEVICE_ALLOC;
           return *info;
         }
@@ -139,10 +139,10 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
             dAT_offset = dA_offset;
             magma_sinplace_transpose( dAT, dAT_offset, ldda, lddat, queue );
           }
-        else 
+        else
           {
             dAT_offset = 0;
-            if ( MAGMA_SUCCESS != magma_malloc( &dAT, maxm*maxn*sizeof(float))) {
+            if ( MAGMA_SUCCESS != magma_smalloc( &dAT, maxm*maxn )) {
               magma_free( dAP );
               *info = MAGMA_ERR_DEVICE_ALLOC;
               return *info;
@@ -151,7 +151,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
             magma_stranspose2( dAT, dAT_offset, lddat, dA, dA_offset,  ldda, m, n, queue );
         }
 
-        if ( MAGMA_SUCCESS != magma_malloc_host((void**)&work, maxm*nb*sizeof(float)) ) {
+        if ( MAGMA_SUCCESS != magma_smalloc_cpu( &work, maxm*nb ) ) {
           magma_free( dAP );
           if (! ((m == n) && (m % 32 == 0) && (ldda%32 == 0)) )
             magma_free( dAT );
@@ -168,14 +168,14 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
                 magma_sgetmatrix(m-i*nb, nb, dAP, 0, cols, work, 0, lddwork, queue);
 
                 if ( i>0 ){
-                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit, 
-                                 n - (i+1)*nb, nb, 
-                                 c_one, inAT(i-1,i-1), lddat, 
+                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit,
+                                 n - (i+1)*nb, nb,
+                                 c_one, inAT(i-1,i-1), lddat,
                                  inAT(i-1,i+1), lddat, queue );
-                    magma_sgemm( MagmaNoTrans, MagmaNoTrans, 
-                                 n-(i+1)*nb, m-i*nb, nb, 
-                                 c_neg_one, inAT(i-1,i+1), lddat, 
-                                            inAT(i,  i-1), lddat, 
+                    magma_sgemm( MagmaNoTrans, MagmaNoTrans,
+                                 n-(i+1)*nb, m-i*nb, nb,
+                                 c_neg_one, inAT(i-1,i+1), lddat,
+                                            inAT(i,  i-1), lddat,
                                  c_one,     inAT(i,  i+1), lddat, queue );
                 }
 
@@ -193,25 +193,25 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
 
                 // do the small non-parallel computations
                 if ( s > (i+1) ) {
-                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit, 
-                                 nb, nb, 
+                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit,
+                                 nb, nb,
                                  c_one, inAT(i, i  ), lddat,
                                  inAT(i, i+1), lddat, queue);
-                    magma_sgemm( MagmaNoTrans, MagmaNoTrans, 
-                                 nb, m-(i+1)*nb, nb, 
+                    magma_sgemm( MagmaNoTrans, MagmaNoTrans,
+                                 nb, m-(i+1)*nb, nb,
                                  c_neg_one, inAT(i,   i+1), lddat,
-                                            inAT(i+1, i  ), lddat, 
+                                            inAT(i+1, i  ), lddat,
                                  c_one,     inAT(i+1, i+1), lddat, queue );
                 }
                 else {
-                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit, 
-                                 n-s*nb, nb, 
+                    magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit,
+                                 n-s*nb, nb,
                                  c_one, inAT(i, i  ), lddat,
                                  inAT(i, i+1), lddat, queue);
-                    magma_sgemm( MagmaNoTrans, MagmaNoTrans, 
+                    magma_sgemm( MagmaNoTrans, MagmaNoTrans,
                                  n-(i+1)*nb, m-(i+1)*nb, nb,
                                  c_neg_one, inAT(i,   i+1), lddat,
-                                            inAT(i+1, i  ), lddat, 
+                                            inAT(i+1, i  ), lddat,
                                  c_one,     inAT(i+1, i+1), lddat, queue );
                 }
             }
@@ -233,9 +233,9 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
         magma_ssetmatrix(rows, nb0, work, 0, lddwork, dAP, 0, maxm, queue);
         magma_stranspose2( inAT(s,s), lddat, dAP, 0, maxm, rows, nb0, queue );
 
-        magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit, 
+        magma_strsm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaUnit,
                      n-s*nb-nb0, nb0,
-                     c_one, inAT(s,s),     lddat, 
+                     c_one, inAT(s,s),     lddat,
                      inAT(s,s)+nb0, lddat, queue);
 
         if ((m == n) && (m % 32 == 0) && (ldda%32 == 0)) {
@@ -247,7 +247,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
         }
 
         magma_free( dAP );
-        magma_free_host( work );
+        magma_free_cpu( work );
     }
 
     return *info;

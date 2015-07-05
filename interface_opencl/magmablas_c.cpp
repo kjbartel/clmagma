@@ -1,12 +1,13 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      April 2012
+ *      @date November 2013
  *
  * @author Mark Gates
- * @generated c Wed Oct 24 00:32:56 2012
+ * @author Chongxiao Cao
+ * @generated c Mon Nov 25 17:56:04 2013
  */
 
 #include <stdlib.h>
@@ -30,6 +31,7 @@
 extern cl_platform_id gPlatform;
 extern cl_context     gContext;
 
+extern magma_event_t  *gevent;
 
 // ========================================
 // copying sub-matrices (contiguous columns)
@@ -41,42 +43,48 @@ magma_csetmatrix(
     magmaFloatComplex_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+       return MAGMA_SUCCESS;
+
     size_t buffer_origin[3] = { dA_offset*sizeof(magmaFloatComplex), 0, 0 };
-    size_t host_orig[3]     = { 0, 0, 0 };
+    size_t host_orig[3]     = { hA_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t region[3]        = { m*sizeof(magmaFloatComplex), n, 1 };
     cl_int err = clEnqueueWriteBufferRect(
         queue, dA_dst, CL_TRUE,  // blocking
         buffer_origin, host_orig, region,
         ldda*sizeof(magmaFloatComplex), 0,
         ldha*sizeof(magmaFloatComplex), 0,
-        hA_src, 0, NULL, NULL );
+        hA_src, 0, NULL, gevent );
     return err;
 }
 
 // --------------------
-magma_err_t 
+magma_err_t
 magma_csetvector(
-	magma_int_t n, 
-	magmaFloatComplex const* hA_src, size_t hA_offset, magma_int_t incx, 
-	magmaFloatComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy, 
-	magma_queue_t queue )
+    magma_int_t n,
+    magmaFloatComplex const* hA_src, size_t hA_offset, magma_int_t incx,
+    magmaFloatComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+    magma_queue_t queue )
 {
-	cl_int err;
-	if(incx == 1 && incy == 1){
-		err = clEnqueueWriteBuffer(
-				queue, dA_dst, CL_TRUE, 
-				dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex), 
-				hA_src+hA_offset, 0, NULL, NULL);
-		return err;
-	}else{
-		magma_int_t ldha = incx;
-		magma_int_t ldda = incy;
-		cl_int err = magma_csetmatrix(1, n, 
-					hA_src, hA_offset, ldha, 
-					dA_dst, dA_offset, ldda, 
-					queue);
-		return err;
-	}
+    if (n <= 0)
+       return MAGMA_SUCCESS;
+
+    cl_int err;
+    if(incx == 1 && incy == 1) {
+        err = clEnqueueWriteBuffer(
+            queue, dA_dst, CL_TRUE,
+            dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
+            hA_src+hA_offset, 0, NULL, gevent);
+        return err;
+    } else {
+        magma_int_t ldha = incx;
+        magma_int_t ldda = incy;
+        cl_int err = magma_csetmatrix(1, n,
+            hA_src, hA_offset, ldha,
+            dA_dst, dA_offset, ldda,
+            queue);
+        return err;
+    }
 }
 
 // --------------------
@@ -87,94 +95,106 @@ magma_cgetmatrix(
     magmaFloatComplex*          hA_dst, size_t hA_offset, magma_int_t ldha,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+      return MAGMA_SUCCESS;
+
     size_t buffer_origin[3] = { dA_offset*sizeof(magmaFloatComplex), 0, 0 };
-    size_t host_orig[3]     = { 0, 0, 0 };
+    size_t host_orig[3]     = { hA_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t region[3]        = { m*sizeof(magmaFloatComplex), n, 1 };
     cl_int err = clEnqueueReadBufferRect(
         queue, dA_src, CL_TRUE,  // blocking
         buffer_origin, host_orig, region,
         ldda*sizeof(magmaFloatComplex), 0,
         ldha*sizeof(magmaFloatComplex), 0,
-        hA_dst, 0, NULL, NULL );
+        hA_dst, 0, NULL, gevent );
     return err;
 }
 
 // --------------------
-magma_err_t 
+magma_err_t
 magma_cgetvector(
-	magma_int_t n, 
-	magmaFloatComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx, 
-	magmaFloatComplex*			 hA_dst, size_t hA_offset, magma_int_t incy,
-	magma_queue_t queue )
+    magma_int_t n,
+    magmaFloatComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+    magmaFloatComplex*             hA_dst, size_t hA_offset, magma_int_t incy,
+    magma_queue_t queue )
 {
-	cl_int err;
-	if(incx ==1 && incy ==1){
-		err = clEnqueueReadBuffer(
-							queue, dA_src, CL_TRUE, 
-							dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex), 
-							hA_dst+hA_offset, 0, NULL, NULL);
-		return err;			
-	}else{
-		magma_int_t ldda = incx;
-		magma_int_t ldha = incy;
-		err = magma_cgetmatrix(1, n, 
-							dA_src, dA_offset, ldda,
-							hA_dst, hA_offset, ldha,
-							queue);
-		return err;
-	}
+    if ( n <= 0 )
+       return MAGMA_SUCCESS;
+
+    cl_int err;
+    if(incx ==1 && incy ==1) {
+        err = clEnqueueReadBuffer(
+            queue, dA_src, CL_TRUE,
+            dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
+            hA_dst+hA_offset, 0, NULL, gevent);
+        return err;
+    } else {
+        magma_int_t ldda = incx;
+        magma_int_t ldha = incy;
+        err = magma_cgetmatrix(1, n,
+            dA_src, dA_offset, ldda,
+            hA_dst, hA_offset, ldha,
+            queue);
+        return err;
+    }
 }
 
 // --------------------
 magma_err_t
 magma_cgetvector_async(
-	magma_int_t n,
-	magmaFloatComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
-	magmaFloatComplex*          hA_dst, size_t hA_offset, magma_int_t incy,
-	magma_queue_t queue, magma_event_t *event )
+    magma_int_t n,
+    magmaFloatComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+    magmaFloatComplex*          hA_dst, size_t hA_offset, magma_int_t incy,
+    magma_queue_t queue, magma_event_t *event )
 {
-	cl_int err;
-	if(incx ==1 && incy ==1){
-		err = clEnqueueReadBuffer(
-							queue, dA_src, CL_FALSE,
-							dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
-							hA_dst+hA_offset, 0, NULL, event);
-		return err;
-	}else{
-		magma_int_t ldda = incx;
-		magma_int_t ldha = incy;
-		err = magma_cgetmatrix_async(1, n,
-							dA_src, dA_offset, ldda,
-							hA_dst, hA_offset, ldha,
-							queue, event);
-		return err;
-	}
+    if ( n <= 0 )
+       return MAGMA_SUCCESS;
+
+    cl_int err;
+    if(incx ==1 && incy ==1) {
+        err = clEnqueueReadBuffer(
+            queue, dA_src, CL_FALSE,
+            dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
+            hA_dst+hA_offset, 0, NULL, event);
+        return err;
+    } else {
+        magma_int_t ldda = incx;
+        magma_int_t ldha = incy;
+        err = magma_cgetmatrix_async(1, n,
+            dA_src, dA_offset, ldda,
+            hA_dst, hA_offset, ldha,
+            queue, event);
+        return err;
+    }
 }
 
 // --------------------
 magma_err_t
 magma_csetvector_async(
-	magma_int_t n,
-	magmaFloatComplex const* hA_src, size_t hA_offset, magma_int_t incx,
-	magmaFloatComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy,
-	magma_queue_t queue, magma_event_t *event )
+    magma_int_t n,
+    magmaFloatComplex const* hA_src, size_t hA_offset, magma_int_t incx,
+    magmaFloatComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+    magma_queue_t queue, magma_event_t *event )
 {
-	cl_int err;
-	if(incx == 1 && incy == 1){
-		err = clEnqueueWriteBuffer(
-							queue, dA_dst, CL_FALSE,
-							dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
-							hA_src+hA_offset, 0, NULL, event);
-		return err;
-	}else{
-		magma_int_t ldha = incx;
-		magma_int_t ldda = incy;
-		cl_int err = magma_csetmatrix_async(1, n,
-							hA_src, hA_offset, ldha,
-							dA_dst, dA_offset, ldda,
-							queue, event);
-		return err;
-	}
+    if ( n <= 0 )
+       return MAGMA_SUCCESS;
+
+    cl_int err;
+    if(incx == 1 && incy == 1) {
+        err = clEnqueueWriteBuffer(
+            queue, dA_dst, CL_FALSE,
+            dA_offset*sizeof(magmaFloatComplex), n*sizeof(magmaFloatComplex),
+            hA_src+hA_offset, 0, NULL, event);
+        return err;
+    } else {
+        magma_int_t ldha = incx;
+        magma_int_t ldda = incy;
+        cl_int err = magma_csetmatrix_async(1, n,
+            hA_src, hA_offset, ldha,
+            dA_dst, dA_offset, ldda,
+            queue, event);
+        return err;
+    }
 }
 
 // --------------------
@@ -185,8 +205,11 @@ magma_csetmatrix_async(
     magmaFloatComplex_ptr    dA_dst, size_t dA_offset, magma_int_t ldda,
     magma_queue_t queue, magma_event_t *event )
 {
+    if ( m<=0 || n <= 0 )
+       return MAGMA_SUCCESS;
+
     size_t buffer_origin[3] = { dA_offset*sizeof(magmaFloatComplex), 0, 0 };
-    size_t host_orig[3]     = { 0, 0, 0 };
+    size_t host_orig[3]     = { hA_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t region[3]        = { m*sizeof(magmaFloatComplex), n, 1 };
     cl_int err = clEnqueueWriteBufferRect(
         queue, dA_dst, CL_FALSE,  // non-blocking
@@ -194,6 +217,7 @@ magma_csetmatrix_async(
         ldda*sizeof(magmaFloatComplex), 0,
         ldha*sizeof(magmaFloatComplex), 0,
         hA_src, 0, NULL, event );
+    clFlush(queue);
     return err;
 }
 
@@ -205,8 +229,11 @@ magma_cgetmatrix_async(
     magmaFloatComplex*          hA_dst, size_t hA_offset, magma_int_t ldha,
     magma_queue_t queue, magma_event_t *event )
 {
+    if (m<=0 || n <= 0)
+      return MAGMA_SUCCESS;
+
     size_t buffer_origin[3] = { dA_offset*sizeof(magmaFloatComplex), 0, 0 };
-    size_t host_orig[3]     = { 0, 0, 0 };
+    size_t host_orig[3]     = { hA_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t region[3]        = { m*sizeof(magmaFloatComplex), n, 1 };
     cl_int err = clEnqueueReadBufferRect(
         queue, dA_src, CL_FALSE,  // non-blocking
@@ -214,6 +241,7 @@ magma_cgetmatrix_async(
         ldda*sizeof(magmaFloatComplex), 0,
         ldha*sizeof(magmaFloatComplex), 0,
         hA_dst, 0, NULL, event );
+    clFlush(queue);
     return err;
 }
 
@@ -225,6 +253,9 @@ magma_ccopymatrix(
     magmaFloatComplex_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
     magma_queue_t queue )
 {
+    if ( m<=0 || n <= 0 )
+       return MAGMA_SUCCESS;
+
     size_t src_origin[3] = { dA_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t dst_orig[3]   = { dB_offset*sizeof(magmaFloatComplex), 0, 0 };
     size_t region[3]        = { m*sizeof(magmaFloatComplex), n, 1 };
@@ -233,7 +264,7 @@ magma_ccopymatrix(
         src_origin, dst_orig, region,
         ldda*sizeof(magmaFloatComplex), 0,
         lddb*sizeof(magmaFloatComplex), 0,
-        0, NULL, NULL );
+        0, NULL, gevent );
     return err;
 }
 // ========================================
@@ -247,6 +278,9 @@ magma_cgemm(
     magmaFloatComplex beta,  magmaFloatComplex_ptr       dC, size_t dC_offset, magma_int_t ldc,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0 || k<=0)
+      return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasCgemmEx(
         clAmdBlasColumnMajor,
         amdblas_trans_const( transA ),
@@ -255,7 +289,8 @@ magma_cgemm(
         alpha, dA, dA_offset, lda,
                dB, dB_offset, ldb,
         beta,  dC, dC_offset, ldc,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
@@ -269,6 +304,9 @@ magma_cgemv(
     magmaFloatComplex beta,  magmaFloatComplex_ptr       dy, size_t dy_offset, magma_int_t incy,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasCgemvEx(
         clAmdBlasColumnMajor,
         amdblas_trans_const( transA ),
@@ -276,7 +314,8 @@ magma_cgemv(
         alpha, dA, dA_offset, lda,
                dx, dx_offset, incx,
         beta,  dy, dy_offset, incy,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
@@ -290,6 +329,9 @@ magma_chemm(
     magmaFloatComplex beta,  magmaFloatComplex_ptr       dC, size_t dC_offset, magma_int_t ldc,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasChemm(
         clAmdBlasColumnMajor,
         amdblas_side_const( side ),
@@ -298,7 +340,8 @@ magma_chemm(
         alpha, dA, dA_offset, lda,
                dB, dB_offset, ldb,
         beta,  dC, dC_offset, ldc,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
@@ -312,6 +355,9 @@ magma_chemv(
     magmaFloatComplex beta,  magmaFloatComplex_ptr       dy, size_t dy_offset, magma_int_t incy,
     magma_queue_t queue )
 {
+    if ( n <= 0 )
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasChemvEx(
         clAmdBlasColumnMajor,
         amdblas_uplo_const( uplo ),
@@ -319,7 +365,8 @@ magma_chemv(
         alpha, dA, dA_offset, lda,
                dx, dx_offset, incx,
         beta,  dy, dy_offset, incy,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
@@ -332,6 +379,9 @@ magma_cherk(
     float beta,  magmaFloatComplex_ptr       dC, size_t dC_offset, magma_int_t ldc,
     magma_queue_t queue )
 {
+    if (n<=0 || k <= 0)
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasCherkEx(
         clAmdBlasColumnMajor,
         amdblas_uplo_const( uplo ),
@@ -339,7 +389,8 @@ magma_cherk(
         n, k,
         alpha, dA, dA_offset, lda,
         beta,  dC, dC_offset, ldc,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
@@ -352,6 +403,9 @@ magma_ctrsm(
                               magmaFloatComplex_ptr       dB, size_t dB_offset, magma_int_t ldb,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasCtrsmEx(
         clAmdBlasColumnMajor,
         amdblas_side_const( side ),
@@ -361,29 +415,34 @@ magma_ctrsm(
         m, n,
         alpha, dA, dA_offset, lda,
                dB, dB_offset, ldb,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
 // --------------------
 magma_err_t
 magma_ctrsv(
-	magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
-	magma_int_t n, 
-	magmaFloatComplex_const_ptr dA, size_t dA_offset, magma_int_t lda,
-	magmaFloatComplex_ptr dx, size_t dx_offset, magma_int_t incx,
-	magma_queue_t queue )
+    magma_uplo_t uplo, magma_trans_t trans, magma_diag_t diag,
+    magma_int_t n,
+    magmaFloatComplex_const_ptr dA, size_t dA_offset, magma_int_t lda,
+    magmaFloatComplex_ptr dx, size_t dx_offset, magma_int_t incx,
+    magma_queue_t queue )
 {
-	cl_int err = clAmdBlasCtrsv(
-		clAmdBlasColumnMajor,
-		amdblas_uplo_const( uplo ),
-		amdblas_trans_const( trans ),
-		amdblas_diag_const( diag ),
-		n,
-		dA, dA_offset, lda,
-		dx, dx_offset, incx,
-		1, &queue, 0, NULL, NULL );
-	return err;
+    if ( n <= 0 )
+        return MAGMA_SUCCESS;
+
+    cl_int err = clAmdBlasCtrsv(
+        clAmdBlasColumnMajor,
+        amdblas_uplo_const( uplo ),
+        amdblas_trans_const( trans ),
+        amdblas_diag_const( diag ),
+        n,
+        dA, dA_offset, lda,
+        dx, dx_offset, incx,
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
+    return err;
 }
 
 // --------------------
@@ -395,6 +454,9 @@ magma_ctrmm(
                               magmaFloatComplex_ptr       dB, size_t dB_offset, magma_int_t ldb,
     magma_queue_t queue )
 {
+    if (m<=0 || n <= 0)
+       return MAGMA_SUCCESS;
+
     cl_int err = clAmdBlasCtrmmEx(
         clAmdBlasColumnMajor,
         amdblas_side_const( side ),
@@ -404,30 +466,35 @@ magma_ctrmm(
         m, n,
         alpha, dA, dA_offset, lda,
                dB, dB_offset, ldb,
-        1, &queue, 0, NULL, NULL );
+        1, &queue, 0, NULL, gevent );
+    clFlush(queue);
     return err;
 }
 
 // --------------------
 magma_err_t
 magma_cher2k(
-	magma_uplo_t uplo, magma_trans_t trans, 
-	magma_int_t n, magma_int_t k, 
-	magmaFloatComplex alpha, magmaFloatComplex_const_ptr dA, size_t dA_offset, magma_int_t lda, 
-							  magmaFloatComplex_const_ptr dB, size_t dB_offset, magma_int_t ldb, 
-	float beta, magmaFloatComplex_ptr dC, size_t dC_offset, magma_int_t ldc, 
-	magma_queue_t queue)
-{	
- cl_int err = clAmdBlasCher2kEx(
-		 clAmdBlasColumnMajor,
-		 amdblas_uplo_const( uplo ),
-		 amdblas_trans_const( trans ),
-		 n, k,
-		 alpha, dA, dA_offset, lda,
-		 dB, dB_offset, ldb,
-		 beta, dC, dC_offset, ldc,
-		 1, &queue, 0, NULL, NULL );
-         return err;
+    magma_uplo_t uplo, magma_trans_t trans,
+    magma_int_t n, magma_int_t k,
+    magmaFloatComplex alpha, magmaFloatComplex_const_ptr dA, size_t dA_offset, magma_int_t lda,
+                              magmaFloatComplex_const_ptr dB, size_t dB_offset, magma_int_t ldb,
+    float beta, magmaFloatComplex_ptr dC, size_t dC_offset, magma_int_t ldc,
+    magma_queue_t queue)
+{
+     if (n<=0 || k <= 0)
+        return MAGMA_SUCCESS;
+
+     cl_int err = clAmdBlasCher2kEx(
+         clAmdBlasColumnMajor,
+         amdblas_uplo_const( uplo ),
+         amdblas_trans_const( trans ),
+         n, k,
+         alpha, dA, dA_offset, lda,
+         dB, dB_offset, ldb,
+         beta, dC, dC_offset, ldc,
+         1, &queue, 0, NULL, gevent );
+     clFlush(queue);
+     return err;
 }
 
 #endif // HAVE_clAmdBlas

@@ -2,11 +2,11 @@
  *
  *  @file operators.h
  *
- *  clMAGMA (version 1.0.0) --
+ *  clMAGMA (version 1.1.0-beta2) --
  *  Univ. of Tennessee, Knoxville
  *  Univ. of California, Berkeley
  *  Univ. of Colorado, Denver
- *  April 2012
+ *  @date November 2013
  *
  **/
 #ifndef MAGMA_OPERATORS_H
@@ -21,13 +21,13 @@
  *              magmaDoubleComplex
  */
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator-(const magmaDoubleComplex &a)
 {
     return MAGMA_Z_MAKE(-a.x, -a.y);
 }
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator+(const magmaDoubleComplex a, const magmaDoubleComplex b)
 {
     return MAGMA_Z_MAKE(a.x + b.x, a.y + b.y);
@@ -40,7 +40,7 @@ operator+=(magmaDoubleComplex &a, const magmaDoubleComplex b)
     a.y += b.y;
 }
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator-(const magmaDoubleComplex a, const magmaDoubleComplex b)
 {
     return MAGMA_Z_MAKE(a.x - b.x, a.y - b.y);
@@ -53,25 +53,25 @@ operator-=(magmaDoubleComplex &a, const magmaDoubleComplex b)
     a.y -= b.y;
 }
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator*(const magmaDoubleComplex a, const magmaDoubleComplex b)
 {
     return MAGMA_Z_MAKE(a.x * b.x - a.y * b.y, a.y * b.x + a.x * b.y);
 }
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator*(const magmaDoubleComplex a, const double s)
 {
     return MAGMA_Z_MAKE(a.x * s, a.y * s);
 }
 
-__host__ __device__ static __inline__ magmaDoubleComplex 
+__host__ __device__ static __inline__ magmaDoubleComplex
 operator*(const double s, const magmaDoubleComplex a)
 {
     return MAGMA_Z_MAKE(a.x * s, a.y * s);
 }
 
-__host__ __device__ static __inline__ void 
+__host__ __device__ static __inline__ void
 operator*=(magmaDoubleComplex &a, const magmaDoubleComplex b)
 {
     double tmp = a.y * b.x + a.x * b.y;
@@ -79,7 +79,7 @@ operator*=(magmaDoubleComplex &a, const magmaDoubleComplex b)
     a.y = tmp;
 }
 
-__host__ __device__ static __inline__ void 
+__host__ __device__ static __inline__ void
 operator*=(magmaDoubleComplex &a, const double s)
 {
     a.x *= s;
@@ -90,13 +90,13 @@ operator*=(magmaDoubleComplex &a, const double s)
  *              magmaFloatComplex
  */
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator-(const magmaFloatComplex &a)
 {
     return MAGMA_C_MAKE(-a.x, -a.y);
 }
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator+(const magmaFloatComplex a, const magmaFloatComplex b)
 {
     return MAGMA_C_MAKE(a.x + b.x, a.y + b.y);
@@ -109,7 +109,7 @@ operator+=(magmaFloatComplex &a, const magmaFloatComplex b)
     a.y += b.y;
 }
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator-(const magmaFloatComplex a, const magmaFloatComplex b)
 {
     return MAGMA_C_MAKE(a.x - b.x, a.y - b.y);
@@ -122,25 +122,25 @@ operator-=(magmaFloatComplex &a, const magmaFloatComplex b)
     a.y -= b.y;
 }
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator*(const magmaFloatComplex a, const magmaFloatComplex b)
 {
     return MAGMA_C_MAKE(a.x * b.x - a.y * b.y, a.y * b.x + a.x * b.y);
 }
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator*(const magmaFloatComplex a, const float s)
 {
     return MAGMA_C_MAKE(a.x * s, a.y * s);
 }
 
-__host__ __device__ static __inline__ magmaFloatComplex 
+__host__ __device__ static __inline__ magmaFloatComplex
 operator*(const float s, const magmaFloatComplex a)
 {
     return MAGMA_C_MAKE(a.x * s, a.y * s);
 }
 
-__host__ __device__ static __inline__ void 
+__host__ __device__ static __inline__ void
 operator*=(magmaFloatComplex &a, const magmaFloatComplex b)
 {
     float tmp = a.y * b.x + a.x * b.y;
@@ -148,7 +148,7 @@ operator*=(magmaFloatComplex &a, const magmaFloatComplex b)
     a.y = tmp;
 }
 
-__host__ __device__ static __inline__ void 
+__host__ __device__ static __inline__ void
 operator*=(magmaFloatComplex &a, const float s)
 {
     a.x *= s;

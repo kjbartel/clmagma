@@ -1,9 +1,9 @@
 /*
- *  -- clMAGMA (version 1.0.0) --
+ *  -- clMAGMA (version 1.1.0-beta2) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     April 2012
+ *     @date November 2013
  *
  * @precisions normal z -> c d s
  *
@@ -34,7 +34,7 @@
 */
 #define hA(i,j) hA[ i + j*lda ]
 
-int main( int argc, char** argv) 
+int main( int argc, char** argv)
 {
     real_Double_t gflops, gpu_perf, cpu_perf, gpu_time, cpu_time;
     magmaDoubleComplex *hA, *hR;
@@ -50,7 +50,7 @@ int main( int argc, char** argv)
     double      work[1], matnorm, diffnorm;
     
     if (argc != 1){
-        for(i = 1; i<argc; i++){        
+        for(i = 1; i<argc; i++){
             if (strcmp("-N", argv[i])==0)
                 N = atoi(argv[++i]);
         }
@@ -64,16 +64,16 @@ int main( int argc, char** argv)
 
     /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
         fprintf( stderr, "magma_queue_create failed: %d\n", err );
         exit(-1);
@@ -92,7 +92,7 @@ int main( int argc, char** argv)
     printf("========================================================================================\n");
     for(i=0; i<10; i++){
         N   = size[i];
-        lda = N; 
+        lda = N;
         n2  = lda*N;
         ldda = ((N+31)/32)*32;
         gflops = FLOPS( (double)N ) * 1e-9;
@@ -103,17 +103,17 @@ int main( int argc, char** argv)
         for( int i = 0; i < N; ++i ) {
             MAGMA_Z_SET2REAL( hA(i,i), MAGMA_Z_REAL(hA(i,i)) + N );
             for( int j = 0; j < i; ++j ) {
-	      hA(i, j) = MAGMA_Z_CNJG( hA(j,i) );
+          hA(i, j) = MAGMA_Z_CNJG( hA(j,i) );
             }
         }
         lapackf77_zlacpy( MagmaFullStr, &N, &N, hA, &lda, hR, &lda );
 
-	/* Warm up to measure the performance */
-	magma_zsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
-	magma_zpotrf_gpu( MagmaUpper, N, dA, 0, ldda, &info, queue );
+        /* Warm up to measure the performance */
+        magma_zsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
+        magma_zpotrf_gpu( MagmaUpper, N, dA, 0, ldda, &info, queue );
 
         /* ====================================================================
-           Performs operation using MAGMA 
+           Performs operation using MAGMA
            =================================================================== */
         magma_zsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
         gpu_time = get_time();
@@ -125,7 +125,7 @@ int main( int argc, char** argv)
         gpu_perf = gflops / gpu_time;
         
         /* =====================================================================
-           Performs operation using LAPACK 
+           Performs operation using LAPACK
            =================================================================== */
         cpu_time = get_time();
         lapackf77_zpotrf( MagmaUpperStr, &N, hA, &lda, &info );
@@ -143,7 +143,7 @@ int main( int argc, char** argv)
         matnorm = lapackf77_zlange("f", &N, &N, hA, &lda, work);
         blasf77_zaxpy(&n2, &mz_one, hA, &ione, hR, &ione);
         diffnorm = lapackf77_zlange("f", &N, &N, hR, &lda, work);
-        printf( "%5d     %6.2f (%6.2f)     %6.2f (%6.2f)         %e\n", 
+        printf( "%5d     %6.2f (%6.2f)     %6.2f (%6.2f)         %e\n",
                 N, cpu_perf, cpu_time, gpu_perf, gpu_time, diffnorm / matnorm );
         
         if (argc != 1)

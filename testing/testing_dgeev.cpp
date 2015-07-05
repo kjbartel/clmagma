@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       September 2012
+       @date November 2013
 
        @precisions normal d -> s
 
@@ -43,9 +43,9 @@ extern "C" double magma_dlapy2(double x, double y){
   return ret_val;
 }
 
-int main( int argc, char** argv) 
+int main( int argc, char** argv)
 {
-    real_Double_t	gpu_time, cpu_time;
+    real_Double_t gpu_time, cpu_time;
     double *h_A, *h_R, *VL, *VR, *h_work, *w1, *w2;
     double *w1i, *w2i;
     double c_neg_one = MAGMA_D_NEG_ONE;
@@ -115,24 +115,24 @@ int main( int argc, char** argv)
     TESTING_MALLOC_HOST( VR , double, n2);
     TESTING_MALLOC_HOST( h_work, double, lwork);
 
-	/* Initialize */
+    /* Initialize */
     magma_queue_t  queue;
-    magma_device_t device;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
 
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
-	}
+    }
 
     printf("  N     CPU Time(s)    GPU Time(s)     ||R||_F / ||A||_F\n");
     printf("==========================================================\n");
@@ -152,12 +152,12 @@ int main( int argc, char** argv)
            Performs operation using MAGMA
            =================================================================== */
         // warm-up
-		magma_dgeev(jobl, jobr,
+        magma_dgeev(jobl, jobr,
                      N, h_R, lda, w1, w1i,
                     VL, lda, VR, lda,
                     h_work, lwork, &info, queue);
         
-		lapackf77_dlacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+        lapackf77_dlacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
         gpu_time = get_time();
         magma_dgeev(jobl, jobr,
                      N, h_R, lda, w1, w1i,
@@ -173,7 +173,7 @@ int main( int argc, char** argv)
            =================================================================== */
         cpu_time = get_time();
         lapackf77_dgeev(lapack_const(jobl), lapack_const(jobr),
-                        &N, h_A, &lda, w2, w2i, 
+                        &N, h_A, &lda, w2, w2i,
                         VL, &lda, VR, &lda,
                         h_work, &lwork, &info);
         cpu_time = get_time() - cpu_time;
@@ -183,7 +183,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the result compared to LAPACK
            =================================================================== */
-        if ( checkres ) 
+        if ( checkres )
           {
             /* ===================================================================
                Check the result following LAPACK's [zcds]drvev routine.
@@ -258,13 +258,13 @@ int main( int argc, char** argv)
                              h_work, &result[1]);
             result[1] *= ulp;
 
-            // Do test 3 
+            // Do test 3
             result[2] = -1.;
             for (j = 0; j < N; ++j) {
               tnrm = 1.;
               if (w1i[j] == 0.)
                 tnrm = cblas_dnrm2(N, &VR[j * lda], ione);
-              else if (w1i[j] > 0.) 
+              else if (w1i[j] > 0.)
                 tnrm = magma_dlapy2( cblas_dnrm2(N, &VR[j    * lda], ione),
                                      cblas_dnrm2(N, &VR[(j+1)* lda], ione) );
               
@@ -278,7 +278,7 @@ int main( int argc, char** argv)
                     if (vtst > vmx)
                       vmx = vtst;
                     
-                    if ( (VR[jj + (j+1)*lda])==0. && 
+                    if ( (VR[jj + (j+1)*lda])==0. &&
                          magma_abs( VR[jj+j*lda] ) > vrmx)
                       vrmx = magma_abs( VR[jj+j*lda] );
                   }
@@ -288,7 +288,7 @@ int main( int argc, char** argv)
             }
             result[2] *= ulp;
 
-            // Do test 4 
+            // Do test 4
             result[3] = -1.;
             for (j = 0; j < N; ++j) {
               tnrm = 1.;
@@ -318,7 +318,7 @@ int main( int argc, char** argv)
             }
             result[3] *= ulp;
 
-            // Compute eigenvalues only, and test them 
+            // Compute eigenvalues only, and test them
             lapackf77_dlacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
             
             magma_dgeev(MagmaNoVec, MagmaNoVec,
@@ -333,7 +333,7 @@ int main( int argc, char** argv)
               printf("Info = %d fo case N, N\n", (int) info);
             }
 
-            // Do test 5 
+            // Do test 5
             result[4] = 1;
             for (j = 0; j < N; ++j)
               if ( w1[j] != w2[j] || w1i[j] != w2i[j] )
@@ -391,7 +391,7 @@ int main( int argc, char** argv)
                 result[4] = 0;
             //if (result[4] == 0) printf("test 5 failed with V N\n");
             
-            // Do test 7 
+            // Do test 7
             result[6] = 1;
             for (j = 0; j < N; ++j)
               for (jj = 0; jj < N; ++jj)
@@ -417,8 +417,8 @@ int main( int argc, char** argv)
                    (int) N, cpu_time, gpu_time, result[7]);
 
             TESTING_FREE_HOST( LRE );
-          } 
-        else 
+          }
+        else
           {
             printf("%5d     %6.2f         %6.2f\n",
                    (int) N, cpu_time, gpu_time);

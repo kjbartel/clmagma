@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
        @precisions normal z -> s d c
 
@@ -13,49 +13,49 @@
 #include "common_magma.h"
 
 extern "C" magma_err_t
-magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi, 
-             magmaDoubleComplex *a, magma_int_t lda, 
+magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
+             magmaDoubleComplex *a, magma_int_t lda,
              magmaDoubleComplex *tau,
              magmaDoubleComplex_ptr dT, size_t dT_offset, magma_int_t nb,
              magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    ZUNGHR generates a COMPLEX_16 unitary matrix Q which is defined as the   
-    product of IHI-ILO elementary reflectors of order N, as returned by   
-    ZGEHRD:   
+    Purpose
+    =======
+    ZUNGHR generates a COMPLEX_16 unitary matrix Q which is defined as the
+    product of IHI-ILO elementary reflectors of order N, as returned by
+    ZGEHRD:
 
-    Q = H(ilo) H(ilo+1) . . . H(ihi-1).   
+    Q = H(ilo) H(ilo+1) . . . H(ihi-1).
 
-    Arguments   
-    =========   
-    N       (input) INTEGER   
-            The order of the matrix Q. N >= 0.   
+    Arguments
+    =========
+    N       (input) INTEGER
+            The order of the matrix Q. N >= 0.
 
-    ILO     (input) INTEGER   
-    IHI     (input) INTEGER   
-            ILO and IHI must have the same values as in the previous call   
-            of ZGEHRD. Q is equal to the unit matrix except in the   
-            submatrix Q(ilo+1:ihi,ilo+1:ihi).   
-            1 <= ILO <= IHI <= N, if N > 0; ILO=1 and IHI=0, if N=0.   
+    ILO     (input) INTEGER
+    IHI     (input) INTEGER
+            ILO and IHI must have the same values as in the previous call
+            of ZGEHRD. Q is equal to the unit matrix except in the
+            submatrix Q(ilo+1:ihi,ilo+1:ihi).
+            1 <= ILO <= IHI <= N, if N > 0; ILO=1 and IHI=0, if N=0.
 
-    A       (input/output) COMPLEX_16 array, dimension (LDA,N)   
-            On entry, the vectors which define the elementary reflectors,   
-            as returned by ZGEHRD.   
-            On exit, the N-by-N unitary matrix Q.   
+    A       (input/output) COMPLEX_16 array, dimension (LDA,N)
+            On entry, the vectors which define the elementary reflectors,
+            as returned by ZGEHRD.
+            On exit, the N-by-N unitary matrix Q.
 
-    LDA     (input) INTEGER   
-            The leading dimension of the array A. LDA >= max(1,N).   
+    LDA     (input) INTEGER
+            The leading dimension of the array A. LDA >= max(1,N).
 
-    TAU     (input) COMPLEX_16 array, dimension (N-1)   
-            TAU(i) must contain the scalar factor of the elementary   
-            reflector H(i), as returned by ZGEHRD.   
+    TAU     (input) COMPLEX_16 array, dimension (N-1)
+            TAU(i) must contain the scalar factor of the elementary
+            reflector H(i), as returned by ZGEHRD.
 
     DT      (input) COMPLEX_16 array on the GPU device.
             DT contains the T matrices used in blocking the elementary
@@ -67,9 +67,9 @@ magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
             the size of the T matrices, used in the factorization, and
             stored in DT.
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
     ===================================================================== */
 
     #define a_ref(i,j) (a + (j)*lda+ (i))
@@ -80,11 +80,11 @@ magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     nh = ihi - ilo;
     if (n < 0)
       *info = -1;
-    else if (ilo < 1 || ilo > max(1,n)) 
+    else if (ilo < 1 || ilo > max(1,n))
       *info = -2;
-    else if (ihi < min(ilo,n) || ihi > n) 
+    else if (ihi < min(ilo,n) || ihi > n)
       *info = -3;
-    else if (lda < max(1,n)) 
+    else if (lda < max(1,n))
         *info = -5;
 
     if (*info != 0) {
@@ -93,11 +93,11 @@ magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     }
 
     /* Quick return if possible */
-    if (n == 0) 
+    if (n == 0)
       return *info;
 
-    /* Shift the vectors which define the elementary reflectors one   
-       column to the right, and set the first ilo and the last n-ihi   
+    /* Shift the vectors which define the elementary reflectors one
+       column to the right, and set the first ilo and the last n-ihi
        rows and columns to those of the unit matrix */
     for (j = ihi-1; j >= ilo; --j) {
       for (i = 0; i < j; ++i)
@@ -117,7 +117,7 @@ magma_zunghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     }
     for (j = ihi; j < n; ++j) {
       for (i = 0; i < n; ++i)
-        *a_ref(i, j) = MAGMA_Z_ZERO; 
+        *a_ref(i, j) = MAGMA_Z_ZERO;
         
       *a_ref(j, j) = MAGMA_Z_ONE;
     }

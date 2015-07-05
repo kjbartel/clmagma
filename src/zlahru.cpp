@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
        @precisions normal z -> s d c
 
@@ -18,9 +18,9 @@
 // === End defining what BLAS to use =======================================
 
 extern "C" magma_err_t
-magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb, 
+magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
              magmaDoubleComplex *a, magma_int_t lda,
-             magmaDoubleComplex_ptr d_a, size_t d_a_offset, magmaDoubleComplex_ptr y, size_t y_offset, 
+             magmaDoubleComplex_ptr d_a, size_t d_a_offset, magmaDoubleComplex_ptr y, size_t y_offset,
              magmaDoubleComplex_ptr v, size_t v_offset, magmaDoubleComplex_ptr d_t, size_t d_t_offset,
              magmaDoubleComplex_ptr d_work, size_t d_work_offset, magma_queue_t queue)
 {
@@ -28,7 +28,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       October 2012
+       @date November 2013
 
     Purpose
     =======
@@ -107,8 +107,8 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
 
     magma_int_t ldda = lda;
     //cuDoubleComplex *v0 = v + ihi - k;
-	magmaDoubleComplex_ptr v0 = v;
-	size_t v0_offset = v_offset + ihi - k;
+    magmaDoubleComplex_ptr v0 = v;
+    size_t v0_offset = v_offset + ihi - k;
 
     /* V0 = M V */
     magma_zgemm( MagmaNoTrans, MagmaNoTrans, k, nb, ihi-k,

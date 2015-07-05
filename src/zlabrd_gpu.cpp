@@ -1,10 +1,10 @@
 /*
-     -- clMAGMA (version 1.0.0) --
+     -- clMAGMA (version 1.1.0-beta2) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
 
-        April 2012
+        @date November 2013
 
         @precisions normal z -> s d c
 
@@ -17,137 +17,137 @@
 
 magma_err_t
 magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
-                  magmaDoubleComplex *a, magma_int_t lda, 
-		  magmaDoubleComplex_ptr da, size_t da_offset, magma_int_t ldda,
+                  magmaDoubleComplex *a, magma_int_t lda,
+                  magmaDoubleComplex_ptr da, size_t da_offset, magma_int_t ldda,
                   double *d, double *e, magmaDoubleComplex *tauq, magmaDoubleComplex *taup,
-                  magmaDoubleComplex *x, magma_int_t ldx, 
-		  magmaDoubleComplex_ptr dx, size_t dx_offset, magma_int_t lddx,
-                  magmaDoubleComplex *y, magma_int_t ldy, 
-		  magmaDoubleComplex_ptr dy, size_t dy_offset, magma_int_t lddy,
-		  magma_queue_t queue )
+                  magmaDoubleComplex *x, magma_int_t ldx,
+                  magmaDoubleComplex_ptr dx, size_t dx_offset, magma_int_t lddx,
+                  magmaDoubleComplex *y, magma_int_t ldy,
+                  magmaDoubleComplex_ptr dy, size_t dy_offset, magma_int_t lddy,
+                  magma_queue_t queue )
 {
-/*  -- MAGMA (version 1.0.0) --
+/*  -- MAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       October 2012
+       @date November 2013
 
-    Purpose   
-    =======   
-    ZLABRD reduces the first NB rows and columns of a complex general   
-    m by n matrix A to upper or lower bidiagonal form by an orthogonal   
-    transformation Q' * A * P, and returns the matrices X and Y which   
-    are needed to apply the transformation to the unreduced part of A.   
+    Purpose
+    =======
+    ZLABRD reduces the first NB rows and columns of a complex general
+    m by n matrix A to upper or lower bidiagonal form by an orthogonal
+    transformation Q' * A * P, and returns the matrices X and Y which
+    are needed to apply the transformation to the unreduced part of A.
 
-    If m >= n, A is reduced to upper bidiagonal form; if m < n, to lower   
-    bidiagonal form.   
+    If m >= n, A is reduced to upper bidiagonal form; if m < n, to lower
+    bidiagonal form.
 
-    This is an auxiliary routine called by SGEBRD   
+    This is an auxiliary routine called by SGEBRD
 
-    Arguments   
-    =========   
-    M       (input) INTEGER   
-            The number of rows in the matrix A.   
+    Arguments
+    =========
+    M       (input) INTEGER
+            The number of rows in the matrix A.
 
-    N       (input) INTEGER   
-            The number of columns in the matrix A.   
+    N       (input) INTEGER
+            The number of columns in the matrix A.
 
-    NB      (input) INTEGER   
-            The number of leading rows and columns of A to be reduced.   
+    NB      (input) INTEGER
+            The number of leading rows and columns of A to be reduced.
 
-    A       (input/output) COMPLEX_16 array, dimension (LDA,N)   
-            On entry, the m by n general matrix to be reduced.   
-            On exit, the first NB rows and columns of the matrix are   
-            overwritten; the rest of the array is unchanged.   
-            If m >= n, elements on and below the diagonal in the first NB   
-              columns, with the array TAUQ, represent the orthogonal   
-              matrix Q as a product of elementary reflectors; and   
-              elements above the diagonal in the first NB rows, with the   
-              array TAUP, represent the orthogonal matrix P as a product   
-              of elementary reflectors.   
-            If m < n, elements below the diagonal in the first NB   
-              columns, with the array TAUQ, represent the orthogonal   
-              matrix Q as a product of elementary reflectors, and   
-              elements on and above the diagonal in the first NB rows,   
-              with the array TAUP, represent the orthogonal matrix P as   
-              a product of elementary reflectors.   
-            See Further Details.   
+    A       (input/output) COMPLEX_16 array, dimension (LDA,N)
+            On entry, the m by n general matrix to be reduced.
+            On exit, the first NB rows and columns of the matrix are
+            overwritten; the rest of the array is unchanged.
+            If m >= n, elements on and below the diagonal in the first NB
+              columns, with the array TAUQ, represent the orthogonal
+              matrix Q as a product of elementary reflectors; and
+              elements above the diagonal in the first NB rows, with the
+              array TAUP, represent the orthogonal matrix P as a product
+              of elementary reflectors.
+            If m < n, elements below the diagonal in the first NB
+              columns, with the array TAUQ, represent the orthogonal
+              matrix Q as a product of elementary reflectors, and
+              elements on and above the diagonal in the first NB rows,
+              with the array TAUP, represent the orthogonal matrix P as
+              a product of elementary reflectors.
+            See Further Details.
 
-    LDA     (input) INTEGER   
-            The leading dimension of the array A.  LDA >= max(1,M).   
+    LDA     (input) INTEGER
+            The leading dimension of the array A.  LDA >= max(1,M).
 
-    D       (output) COMPLEX_16 array, dimension (NB)   
-            The diagonal elements of the first NB rows and columns of   
-            the reduced matrix.  D(i) = A(i,i).   
+    D       (output) COMPLEX_16 array, dimension (NB)
+            The diagonal elements of the first NB rows and columns of
+            the reduced matrix.  D(i) = A(i,i).
 
-    E       (output) COMPLEX_16 array, dimension (NB)   
-            The off-diagonal elements of the first NB rows and columns of   
-            the reduced matrix.   
+    E       (output) COMPLEX_16 array, dimension (NB)
+            The off-diagonal elements of the first NB rows and columns of
+            the reduced matrix.
 
-    TAUQ    (output) COMPLEX_16 array dimension (NB)   
-            The scalar factors of the elementary reflectors which   
-            represent the orthogonal matrix Q. See Further Details.   
+    TAUQ    (output) COMPLEX_16 array dimension (NB)
+            The scalar factors of the elementary reflectors which
+            represent the orthogonal matrix Q. See Further Details.
 
-    TAUP    (output) COMPLEX_16 array, dimension (NB)   
-            The scalar factors of the elementary reflectors which   
-            represent the orthogonal matrix P. See Further Details.   
+    TAUP    (output) COMPLEX_16 array, dimension (NB)
+            The scalar factors of the elementary reflectors which
+            represent the orthogonal matrix P. See Further Details.
 
-    X       (output) COMPLEX_16 array, dimension (LDX,NB)   
-            The m-by-nb matrix X required to update the unreduced part   
-            of A.   
+    X       (output) COMPLEX_16 array, dimension (LDX,NB)
+            The m-by-nb matrix X required to update the unreduced part
+            of A.
 
-    LDX     (input) INTEGER   
-            The leading dimension of the array X. LDX >= M.   
+    LDX     (input) INTEGER
+            The leading dimension of the array X. LDX >= M.
 
-    Y       (output) COMPLEX_16 array, dimension (LDY,NB)   
-            The n-by-nb matrix Y required to update the unreduced part   
-            of A.   
+    Y       (output) COMPLEX_16 array, dimension (LDY,NB)
+            The n-by-nb matrix Y required to update the unreduced part
+            of A.
 
-    LDY     (input) INTEGER   
-            The leading dimension of the array Y. LDY >= N.   
+    LDY     (input) INTEGER
+            The leading dimension of the array Y. LDY >= N.
 
-    Further Details   
-    ===============   
+    Further Details
+    ===============
 
-    The matrices Q and P are represented as products of elementary   
-    reflectors:   
+    The matrices Q and P are represented as products of elementary
+    reflectors:
 
-       Q = H(1) H(2) . . . H(nb)  and  P = G(1) G(2) . . . G(nb)   
+       Q = H(1) H(2) . . . H(nb)  and  P = G(1) G(2) . . . G(nb)
 
-    Each H(i) and G(i) has the form:   
+    Each H(i) and G(i) has the form:
 
-       H(i) = I - tauq * v * v'  and G(i) = I - taup * u * u'   
+       H(i) = I - tauq * v * v'  and G(i) = I - taup * u * u'
 
-    where tauq and taup are complex scalars, and v and u are complex vectors.   
+    where tauq and taup are complex scalars, and v and u are complex vectors.
 
-    If m >= n, v(1:i-1) = 0, v(i) = 1, and v(i:m) is stored on exit in   
-    A(i:m,i); u(1:i) = 0, u(i+1) = 1, and u(i+1:n) is stored on exit in   
-    A(i,i+1:n); tauq is stored in TAUQ(i) and taup in TAUP(i).   
+    If m >= n, v(1:i-1) = 0, v(i) = 1, and v(i:m) is stored on exit in
+    A(i:m,i); u(1:i) = 0, u(i+1) = 1, and u(i+1:n) is stored on exit in
+    A(i,i+1:n); tauq is stored in TAUQ(i) and taup in TAUP(i).
 
-    If m < n, v(1:i) = 0, v(i+1) = 1, and v(i+1:m) is stored on exit in   
-    A(i+2:m,i); u(1:i-1) = 0, u(i) = 1, and u(i:n) is stored on exit in   
-    A(i,i+1:n); tauq is stored in TAUQ(i) and taup in TAUP(i).   
+    If m < n, v(1:i) = 0, v(i+1) = 1, and v(i+1:m) is stored on exit in
+    A(i+2:m,i); u(1:i-1) = 0, u(i) = 1, and u(i:n) is stored on exit in
+    A(i,i+1:n); tauq is stored in TAUQ(i) and taup in TAUP(i).
 
-    The elements of the vectors v and u together form the m-by-nb matrix   
-    V and the nb-by-n matrix U' which are needed, with X and Y, to apply   
-    the transformation to the unreduced part of the matrix, using a block   
-    update of the form:  A := A - V*Y' - X*U'.   
+    The elements of the vectors v and u together form the m-by-nb matrix
+    V and the nb-by-n matrix U' which are needed, with X and Y, to apply
+    the transformation to the unreduced part of the matrix, using a block
+    update of the form:  A := A - V*Y' - X*U'.
 
-    The contents of A on exit are illustrated by the following examples   
-    with nb = 2:   
+    The contents of A on exit are illustrated by the following examples
+    with nb = 2:
 
-    m = 6 and n = 5 (m > n):          m = 5 and n = 6 (m < n):   
+    m = 6 and n = 5 (m > n):          m = 5 and n = 6 (m < n):
 
-      (  1   1   u1  u1  u1 )           (  1   u1  u1  u1  u1  u1 )   
-      (  v1  1   1   u2  u2 )           (  1   1   u2  u2  u2  u2 )   
-      (  v1  v2  a   a   a  )           (  v1  1   a   a   a   a  )   
-      (  v1  v2  a   a   a  )           (  v1  v2  a   a   a   a  )   
-      (  v1  v2  a   a   a  )           (  v1  v2  a   a   a   a  )   
-      (  v1  v2  a   a   a  )   
+      (  1   1   u1  u1  u1 )           (  1   u1  u1  u1  u1  u1 )
+      (  v1  1   1   u2  u2 )           (  1   1   u2  u2  u2  u2 )
+      (  v1  v2  a   a   a  )           (  v1  1   a   a   a   a  )
+      (  v1  v2  a   a   a  )           (  v1  v2  a   a   a   a  )
+      (  v1  v2  a   a   a  )           (  v1  v2  a   a   a   a  )
+      (  v1  v2  a   a   a  )
 
-    where a denotes an element of the original matrix which is unchanged,   
-    vi denotes an element of the vector defining H(i), and ui an element   
-    of the vector defining G(i).   
+    where a denotes an element of the original matrix which is unchanged,
+    vi denotes an element of the vector defining H(i), and ui an element
+    of the vector defining G(i).
     =====================================================================    */
 
     magmaDoubleComplex c_neg_one = MAGMA_Z_NEG_ONE;
@@ -181,7 +181,8 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
         return 0;
     }
 
-    magmaDoubleComplex *f = (magmaDoubleComplex *)malloc(max(n,m)*sizeof(magmaDoubleComplex ));
+    magmaDoubleComplex *f;
+    magma_zmalloc_cpu( &f, max(n,m) );
 
     magma_event_t event = NULL;
 
@@ -200,14 +201,14 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 #if defined(PRECISION_z) || defined(PRECISION_c)
             lapackf77_zlacgv( &i__3, &y[i__+y_dim1], &ldy );
 #endif
-            blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, &x[i__ + x_dim1], &ldx, 
+            blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, &x[i__ + x_dim1], &ldx,
                    &a[i__*a_dim1+1], &c__1, &c_one, &a[i__+i__*a_dim1], &c__1);
             
             /* Generate reflection Q(i) to annihilate A(i+1:m,i) */
             alpha = a[i__ + i__ * a_dim1];
             i__2 = m - i__ + 1;
             i__3 = i__ + 1;
-            lapackf77_zlarfg(&i__2, &alpha, 
+            lapackf77_zlarfg(&i__2, &alpha,
                     &a[min(i__3,m) + i__ * a_dim1], &c__1, &tauq[i__]);
             d[i__] = MAGMA_Z_REAL( alpha );
             if (i__ < n) {
@@ -221,35 +222,35 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                 magma_zsetvector( i__2,
                                   a + i__   + i__   * a_dim1, 0, 1,
                                   da, da_offset + (i__-1)+(i__-1)* (ldda), 1,
-				  queue );
+                                  queue );
                 // 2. Multiply ---------------------------------------------
-                magma_zgemv(MagmaConjTrans, i__2, i__3, c_one, 
-                            da, da_offset + (i__-1) + ((i__-1) + 1) * (ldda), ldda, 
-                            da, da_offset + (i__-1) + (i__-1) * (ldda), c__1, c_zero, 
+                magma_zgemv(MagmaConjTrans, i__2, i__3, c_one,
+                            da, da_offset + (i__-1) + ((i__-1) + 1) * (ldda), ldda,
+                            da, da_offset + (i__-1) + (i__-1) * (ldda), c__1, c_zero,
                             dy, dy_offset + i__ + 1 + i__ * y_dim1, c__1,
-			    queue );
+                            queue );
                 
                 // 3. Put the result back ----------------------------------
                 magma_zgetmatrix_async( i__3, 1,
                                         dy, dy_offset + i__+1+i__*y_dim1, y_dim1,
-                                        y+i__+1+i__*y_dim1, 0, y_dim1, 
-					queue, &event );
+                                        y+i__+1+i__*y_dim1, 0, y_dim1,
+                                        queue, &event );
                 i__2 = m - i__ + 1;
                 i__3 = i__ - 1;
-                blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_one, &a[i__ + a_dim1], 
-			      &lda, &a[i__ + i__ * a_dim1], &c__1, &c_zero, 
-			      &y[i__ * y_dim1 + 1], &c__1);
+                blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_one, &a[i__ + a_dim1],
+                              &lda, &a[i__ + i__ * a_dim1], &c__1, &c_zero,
+                              &y[i__ * y_dim1 + 1], &c__1);
 
                 i__2 = n - i__;
                 i__3 = i__ - 1;
                 blasf77_zgemv("N", &i__2, &i__3, &c_neg_one, &y[i__ + 1 +y_dim1], &ldy,
-			      &y[i__ * y_dim1 + 1], &c__1,
-			      &c_zero, f, &c__1);
+                              &y[i__ * y_dim1 + 1], &c__1,
+                              &c_zero, f, &c__1);
                 i__2 = m - i__ + 1;
                 i__3 = i__ - 1;
                 blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_one, &x[i__ + x_dim1],
-			      &ldx, &a[i__ + i__ * a_dim1], &c__1, &c_zero,
-			      &y[i__ * y_dim1 + 1], &c__1);
+                              &ldx, &a[i__ + i__ * a_dim1], &c__1, &c_zero,
+                              &y[i__ * y_dim1 + 1], &c__1);
                 
                 // 4. Synch to make sure the result is back ----------------
                 magma_event_sync( event );
@@ -261,9 +262,9 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 
                 i__2 = i__ - 1;
                 i__3 = n - i__;
-                blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_neg_one, 
-			      &a[(i__ + 1) * a_dim1 + 1], &lda, &y[i__ * y_dim1 + 1], &c__1, &c_one,
-			      &y[i__ + 1 + i__ * y_dim1], &c__1);
+                blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_neg_one,
+                              &a[(i__ + 1) * a_dim1 + 1], &lda, &y[i__ * y_dim1 + 1], &c__1, &c_one,
+                              &y[i__ + 1 + i__ * y_dim1], &c__1);
                 i__2 = n - i__;
                 blasf77_zscal(&i__2, &tauq[i__], &y[i__ + 1 + i__ * y_dim1], &c__1);
 
@@ -273,9 +274,9 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                 lapackf77_zlacgv( &i__2, &a[i__+(i__+1)*a_dim1], &lda );
                 lapackf77_zlacgv( &i__,  &a[i__+a_dim1], &lda );
 #endif
-                blasf77_zgemv("No transpose", &i__2, &i__, &c_neg_one, 
-			      &y[i__ + 1 + y_dim1], &ldy, &a[i__ + a_dim1], &lda, 
-			      &c_one, &a[i__ + (i__ + 1) * a_dim1], &lda);
+                blasf77_zgemv("No transpose", &i__2, &i__, &c_neg_one,
+                              &y[i__ + 1 + y_dim1], &ldy, &a[i__ + a_dim1], &lda,
+                              &c_one, &a[i__ + (i__ + 1) * a_dim1], &lda);
                 i__2 = i__ - 1;
                 i__3 = n - i__;
 #if defined(PRECISION_z) || defined(PRECISION_c)
@@ -306,7 +307,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                 magma_zsetvector( i__3,
                                   a + i__   + (i__   +1)* a_dim1, 0, lda,
                                   da, da_offset + (i__-1)+((i__-1)+1)*(ldda), ldda,
-				  queue );
+                                  queue );
                 // 2. Multiply ---------------------------------------------
                 //magma_zcopy(i__3, da+(i__-1)+((i__-1)+1)*(ldda), ldda,
                 //            dy + 1 + lddy, 1);
@@ -315,13 +316,13 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                             da, da_offset + (i__-1) +  ((i__-1)+1) * (ldda), ldda,
                             //dy + 1 + lddy, 1,
                             c_zero, dx, dx_offset + i__ + 1 + i__ * x_dim1, c__1,
-			    queue );
+                            queue );
 
                 // 3. Put the result back ----------------------------------
                 magma_zgetmatrix_async( i__2, 1,
                                         dx, dx_offset + i__+1+i__*x_dim1, x_dim1,
                                         x+i__+1+i__*x_dim1, 0, x_dim1,
-					queue, &event );
+                                        queue, &event );
 
                 i__2 = n - i__;
                 blasf77_zgemv(MagmaConjTransStr, &i__2, &i__, &c_one, &y[i__ + 1 + y_dim1],
@@ -348,7 +349,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 
                 i__2 = m - i__;
                 i__3 = i__ - 1;
-                blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, &x[i__ + 1 + 
+                blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, &x[i__ + 1 +
                         x_dim1], &ldx, &x[i__ * x_dim1 + 1], &c__1, &c_one, &x[
                         i__ + 1 + i__ * x_dim1], &c__1);
                 i__2 = m - i__;
@@ -361,7 +362,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                 magma_zsetvector( i__2,
                                   a + i__   + (i__   +1)* a_dim1, 0, lda,
                                   da, da_offset + (i__-1)+((i__-1)+1)*(ldda), ldda,
-				  queue );
+                                  queue );
 #endif
             }
         }
@@ -396,7 +397,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
         /* Computing MIN */
         i__3 = i__ + 1;
         alpha = a[i__ + i__ * a_dim1];
-        lapackf77_zlarfg(&i__2, &alpha, 
+        lapackf77_zlarfg(&i__2, &alpha,
                 &a[i__ + min(i__3,n) * a_dim1], &lda, &taup[i__]);
         d[i__] = MAGMA_Z_REAL( alpha );
         if (i__ < m) {
@@ -410,7 +411,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
           magma_zsetvector( i__3,
                             a + i__   + i__   * a_dim1, 0, lda,
                             da, da_offset + (i__-1)+(i__-1)* (ldda), ldda,
-			    queue );
+                            queue );
 
           // 2. Multiply ---------------------------------------------
           //magma_zcopy(i__3, da+(i__-1)+(i__-1)*(ldda), ldda,
@@ -421,13 +422,13 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                       // dy + 1 + lddy, 1,
                       c_zero,
                       dx, dx_offset + i__ + 1 + i__ * x_dim1, c__1,
-		      queue );
+                      queue );
 
           // 3. Put the result back ----------------------------------
           magma_zgetmatrix_async( i__2, 1,
                                   dx, dx_offset + i__+1+i__*x_dim1, x_dim1,
-                                  x+i__+1+i__*x_dim1, 0, x_dim1, 
-				  queue, &event );
+                                  x+i__+1+i__*x_dim1, 0, x_dim1,
+                                  queue, &event );
 
           i__2 = n - i__ + 1;
           i__3 = i__ - 1;
@@ -455,7 +456,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 
           i__2 = m - i__;
           i__3 = i__ - 1;
-          blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, 
+          blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one,
                  &x[i__ + 1 + x_dim1], &ldx, &x[i__ * x_dim1 + 1], &c__1, &c_one,
                  &x[i__ + 1 + i__ * x_dim1], &c__1);
           i__2 = m - i__;
@@ -466,7 +467,7 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
           magma_zsetvector( i__2,
                             a + i__   + (i__  )* a_dim1, 0, lda,
                             da, da_offset + (i__-1)+ (i__-1)*(ldda), ldda,
-			    queue );
+                            queue );
 #endif
           
           /* Update A(i+1:m,i) */
@@ -475,14 +476,14 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 #if defined(PRECISION_z) || defined(PRECISION_c)
           lapackf77_zlacgv(&i__3, &y[i__ + y_dim1], &ldy);
 #endif
-          blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one, 
-                 &a[i__ + 1 + a_dim1], &lda, &y[i__ + y_dim1], &ldy, &c_one, 
+          blasf77_zgemv("No transpose", &i__2, &i__3, &c_neg_one,
+                 &a[i__ + 1 + a_dim1], &lda, &y[i__ + y_dim1], &ldy, &c_one,
                  &a[i__ + 1 + i__ * a_dim1], &c__1);
           i__2 = m - i__;
 #if defined(PRECISION_z) || defined(PRECISION_c)
           lapackf77_zlacgv(&i__3, &y[i__ + y_dim1], &ldy);
 #endif
-          blasf77_zgemv("No transpose", &i__2, &i__, &c_neg_one, 
+          blasf77_zgemv("No transpose", &i__2, &i__, &c_neg_one,
                  &x[i__ + 1 + x_dim1], &ldx, &a[i__ * a_dim1 + 1], &c__1, &c_one,
                  &a[i__ + 1 + i__ * a_dim1], &c__1);
           
@@ -503,24 +504,24 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
           magma_zsetvector( i__2,
                             a + i__   +1+  i__   * a_dim1, 0, 1,
                             da, da_offset + (i__-1)+1+ (i__-1)*(ldda),  1,
-			    queue );
+                            queue );
           // 2. Multiply ---------------------------------------------
           magma_zgemv(MagmaConjTrans, i__2, i__3, c_one,
                       da, da_offset + (i__-1)+1+ ((i__-1)+1) * ldda, ldda,
                       da, da_offset + (i__-1)+1+  (i__-1)    * ldda, c__1,
                       c_zero, dy, dy_offset + i__ + 1 + i__ * y_dim1, c__1,
-		      queue );
+                      queue );
 
           // 3. Put the result back ----------------------------------
           magma_zgetmatrix_async( i__3, 1,
                                   dy, dy_offset + i__+1+i__*y_dim1, y_dim1,
-                                  y+i__+1+i__*y_dim1, 0, y_dim1, 
-				  queue, &event );
+                                  y+i__+1+i__*y_dim1, 0, y_dim1,
+                                  queue, &event );
 
           i__2 = m - i__;
           i__3 = i__ - 1;
-          blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_one, &a[i__ + 1 + a_dim1], 
-                 &lda, &a[i__ + 1 + i__ * a_dim1], &c__1, &c_zero, 
+          blasf77_zgemv(MagmaConjTransStr, &i__2, &i__3, &c_one, &a[i__ + 1 + a_dim1],
+                 &lda, &a[i__ + 1 + i__ * a_dim1], &c__1, &c_zero,
                  &y[ i__ * y_dim1 + 1], &c__1);
           i__2 = n - i__;
           i__3 = i__ - 1;
@@ -553,14 +554,14 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
           magma_zsetvector( i__2,
                             a + i__   + (i__  )* a_dim1, 0, lda,
                             da, da_offset + (i__-1)+ (i__-1)*(ldda), ldda,
-			    queue );
+                            queue );
 #endif
         }
       }
     }
     
     magma_queue_sync( queue );
-    free(f);
+    magma_free_cpu(f);
     
     return MAGMA_SUCCESS;
 } /* magma_zlabrd */

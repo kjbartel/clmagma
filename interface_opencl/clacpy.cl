@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.0.0) --
+ *   -- clMAGMA (version 1.1.0-beta2) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      May 2012
+ *      @date November 2013
  *
- * @generated c Wed Oct 24 00:32:59 2012
+ * @generated c Mon Nov 25 17:56:04 2013
  */
 
 /*
@@ -23,22 +23,20 @@
 typedef float2 magmaFloatComplex;
 #endif
 
-__kernel void clacpy_kernel(int m, int n, 
-		__global magmaFloatComplex *A, int offset_A, int lda, 
-		__global magmaFloatComplex *B, int offset_B, int ldb)
+__kernel void clacpy_kernel(
+    int m, int n,
+    __global magmaFloatComplex *A, int offset_A, int lda,
+    __global magmaFloatComplex *B, int offset_B, int ldb)
 {
-	int row = get_group_id(0)*64 + get_local_id(0);
-	if(row < m){
-		A += (offset_A + row);
-		B += (offset_B + row);
-		__global magmaFloatComplex *Aend = A + lda*n;
-		while(A < Aend){
-			*B = *A;
-			A += lda;
-			B += ldb;
-		}
-	}
+    int row = get_group_id(0)*64 + get_local_id(0);
+    if(row < m){
+        A += (offset_A + row);
+        B += (offset_B + row);
+        __global magmaFloatComplex *Aend = A + lda*n;
+        while(A < Aend){
+            *B = *A;
+            A += lda;
+            B += ldb;
+        }
+    }
 }
-
-
-

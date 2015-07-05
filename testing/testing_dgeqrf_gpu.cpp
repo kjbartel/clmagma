@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated d Wed Oct 24 00:33:02 2012
+       @generated d Mon Nov 25 17:56:10 2013
 
 */
 
@@ -32,6 +32,7 @@
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing dgeqrf
 */
+
 int main( int argc, char** argv)
 {
     
@@ -78,22 +79,29 @@ int main( int argc, char** argv)
     }
 
     /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device;
+    magma_queue_t  queue1, queue2;
+    magma_device_t device[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
 
     magma_init();
-    err = magma_get_devices( &device, 1, &num );
+    err = magma_get_devices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
       fprintf( stderr, "magma_get_devices failed: %d\n", err );
       exit(-1);
     }
-    err = magma_queue_create( device, &queue );
+    err = magma_queue_create( device[0], &queue1 );
     if ( err != 0 ) {
       fprintf( stderr, "magma_queue_create failed: %d\n", err );
       exit(-1);
     }
+    err = magma_queue_create( device[0], &queue2 );
+    if ( err != 0 ) {
+      fprintf( stderr, "magma_queue_create failed: %d\n", err );
+      exit(-1);
+    }
+
+    magma_queue_t queues[2] = {queue1, queue2};
 
     ldda   = ((M+31)/32)*32;
     n2     = M * N;
@@ -142,13 +150,17 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-	magma_dsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-        magma_dgeqrf2_gpu( M, N, d_A, 0, ldda, tau, &info, queue);
+        magma_dsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue1 );
+        magma_dgeqrf2_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
 
-	magma_dsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+        magma_dsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue1 );
+        clFinish(queue1);
+        clFinish(queue2);
+
         gpu_time = get_time();
-        magma_dgeqrf2_gpu( M, N, d_A, 0, ldda, tau, &info, queue);
+        magma_dgeqrf2_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
         gpu_time = get_time() - gpu_time;
+
         if (info < 0)
           printf("Argument %d of magma_dgeqrf2 had an illegal value.\n", -info);
         
@@ -157,7 +169,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the result compared to LAPACK
            =================================================================== */
-	magma_dgetmatrix( M, N, d_A, 0, ldda, h_R, 0, M, queue );
+        magma_dgetmatrix( M, N, d_A, 0, ldda, h_R, 0, M, queue1 );
         
         matnorm = lapackf77_dlange("f", &M, &N, h_A, &M, work);
         blasf77_daxpy(&n2, &mzone, h_A, &ione, h_R, &ione);
@@ -177,6 +189,8 @@ int main( int argc, char** argv)
     TESTING_FREE_HOST( h_R );
     TESTING_FREE_DEV( d_A );
 
-    magma_queue_destroy( queue );
+    magma_queue_destroy( queue1 );
+    magma_queue_destroy( queue2 );
+
     magma_finalize();
 }

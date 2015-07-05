@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.0.0) --
+    -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
-       @generated s Wed Oct 24 00:32:48 2012
+       @generated s Mon Nov 25 17:56:00 2013
 
 */
 
@@ -15,18 +15,18 @@
 extern "C" magma_int_t
 magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
                  magma_int_t m, magma_int_t n, magma_int_t k,
-                 magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda, 
+                 magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
                  float *tau,
                  magmaFloat_ptr dC, size_t dC_offset, magma_int_t lddc,
                  float *hwork, magma_int_t lwork,
-                 magmaFloat_ptr dT, size_t dT_offset, magma_int_t nb, 
+                 magmaFloat_ptr dT, size_t dT_offset, magma_int_t nb,
                  magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.0.0) --
+/*  -- clMAGMA (version 1.1.0-beta2) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
 
     Purpose
     =======
@@ -93,8 +93,8 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
 
     LWORK   (input) INTEGER
             The dimension of the array HWORK.
-            LWORK >= (M-K+NB)*(N+2*NB) if SIDE = 'L', 
-            and LWORK >= (N-K+NB)*(M+2*NB) if SIDE = 'R', where NB is the 
+            LWORK >= (M-K+NB)*(N+2*NB) if SIDE = 'L',
+            and LWORK >= (N-K+NB)*(M+2*NB) if SIDE = 'R', where NB is the
             optimal blocksize.
 
             If LWORK = -1, then a workspace query is assumed; the routine
@@ -102,7 +102,7 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
             this value as the first entry of the HWORK array, and no error
             message related to LWORK is issued by XERBLA.
 
-    DT      (input) REAL array on the GPU that is the output 
+    DT      (input) REAL array on the GPU that is the output
             (the 9th argument) of magma_sgeqrf_gpu.
 
     NB      (input) INTEGER
@@ -115,7 +115,7 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
     =====================================================================   */
 
     #define a_ref(a_1,a_2) dA, (dA_offset+(a_1)+(a_2)*(ldda))
-    #define c_ref(a_1,a_2) dC, (dC_offset+(a_1)+(a_2)*(lddc))           
+    #define c_ref(a_1,a_2) dC, (dC_offset+(a_1)+(a_2)*(lddc))
     #define t_ref(a_1)     dT, (dT_offset+(a_1)*nb)
 
     float c_one = MAGMA_S_ONE;
@@ -183,7 +183,7 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
 
     lddwork= k;
     dwork  = dT;
-	size_t dwork_offset = 2*lddwork*nb;
+    size_t dwork_offset = 2*lddwork*nb;
 
     if ( (left && (! notran)) || ( (!left) && notran ) ) {
         i1 = 0;
@@ -217,8 +217,8 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
                 jc = i;
             }
             ret = magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
-                                    mi, ni, ib, 
-                                    a_ref(i,  i ), ldda, t_ref(i), nb, 
+                                    mi, ni, ib,
+                                    a_ref(i,  i ), ldda, t_ref(i), nb,
                                     c_ref(ic, jc), lddc, dwork, dwork_offset, nw, queue);
             if ( ret != MAGMA_SUCCESS )
               return ret;
@@ -241,18 +241,18 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
             jc = i;
         }
 
-		magma_sgetmatrix(mi, ib, a_ref(i, i), ldda, hwork, 0, mi, queue);
+        magma_sgetmatrix(mi, ib, a_ref(i, i), ldda, hwork, 0, mi, queue);
         magma_sgetmatrix(mi, ni, c_ref(ic, jc), lddc, hwork+mi*ib, 0, mi, queue);
 
         magma_int_t lhwork = lwork - mi*(ib + ni);
-        lapackf77_sormqr( MagmaLeftStr, MagmaTransStr, 
-                          &mi, &ni, &ib, 
-                          hwork,       &mi, tau+i, 
-                          hwork+mi*ib, &mi, 
+        lapackf77_sormqr( MagmaLeftStr, MagmaTransStr,
+                          &mi, &ni, &ib,
+                          hwork,       &mi, tau+i,
+                          hwork+mi*ib, &mi,
                           hwork+mi*(ib+ni), &lhwork, info);
 
         // send the updated part of c back to the GPU
-		magma_ssetmatrix(mi, ni, hwork+mi*ib, 0, mi, c_ref(ic, jc), lddc, queue);
+        magma_ssetmatrix(mi, ni, hwork+mi*ib, 0, mi, c_ref(ic, jc), lddc, queue);
     }
 
     return *info;

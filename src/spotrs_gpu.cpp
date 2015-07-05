@@ -1,11 +1,11 @@
-/*  
-    -- clMAGMA (version 1.0.0) --
-       Univ. of Tennessee, Knoxville                                                                           
-       Univ. of California, Berkeley                                                                           
-       Univ. of Colorado, Denver                                                                               
-       April 2012                                                                                              
+/*
+    -- clMAGMA (version 1.1.0-beta2) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2013
                                                                                                               
-       @generated s Wed Oct 24 00:32:48 2012
+       @generated s Mon Nov 25 17:55:59 2013
 */
 
 #include <stdio.h>
@@ -13,16 +13,16 @@
 
 
 extern "C" magma_err_t
-magma_spotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs, 
-                 magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda, 
-                 magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb, 
-				 magma_err_t *info, magma_queue_t queue )
+magma_spotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+                 magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
+                 magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb,
+                 magma_err_t *info, magma_queue_t queue )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       April 2012
+       @date November 2013
  
     Purpose
     =======
@@ -66,15 +66,15 @@ magma_spotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     float z_one = MAGMA_S_MAKE(  1.0, 0.0 );
     
-    *info = 0 ; 
+    *info = 0 ;
     if( (uplo != MagmaUpper) && (uplo != MagmaLower) )
-        *info = -1; 
+        *info = -1;
     if( n < 0 )
-        *info = -2; 
-    if( nrhs < 0) 
-        *info = -3; 
+        *info = -2;
+    if( nrhs < 0)
+        *info = -3;
     if ( ldda < max(1, n) )
-        *info = -5; 
+        *info = -5;
     if ( lddb < max(1, n) )
         *info = -7;
     if (*info != 0) {
@@ -101,7 +101,7 @@ magma_spotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
             chk(magma_strsv(MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
             chk(magma_strsv(MagmaLower, MagmaTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
         } else {
-			chk(magma_strsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            chk(magma_strsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
             chk(magma_strsm(MagmaLeft, MagmaLower, MagmaTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
         }
     }

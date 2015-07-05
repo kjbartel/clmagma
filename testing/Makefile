@@ -1,104 +1,168 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.0.0) --
+#   -- clMAGMA (version 1.1.0-beta2) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      April 2012
+#      @date November 2013
 #//////////////////////////////////////////////////////////////////////////////
 
+DIR = testing
 MAGMA_DIR = ..
 include ../Makefile.internal
 
-ZSRC = \
-	testing_zpotrf_gpu.cpp	\
-	testing_zgeqrf_gpu.cpp  \
-	testing_zgetrf_gpu.cpp	\
-	testing_zposv_gpu.cpp	\
-	testing_zgesv_gpu.cpp	\
-	testing_zgeqrs_gpu.cpp	\
-	testing_zgetri_gpu.cpp      \
-	testing_zpotri_gpu.cpp      \
-		\
-	testing_zgehrd.cpp		\
-	testing_zgebrd.cpp      \
-	testing_zhetrd.cpp      \
-	testing_zgesvd.cpp      \
-	testing_zheevd.cpp      \
-	testing_dsyevd.cpp      \
-	testing_zgeev.cpp      \
-	testing_dgeev.cpp      \
-		\
+# ----------
+# BLAS and auxiliary
+ZSRC := \
 	testing_zgemm.cpp	\
+	testing_zgemm_reduce.cpp	\
 	testing_zgemv.cpp	\
-	testing_zlaswp.cpp
+	\
+	testing_constants.cpp	\
+	testing_zlaswp.cpp	\
 
-#ifeq ($(FORT), pgfortran)
-#	FOBJ := fortran_thunking.o
-#	ZSRCF = testing_zgetrf_gpu_f.cuf
-#else
-#	FOBJ := fortran.o
-#	ZSRCF = testing_zgetrf_gpu_f.f90	\
-#		testing_zgetrf_f.f90
-#endif
+# ----------
+# Cholesky, GPU interface
+ZSRC += \
+	testing_zposv_gpu.cpp	\
+	testing_zpotrf_gpu.cpp	\
+	testing_zpotrf2_gpu.cpp	\
+	testing_zpotrf_msub.cpp	\
+	testing_zpotri_gpu.cpp	\
+	\
+	testing_zpotrf_mgpu.cpp	\
 
-ZSRC += $(ZSRCF)
+# Cholesky, CPU interface
+ZSRC += \
+	testing_zposv.cpp	\
+	testing_zpotrf.cpp	\
+
+# ----------
+# LU, GPU interface
+ZSRC += \
+	testing_zgesv_gpu.cpp	\
+	testing_zgetrf_gpu.cpp	\
+	testing_zgetrf_msub.cpp	\
+	testing_zgetrf2_gpu.cpp	\
+	testing_zgetri_gpu.cpp	\
+	\
+	testing_zgetrf_mgpu.cpp	\
+
+# LU, CPU interface
+ZSRC += \
+	testing_zgesv.cpp	\
+	testing_zgetrf.cpp	\
+
+# ----------
+# QR and least squares, GPU interface
+ZSRC += \
+	testing_zgeqrf_gpu.cpp	\
+	testing_zgeqrf_msub.cpp	\
+	testing_zgeqrf2_gpu.cpp	\
+	testing_zgeqrs_gpu.cpp	\
+	testing_zgeqr2x_gpu.cpp \
+	\
+	testing_zgeqrf_mgpu.cpp	\
+
+# QR, CPU interface
+ZSRC += \
+	testing_zgeqrf.cpp	\
+
+# ----------
+# symmetric eigenvalues, CPU interface
+ZSRC += \
+	testing_dsyevd.cpp	\
+	testing_zheevd.cpp	\
+	testing_zhetrd.cpp	\
+
+# ----------
+# non-symmetric eigenvalues
+ZSRC += \
+	testing_dgeev.cpp	\
+	testing_zgeev.cpp	\
+	testing_zgehrd.cpp	\
+
+# ----------
+# SVD
+ZSRC += \
+	testing_zgesvd.cpp	\
+	testing_zgebrd.cpp	\
+
+# ----------
+# iwocl benchmark
+ZSRC += \
+	testing_benchmark.cpp	\
+
+
+# ------------------------------------------------------------
+-include Makefile.local
 -include Makefile.src
 
-INC += -I../interface_opencl/cl_magma_runtime/
+ALLSRC  := $(ZSRC) $(CSRC) $(DSRC) $(SSRC)
 
-ALLSRC  = $(ZSRC) $(CSRC) $(DSRC) $(SSRC) \
-	testing_constants.cpp
-ALLOBJF  = $(ALLSRC:.f90=.o)
-ALLOBJF := $(ALLOBJF:.cuf=.o)
-ALLOBJ  := $(ALLOBJF:.cpp=.o)
-EXE      = $(ALLOBJ:.o=)
+ALLOBJ := $(ALLSRC:.f90=.o)
+ALLOBJ := $(ALLOBJ:.F90=.o)
+ALLOBJ := $(ALLOBJ:.cuf=.o)
+ALLOBJ := $(ALLOBJ:.cpp=.o)
 
+EXE    := $(ALLOBJ:.o=)
+
+# --------------------
+LIBTEST := libtest.a
+LIBSRC  := testing_zutil.o testing_cutil.o testing_dutil.o testing_sutil.o testing_util.o
+LIBOBJ  := $(LIBSRC:.cpp=.o)
+LIBEXE  := $(LIBOBJ:.o=)
+
+# testing_zutil.cpp isn't in ZSRC (since they don't generate EXEs),
+# so add generation rules here instead of .Makefile.gen
+testing_cutil.cpp: testing_zutil.cpp
+	$(PYTHON) ../tools/codegen.py  -p c --file testing_zutil.cpp
+
+testing_dutil.cpp: testing_zutil.cpp
+	$(PYTHON) ../tools/codegen.py  -p d --file testing_zutil.cpp
+
+testing_sutil.cpp: testing_zutil.cpp
+	$(PYTHON) ../tools/codegen.py  -p s --file testing_zutil.cpp
+
+generate: testing_cutil.cpp testing_dutil.cpp testing_sutil.cpp
+
+
+# --------------------
+.PHONY: all lib clean cleanall cleanexe
+
+.DEFAULT_GOAL := all
 all: $(EXE)
+
+lib:
+	cd .. && $(MAKE) lib
+
+# depend on header
+$(ALLOBJ): testings.h
+
+$(LIBTEST): $(LIBOBJ)
+	$(ARCH) $(ARCHFLAGS) $@ $^
+	$(RANLIB) $@
 
 LIBLAPACKTEST = lin/liblapacktest.a
 
 $(LIBLAPACKTEST):
-	cd lin && make liblapacktest.a
+	cd lin && $(MAKE) liblapacktest.a
 
-$(EXE): $(LIBMAGMA) $(LIBMAGMABLAS) $(LIBLAPACKTEST)
+$(EXE): $(LIBMAGMA) $(LIBLAPACKTEST) $(LIBTEST)
 
 clean:
-	rm -f *.o *~
+	cd lin    && $(MAKE) clean
+	rm -f *.o *~ $(LIBTEST)
 
-cleanall: clean
+cleanexe:
 	rm -f $(EXE)
 
-#ifeq ($(FORT), pgfortran)
-#testing_%.o : testing_%.cuf
-#	$(FORT) $(FOPTS) $(INC) -c $< -o $@ 
-#else
-#testing_%.o : testing_%.f90
-#	$(FORT) $(FOPTS) $(INC) -c $< -o $@ 
-#endif
-
-%.o: %.cpp
-	$(CC) $(OPTS) $(INC) -c $< -o $@
-
-#
-# MAGMA Fortran module. Once finalized, the generated magma.mod
-# has to be moved in the include directory
-#
-testing_%_f : testing_%_f.o $(FOBJ)
-	$(FORT) $(OPTS) $(LDOPTS) $< $(FOBJ) -o $@ lin/liblapacktest.a \
-	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
+cleanall: clean cleanexe
 
 testing_% : testing_%.o
-	$(CC) $(OPTS) $(LDOPTS) $(NOMAIN) $< -o $@ lin/liblapacktest.a \
-	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
-
-#
-# These two files are provided by cuda
-#
-#fortran.o : $(CUDADIR)/src/fortran.c
-#	$(CC) $(OPTS) $(INC) -c $< -o $@
-#
-#fortran_thunking.o : $(CUDADIR)/src/fortran_thunking.c
-#	$(CC) $(OPTS) $(INC) -c $< -o $@
+	$(CC) $(LDOPTS) $(NOMAIN) $< -o $@ \
+	$(LIBTEST) $(LIBLAPACKTEST) -L../lib -lclmagma \
+	$(LIBDIR) \
+	$(LIB)
 
 # keep intermediate object files, to speed up re-compiling when library changes
 .SECONDARY: $(ALLOBJ)

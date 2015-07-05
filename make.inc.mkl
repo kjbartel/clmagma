@@ -1,9 +1,9 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- MAGMA (version 1.0.0) --
+#   -- MAGMA (version 1.1.0-beta2) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of	Colorado, Denver
-#      April 2012
+#      @date November 2013
 #//////////////////////////////////////////////////////////////////////////////
 
 # setenv AMD_CLBLAS_STORAGE_PATH /home/tomov/cl_magma
@@ -16,31 +16,32 @@
 GPU_TARGET = AMD
 
 CC        = g++
-NVCC      = nvcc
 FORT      = gfortran
 
 ARCH      = ar
 ARCHFLAGS = cr
 RANLIB    = ranlib
 
-OPTS      = -O0 -DADD_ -g -Wall
-FOPTS     = -O0 -DADD_ -g -Wall -x f95-cpp-input
-#OPTS     = -O3 -DADD_ -g
-#NVOPTS   = -O3 -DADD_ --compiler-options -fno-strict-aliasing -DUNIX -g -G
-NVOPTS    = -O3 -DADD_ --compiler-options -fno-strict-aliasing -DUNIX
-LDOPTS    = -fPIC -Xlinker -zmuldefs
+OPTS      = -fPIC -O3 -DADD_ -Wall
+FOPTS     = -fPIC -O3 -DADD_ -Wall -x f95-cpp-input
+F77OPTS   = -fPIC -O3 -DADD_ -Wall
+LDOPTS    = -fPIC
 
-# to set MKLROOT run: /mnt/scratch/sw/intel/2011.2.137/mkl/bin/mklvars.sh intel64
-MKLROOT   = /mnt/scratch/sw/intel/2011.2.137/composerxe-2011.2.137/mkl
+# define library directories preferably in your environment, or here.
+# for MKL run, e.g.: source /opt/intel/composerxe/mkl/bin/mklvars.sh intel64
+#MKLROOT ?= /opt/intel/composerxe/mkl
+#clBLAS  ?= /opt/clAmdBlas-1.11.314
+#AMDAPP  ?= /opt/AMDAPP
+-include make.check-mkl
+-include make.check-clblas
 
 #LIB       = -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lpthread -lm -fopenmp
 LIB        = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lm -fopenmp
 LIB       += -lclAmdBlas -lOpenCL
 
-GPUBLAS   = /opt/clAmdBlas-1.8.286
-
 LIBDIR    = -L$(MKLROOT)/lib/intel64 \
             -L$(MKLROOT)/../compiler/lib/intel64 \
-            -L$(GPUBLAS)/lib64
-INC       = -I$(GPUBLAS)/include \
-            -I/opt/AMDAPP/include
+            -L$(clBLAS)/lib64
+
+INC       = -I$(clBLAS)/include \
+            -I$(AMDAPP)/include
