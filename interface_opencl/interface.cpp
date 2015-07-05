@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -70,11 +70,13 @@ magma_finalize()
 
 // ========================================
 // memory allocation
+// #include "CL/cl_ext.h"
 magma_err_t
 magma_malloc( magma_ptr* ptrPtr, size_t size )
 {
     cl_int err;
     *ptrPtr = clCreateBuffer( gContext, CL_MEM_READ_WRITE, size, NULL, &err );
+    // *ptrPtr = clCreateBuffer( gContext, CL_MEM_READ_WRITE | CL_MEM_USE_PERSISTENT_MEM_AMD, size, NULL, &err );
     return err;
 }
 

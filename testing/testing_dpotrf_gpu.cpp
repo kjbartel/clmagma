@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 0.3.0) --
+ *  -- clMAGMA (version 1.0.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
  *     April 2012
  *
- * @generated d Wed Jun 27 23:49:58 2012
+ * @generated d Wed Oct 24 00:33:01 2012
  *
  **/
 
@@ -69,7 +69,7 @@ int main( int argc, char** argv)
     magma_err_t err;
     magma_init();
     err = magma_get_devices( &device, 1, &num );
-    if ( err != 0 or num < 1 ) {
+    if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }

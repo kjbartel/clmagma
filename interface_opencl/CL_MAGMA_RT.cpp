@@ -285,6 +285,18 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   Kernel2FileNamePool["claset_upper"    ] = dir + "cauxiliary.co";
   Kernel2FileNamePool["zlaset_upper"    ] = dir + "zauxiliary.co";
 
+//zlacpy functions
+  Kernel2FileNamePool["slacpy_kernel"    ] = dir + "slacpy.co";
+  Kernel2FileNamePool["dlacpy_kernel"    ] = dir + "dlacpy.co";
+  Kernel2FileNamePool["clacpy_kernel"    ] = dir + "clacpy.co";
+  Kernel2FileNamePool["zlacpy_kernel"    ] = dir + "zlacpy.co";
+
+//zswap functions
+  Kernel2FileNamePool["magmagpu_sswap"    ] = dir + "sswap.co";
+  Kernel2FileNamePool["magmagpu_dswap"    ] = dir + "dswap.co";
+  Kernel2FileNamePool["magmagpu_cswap"    ] = dir + "cswap.co";
+  Kernel2FileNamePool["magmagpu_zswap"    ] = dir + "zswap.co";
+
   HasBeenInitialized = true;
 
   BuildFromBinaries( (dir + "sinplace_transpose.co").c_str() );
@@ -311,7 +323,17 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   BuildFromBinaries( (dir + "dauxiliary.co"       ).c_str() );
   BuildFromBinaries( (dir + "cauxiliary.co"       ).c_str() );
   BuildFromBinaries( (dir + "zauxiliary.co"       ).c_str() );
-  
+ 
+  BuildFromBinaries( (dir + "slacpy.co"       ).c_str() );
+  BuildFromBinaries( (dir + "dlacpy.co"       ).c_str() );
+  BuildFromBinaries( (dir + "clacpy.co"       ).c_str() );
+  BuildFromBinaries( (dir + "zlacpy.co"       ).c_str() );
+
+  BuildFromBinaries( (dir + "sswap.co"       ).c_str() );
+  BuildFromBinaries( (dir + "dswap.co"       ).c_str() );
+  BuildFromBinaries( (dir + "cswap.co"       ).c_str() );
+  BuildFromBinaries( (dir + "zswap.co"       ).c_str() );
+
   bool rtr;
   rtr = CreateKernel("sinplace_T_even_kernel");
   if (rtr==false)
@@ -425,7 +447,33 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   rtr = CreateKernel("zlaset_upper");
   if (rtr==false)
     printf ("error creating kernel zlaset_upper\n");
-  
+ 
+  rtr = CreateKernel("slacpy_kernel");
+  if (rtr==false)
+	  printf ("error creating kernel slacpy_kernel\n");
+  rtr = CreateKernel("dlacpy_kernel");
+  if (rtr==false)
+	  printf ("error creating kernel dlacpy_kernel\n");
+  rtr = CreateKernel("clacpy_kernel");
+  if (rtr==false)
+	  printf ("error creating kernel clacpy_kernel");
+  rtr = CreateKernel("zlacpy_kernel");
+  if (rtr==false)
+	  printf ("error creating kernel zlacpy_kernel\n");
+
+  rtr = CreateKernel("magmagpu_sswap");
+  if (rtr==false)
+	  printf ("error creating kernel magmagpu_sswap\n");
+  rtr = CreateKernel("magmagpu_dswap");
+  if (rtr==false)
+	  printf ("error creating kernel magmagpu_dswap\n");
+  rtr = CreateKernel("magmagpu_cswap");
+  if (rtr==false)
+	  printf ("error creating kernel magmagpu_cswap\n");
+  rtr = CreateKernel("magmagpu_zswap");
+  if (rtr==false)
+	  printf ("error creating kernel magmagpu_zswap\n");
+
   return true;
 }
 
@@ -459,7 +507,7 @@ bool CL_MAGMA_RT::Init()
 	ciErrNum |= clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, ciDeviceCount, cdDevices, NULL);
 	if (ciErrNum != CL_SUCCESS)
 	{
-		printf("Error:clGetDeviceIDs at %d in file %s!\n", __LINE__, __FILE__);
+		printf("Error: clGetDeviceIDs at %d in file %s!\n", __LINE__, __FILE__);
 		return false;
 	}
 
@@ -556,7 +604,19 @@ bool CL_MAGMA_RT::Init()
 	Kernel2FileNamePool["dlaset_upper"    ] = dir + string("dauxiliary.co");
 	Kernel2FileNamePool["claset_upper"    ] = dir + string("cauxiliary.co");
 	Kernel2FileNamePool["zlaset_upper"    ] = dir + string("zauxiliary.co");
-	
+    
+	//zlacpy functions
+	Kernel2FileNamePool["slacpy_kernel"    ] = dir + string("slacpy.co");
+	Kernel2FileNamePool["dlacpy_kernel"    ] = dir + string("dlacpy.co");
+	Kernel2FileNamePool["clacpy_kernel"    ] = dir + string("clacpy.co");
+	Kernel2FileNamePool["zlacpy_kernel"    ] = dir + string("zlacpy.co");
+
+	//zswap functions
+	Kernel2FileNamePool["magmagpu_sswap"    ] = dir + string("sswap.co");
+	Kernel2FileNamePool["magmagpu_dswap"    ] = dir + string("dswap.co");
+	Kernel2FileNamePool["magmagpu_cswap"    ] = dir + string("cswap.co");
+	Kernel2FileNamePool["magmagpu_zswap"    ] = dir + string("zswap.co");
+
 	HasBeenInitialized = true;
 	return true;
 }
@@ -818,7 +878,7 @@ bool CL_MAGMA_RT::CreateKernel(const char *KernelName)
 	}
 
 	cl_program cpProgram = NULL;
-	printf ("getting kernel %s from %s\n", KernelName, Kernel2FileNamePool[string(KernelName)].c_str());
+	//printf ("getting kernel %s from %s\n", KernelName, Kernel2FileNamePool[string(KernelName)].c_str());
 	cpProgram = ProgramPool[ Kernel2FileNamePool[string(KernelName)]];
 	if (cpProgram==NULL)
 	{

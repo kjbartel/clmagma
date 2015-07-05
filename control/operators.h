@@ -2,7 +2,7 @@
  *
  *  @file operators.h
  *
- *  clMAGMA (version 0.3.0) --
+ *  clMAGMA (version 1.0.0) --
  *  Univ. of Tennessee, Knoxville
  *  Univ. of California, Berkeley
  *  Univ. of Colorado, Denver

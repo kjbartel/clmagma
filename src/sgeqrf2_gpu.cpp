@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Thu Jun 28 19:26:32 2012
+       @generated s Wed Oct 24 00:32:47 2012
 
 */
 
@@ -18,7 +18,7 @@ magma_sgeqrf2_gpu( magma_int_t m, magma_int_t n,
                    float *tau, magma_err_t *info,
 		   magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -124,7 +124,7 @@ magma_sgeqrf2_gpu( magma_int_t m, magma_int_t n,
     magma_event_t event[2] = {NULL, NULL};                                                            
 
     nbmin = 2;
-    nx    = 2*nb;
+    nx    = nb;
     ldwork = m;
     lddwork= n;
 
@@ -135,6 +135,7 @@ magma_sgeqrf2_gpu( magma_int_t m, magma_int_t n,
             ib = min(k-i, nb);
             rows = m -i;
 	    
+	    magma_queue_sync( queue );
 	    magma_sgetmatrix_async(rows, ib, dA(i, i), ldda, work_ref(i), 0, ldwork, queue, &event[0]);
           
             if (i>0){

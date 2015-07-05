@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.3.0) --
+#   -- clMAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -37,6 +37,13 @@ clean:
 	( cd testing          && $(MAKE) clean )
 	#( cd testing/lin      && $(MAKE) clean )
 	-rm -f $(LIBMAGMA) $(LIBMAGMABLAS)
+
+cleangen:
+	( cd control          && $(MAKE) cleangen )
+	( cd interface_opencl && $(MAKE) cleangen )
+	( cd src              && $(MAKE) cleangen )
+	( cd magmablas        && $(MAKE) cleangen ) 
+	( cd testing          && $(MAKE) cleangen )
 
 cleanall:
 	( cd control          && $(MAKE) cleanall )

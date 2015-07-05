@@ -1,5 +1,5 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -18,7 +18,7 @@ magma_zungqr(magma_int_t m, magma_int_t n, magma_int_t k,
              magmaDoubleComplex *tau, magmaDoubleComplex_ptr dT, size_t dT_offset, 
              magma_int_t nb, magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

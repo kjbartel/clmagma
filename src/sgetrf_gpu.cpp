@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Wed Jun 27 23:49:50 2012
+       @generated s Wed Oct 24 00:32:48 2012
 
 */
 
@@ -18,7 +18,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
                  magma_int_t *ipiv, magma_int_t *info,
                  magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -185,7 +185,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
                 if ( (*info == 0) && (iinfo > 0) )
                     *info = iinfo + i*nb;
 
-                magma_spermute_long2( dAT, dAT_offset, lddat, ipiv, nb, i*nb, queue );
+                magma_spermute_long2(n, dAT, dAT_offset, lddat, ipiv, nb, i*nb, queue );
 
                 // upload i-th panel
                 magma_ssetmatrix(m-i*nb, nb, work, 0, lddwork, dAP, 0, maxm, queue);
@@ -227,7 +227,7 @@ magma_sgetrf_gpu(magma_int_t m, magma_int_t n,
         lapackf77_sgetrf( &rows, &nb0, work, &lddwork, ipiv+s*nb, &iinfo);
         if ( (*info == 0) && (iinfo > 0) )
             *info = iinfo + s*nb;
-        magma_spermute_long2( dAT, dAT_offset, lddat, ipiv, nb0, s*nb, queue );
+        magma_spermute_long2(n, dAT, dAT_offset, lddat, ipiv, nb0, s*nb, queue );
 
         // upload i-th panel
         magma_ssetmatrix(rows, nb0, work, 0, lddwork, dAP, 0, maxm, queue);

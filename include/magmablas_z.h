@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -49,6 +49,20 @@ magma_zgetvector(
 	magma_queue_t queue );
 
 magma_err_t
+magma_zsetvector_async(
+	magma_int_t n,
+	magmaDoubleComplex const* hA_src, size_t hA_offset, magma_int_t incx,
+	magmaDoubleComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event );
+
+magma_err_t
+magma_zgetvector_async(
+	magma_int_t n,
+	magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+	magmaDoubleComplex*          hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event );
+
+magma_err_t
 magma_zsetmatrix_async(
     magma_int_t m, magma_int_t n,
     magmaDoubleComplex const* hA_src, size_t hA_offset, magma_int_t ldha,
@@ -75,6 +89,16 @@ void zzero_nbxnb_block(int nb, magmaDoubleComplex_ptr dA, size_t dA_offset, int 
 void magmablas_zlaset(int uplo, magma_int_t m, magma_int_t n, magmaDoubleComplex_ptr A, 
 		      size_t A_offset, magma_int_t lda, magma_queue_t queue);
 
+void magmablas_zlacpy(
+		magma_uplo_t uplo, magma_int_t m, magma_int_t n,
+		magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t lda,
+		magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t ldb,
+		magma_queue_t queue);
+
+void magmablas_zswap(
+			magma_int_t n, magmaDoubleComplex_ptr dA1T, size_t offset_dA1T, magma_int_t lda1, 
+			magmaDoubleComplex_ptr dA2T, size_t offset_dA2T, magma_int_t lda2, magma_queue_t queue);
+
 // ========================================
 // matrix transpose and swapping functions
 magma_err_t
@@ -98,6 +122,7 @@ magma_ztranspose(
 
 magma_err_t
 magma_zpermute_long2(
+	int n,
     magmaDoubleComplex_ptr dAT, size_t dAT_offset, int lda,
     int *ipiv, int nb, int ind,
     magma_queue_t queue );

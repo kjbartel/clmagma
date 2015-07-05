@@ -1,17 +1,19 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
 
         April 2012
 
-        @generated s Thu Jun 28 19:26:34 2012
+        @generated s Wed Oct 24 00:32:50 2012
 
 */
 
 #include <stdio.h>
 #include "common_magma.h"
+
+#define PRECISION_s
 
 magma_err_t
 magma_slabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
@@ -24,11 +26,11 @@ magma_slabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 		  magmaFloat_ptr dy, size_t dy_offset, magma_int_t lddy,
 		  magma_queue_t queue )
 {
-/*  -- MAGMA (version 0.3.0) --
+/*  -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose   
     =======   
@@ -355,7 +357,7 @@ magma_slabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 #if defined(PRECISION_z) || defined(PRECISION_c)
                 i__2 = n - i__;
                 lapackf77_slacgv( &i__2,  &a[i__+(i__+1)*a_dim1], &lda );
-                // 4. Send the block reflector  A(i+1:m,i) to the GPU after ZLACGV()
+                // 4. Send the block reflector  A(i+1:m,i) to the GPU after SLACGV()
                 magma_ssetvector( i__2,
                                   a + i__   + (i__   +1)* a_dim1, 0, lda,
                                   da, da_offset + (i__-1)+((i__-1)+1)*(ldda), ldda,

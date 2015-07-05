@@ -140,7 +140,11 @@ const char *magma2lapack_constants[] =
     "", "",                                  // 299-300
     "No vectors",                            // 301 MagmaNoVec
     "Vectors needed",                        // 302 MagmaVec
-    "", "", "", "", "", "", "", "",          // 303-310
+    "I",                                     // 303 MagmaIVec
+    "All",                                   // 304 MagmaAllVec
+    "Some",                                  // 305 MagmaSomeVec
+    "Overwrite",                             // 306 MagmaOverwriteVec
+    "", "", "", "",                          // 307-310
     "", "", "", "", "", "", "", "", "", "",  // 311-320
     "", "", "", "", "", "", "", "", "", "",  // 321-330
     "", "", "", "", "", "", "", "", "", "",  // 331-340

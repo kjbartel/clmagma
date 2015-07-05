@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
- * @generated s Thu Jun 28 19:26:35 2012
+ * @generated s Wed Oct 24 00:32:56 2012
  */
 
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #include "magmablas.h"
 #include "CL_MAGMA_RT.h"
 
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 32
 
 typedef struct {
         int n;
@@ -69,7 +69,7 @@ void slaswp3(
 
 // ----------------------------------------
 magma_err_t
-magma_spermute_long2(
+magma_spermute_long2(int n, 
 	cl_mem dAT, size_t dAT_offset, int lda,
 	int *ipiv, int nb, int ind,
 	magma_queue_t queue )
@@ -78,7 +78,7 @@ magma_spermute_long2(
 	
 	for( k = 0; k < nb-BLOCK_SIZE; k += BLOCK_SIZE )
 	{
-		slaswp_params_t2 params = { lda, lda, ind + k, BLOCK_SIZE };
+		slaswp_params_t2 params = { n, lda, ind + k, BLOCK_SIZE };
 		for( int j = 0; j < BLOCK_SIZE; j++ )
 		{
 			params.ipiv[j] = ipiv[ind + k + j] - k - 1;
@@ -89,7 +89,7 @@ magma_spermute_long2(
 	
 	int num_pivots = nb - k;
 	
-	slaswp_params_t2 params = { lda, lda, ind + k, num_pivots };
+	slaswp_params_t2 params = { n, lda, ind + k, num_pivots };
 	for( int j = 0; j < num_pivots; j++ )
 	{
 		params.ipiv[j] = ipiv[ind + k + j] - k - 1;

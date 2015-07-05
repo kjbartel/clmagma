@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated c Thu Jun 28 19:26:33 2012
+       @generated c Wed Oct 24 00:32:53 2012
 
 */
 
@@ -20,7 +20,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
              magmaFloatComplex_ptr dT, size_t dT_offset,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -43,7 +43,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     IHI     (input) INTEGER   
             It is assumed that A is already upper triangular in rows   
             and columns 1:ILO-1 and IHI+1:N. ILO and IHI are normally   
-            set by a previous call to ZGEBAL; otherwise they should be   
+            set by a previous call to CGEBAL; otherwise they should be   
             set to 1 and N respectively. See Further Details.   
             1 <= ILO <= IHI <= N, if N > 0; ILO=1 and IHI=0, if N=0.   
 

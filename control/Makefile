@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.3.0) --
+#   -- clMAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -28,6 +28,9 @@ ALLSRC = $(ZSRC) $(CSRC) $(DSRC) $(SSRC) \
 	get_nb_fermi.cpp	\
 	get_nb_tahiti.cpp	\
 	xerbla.cpp	\
+	trace.cpp	\
+	strlcpy.cpp	\
+
 
 ALLOBJ  = $(ALLSRC:.cpp=.o)
 ALLOBJ := $(ALLOBJ:.f90=.o)

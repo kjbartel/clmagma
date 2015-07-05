@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Wed Jun 27 23:49:52 2012
+       @generated s Wed Oct 24 00:32:53 2012
 
 */
 
@@ -36,7 +36,7 @@ magma_slahr2(magma_int_t n, magma_int_t k, magma_int_t nb,
     Purpose   
     =======   
 
-    ZLAHR2 reduces the first NB columns of a real general n-BY-(n-k+1)   
+    SLAHR2 reduces the first NB columns of a real general n-BY-(n-k+1)   
     matrix A so that elements below the k-th subdiagonal are zero. The   
     reduction is performed by an orthogonal similarity transformation   
     Q' * A * Q. The routine returns the matrices V and T which determine   

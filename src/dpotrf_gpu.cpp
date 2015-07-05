@@ -1,29 +1,23 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
         April 2012
   
-        @generated d Wed Jun 27 23:49:49 2012
+        @generated d Wed Oct 24 00:32:47 2012
 
 */
 
 #include <stdio.h>
 #include "common_magma.h"
 
-// produces pointer and offset as two args to magmaBLAS routines
-#define dA(i,j)  dA, ( (dA_offset) + (i) + (j)*ldda )
-
-// produces pointer as single arg to BLAS routines
-#define A(i,j)  &A[ (i) + (j)*lda ]
-
 magma_err_t
 magma_dpotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
 		  magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
 		  magma_err_t*   info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

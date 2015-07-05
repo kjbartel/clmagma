@@ -1,9 +1,9 @@
 /*
-    -- MAGMA (version 0.3.0) --
+    -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
        @author Mark Gates
        @precisions normal z -> s d c
@@ -40,11 +40,11 @@ void magma_zprint( int m, int n, magmaDoubleComplex *A, int lda )
 // Internally allocates memory on host, copies it to the host, prints it,
 // and de-allocates host memory.
 extern "C"
-void magma_zprint_gpu( int m, int n, magmaDoubleComplex_ptr dA, int ldda )
+void magma_zprint_gpu( int m, int n, magmaDoubleComplex_ptr dA, size_t dA_offset, int ldda, magma_queue_t queue )
 {
     int lda = m;
     magmaDoubleComplex* A = (magmaDoubleComplex*) malloc( lda*n*sizeof(magmaDoubleComplex) );
-    magma_zgetmatrix( m, n, dA, ldda, 0, A, lda, 0, NULL );
+    magma_zgetmatrix( m, n, dA, dA_offset, ldda,  A, 0, lda, queue );
     
     magma_zprint( m, n, A, lda );
     

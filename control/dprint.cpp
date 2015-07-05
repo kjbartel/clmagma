@@ -1,12 +1,12 @@
 /*
-    -- MAGMA (version 0.3.0) --
+    -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
        @author Mark Gates
-       @generated d Wed Jun 27 23:49:47 2012
+       @generated d Wed Oct 24 00:32:42 2012
 
 */
 #include "common_magma.h"
@@ -40,11 +40,11 @@ void magma_dprint( int m, int n, double *A, int lda )
 // Internally allocates memory on host, copies it to the host, prints it,
 // and de-allocates host memory.
 extern "C"
-void magma_dprint_gpu( int m, int n, magmaDouble_ptr dA, int ldda )
+void magma_dprint_gpu( int m, int n, magmaDouble_ptr dA, size_t dA_offset, int ldda, magma_queue_t queue )
 {
     int lda = m;
     double* A = (double*) malloc( lda*n*sizeof(double) );
-    magma_dgetmatrix( m, n, dA, ldda, 0, A, lda, 0, NULL );
+    magma_dgetmatrix( m, n, dA, dA_offset, ldda,  A, 0, lda, queue );
     
     magma_dprint( m, n, A, lda );
     

@@ -1,5 +1,5 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -31,6 +31,7 @@ int magma_get_ssytrd_nb(int m);
 int magma_get_sgelqf_nb(int m);
 int magma_get_sgebrd_nb(int m);
 int magma_get_ssygst_nb(int m);
+int magma_get_sgesvd_nb(int m);
 
 int magma_get_dpotrf_nb(int m);
 int magma_get_dgeqrf_nb(int m);
@@ -42,6 +43,7 @@ int magma_get_dsytrd_nb(int m);
 int magma_get_dgelqf_nb(int m);
 int magma_get_dgebrd_nb(int m);
 int magma_get_dsygst_nb(int m);
+int magma_get_dgesvd_nb(int m);
 
 int magma_get_cpotrf_nb(int m);
 int magma_get_cgetrf_nb(int m);
@@ -53,6 +55,7 @@ int magma_get_chetrd_nb(int m);
 int magma_get_cgelqf_nb(int m);
 int magma_get_cgebrd_nb(int m);
 int magma_get_chegst_nb(int m);
+int magma_get_cgesvd_nb(int m);
 
 int magma_get_zpotrf_nb(int m);
 int magma_get_zgetrf_nb(int m);
@@ -64,6 +67,7 @@ int magma_get_zhetrd_nb(int m);
 int magma_get_zgelqf_nb(int m);
 int magma_get_zgebrd_nb(int m);
 int magma_get_zhegst_nb(int m);
+int magma_get_zgesvd_nb(int m);
 
 magma_timestr_t get_current_time(void);
 double GetTimerValue(magma_timestr_t time_1, magma_timestr_t time_2);
@@ -84,6 +88,9 @@ void dq_to_panel(int uplo, int ib, double *a, int lda, double *work);
 
 void zpanel_to_q(int uplo, int ib, magmaDoubleComplex *a, int lda, magmaDoubleComplex *work);
 void zq_to_panel(int uplo, int ib, magmaDoubleComplex *a, int lda, magmaDoubleComplex *work);
+
+double magma_cabs(magmaDoubleComplex x);
+float magma_cabsf(magmaFloatComplex x);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -28,7 +28,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose
     =======

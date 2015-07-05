@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated d Wed Jun 27 23:49:46 2012
+ * @generated d Wed Oct 24 00:32:41 2012
  */
 
 #ifndef MAGMA_BLAS_D_H
@@ -49,6 +49,20 @@ magma_dgetvector(
 	magma_queue_t queue );
 
 magma_err_t
+magma_dsetvector_async(
+	magma_int_t n,
+	double const* hA_src, size_t hA_offset, magma_int_t incx,
+	magmaDouble_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event );
+
+magma_err_t
+magma_dgetvector_async(
+	magma_int_t n,
+	magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+	double*          hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event );
+
+magma_err_t
 magma_dsetmatrix_async(
     magma_int_t m, magma_int_t n,
     double const* hA_src, size_t hA_offset, magma_int_t ldha,
@@ -69,9 +83,21 @@ magma_dcopymatrix(
     magmaDouble_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
     magma_queue_t queue );
 
-void dzero_nbxnb_block(int nb, cl_mem dA, size_t dA_offset, int ldda, magma_queue_t queue);
+void dzero_nbxnb_block(int nb, magmaDouble_ptr dA, size_t dA_offset, int ldda, 
+		       magma_queue_t queue);
 
-void magmablas_dlaset(int uplo, magma_int_t m, magma_int_t n, cl_mem A, size_t A_offset, magma_int_t lda, magma_queue_t queue);
+void magmablas_dlaset(int uplo, magma_int_t m, magma_int_t n, magmaDouble_ptr A, 
+		      size_t A_offset, magma_int_t lda, magma_queue_t queue);
+
+void magmablas_dlacpy(
+		magma_uplo_t uplo, magma_int_t m, magma_int_t n,
+		magmaDouble_ptr dA, size_t dA_offset, magma_int_t lda,
+		magmaDouble_ptr dB, size_t dB_offset, magma_int_t ldb,
+		magma_queue_t queue);
+
+void magmablas_dswap(
+			magma_int_t n, magmaDouble_ptr dA1T, size_t offset_dA1T, magma_int_t lda1, 
+			magmaDouble_ptr dA2T, size_t offset_dA2T, magma_int_t lda2, magma_queue_t queue);
 
 // ========================================
 // matrix transpose and swapping functions
@@ -96,6 +122,7 @@ magma_dtranspose(
 
 magma_err_t
 magma_dpermute_long2(
+	int n,
     magmaDouble_ptr dAT, size_t dAT_offset, int lda,
     int *ipiv, int nb, int ind,
     magma_queue_t queue );

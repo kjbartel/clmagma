@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
- * @generated d Wed Jun 27 23:49:55 2012
+ * @generated d Wed Oct 24 00:32:56 2012
  */
 
 #include <stdio.h>

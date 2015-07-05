@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
         April 2012
 
-        @generated c Wed Jun 27 23:49:53 2012
+        @generated c Wed Oct 24 00:32:50 2012
 
 */
 
@@ -25,11 +25,11 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
              magmaFloatComplex *work, magma_int_t lwork, 
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 0.3.0) --
+/*  -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose
     =======
@@ -86,11 +86,10 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
             represent the orthogonal matrix P. See Further Details.
 
     WORK    (workspace/output) COMPLEX array, dimension (MAX(1,LWORK))
-            On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
+            On exit, if INFO = 0, WORK[0] returns the optimal LWORK.
 
     LWORK   (input) INTEGER
-            The length of the array WORK.  LWORK >= max(1,M,N).
-            For optimum performance LWORK >= (M+N)*NB, where NB
+            The length of the array WORK. LWORK >= (M+N)*NB, where NB
             is the optimal blocksize.
 
             If LWORK = -1, then a workspace query is assumed; the routine
@@ -148,7 +147,6 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
     magma_int_t ncol, nrow, jmax, nb, ldda;
 
     magma_int_t i, j, nx;
-    magmaFloatComplex ws;
     magma_int_t iinfo;
 
     magma_int_t minmn;
@@ -169,7 +167,7 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
         *info = -2;
     } else if (lda < max(1,m)) {
         *info = -4;
-    } else if ( (lwork < max( max(1, m), n)) && (! lquery) ) {
+    } else if ( lwork < lwkopt && (! lquery) ) {
         *info = -10;
     }
     if (*info < 0) {
@@ -196,7 +194,6 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
     dwork = da;
     size_t dwork_offset = da_offset+(n)*ldda;
 
-    MAGMA_C_SET2REAL( ws, max(m,n) );
     ldwrkx = m;
     ldwrky = n;
 
@@ -279,7 +276,7 @@ magma_cgebrd(magma_int_t m, magma_int_t n,
     lapackf77_cgebrd( &nrow, &ncol, 
                       A(i, i), &lda, d+i, e+i,
                       tauq+i, taup+i, work, &lwork, &iinfo);
-    work[0] = ws;
+    work[0] = MAGMA_C_MAKE(lwkopt, 0.);
 
     magma_free( da );
     return *info;

@@ -1,5 +1,5 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -283,4 +283,38 @@ int sp_cat(char *lp, char *rpp[], magma_int_t *rnp, magma_int_t*np, magma_int_t 
     *lp++ = ' ';
 
   return 0;
+}
+
+/* ////////////////////////////////////////////////////////////////////////////
+   -- Auxiliary function magma_cabs
+*/
+extern "C" 
+double magma_cabs(magmaDoubleComplex z)
+{
+	double __x = z.x;
+	double __y = z.y;
+
+	double __s = max(abs(__x), abs(__y));
+	if(__s == 0.0)
+		return __s;
+	__x /= __s;
+	__y /= __s;
+	return __s * sqrt(__x * __x + __y * __y);
+}
+
+/* ////////////////////////////////////////////////////////////////////////////
+   -- Auxiliary function magma_cabsf
+*/
+extern "C" 
+float magma_cabsf(magmaFloatComplex z)
+{
+	float __x = z.x;
+	float __y = z.y;
+
+	float __s = max(abs(__x), abs(__y));
+	if(__s == 0.0)
+		return __s;
+	__x /= __s;
+	__y /= __s;
+	return __s * sqrt(__x * __x + __y * __y);
 }

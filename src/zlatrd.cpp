@@ -1,5 +1,5 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
@@ -29,7 +29,7 @@ magma_zlatrd(char uplo, magma_int_t n, magma_int_t nb,
              magmaDoubleComplex_ptr da, size_t da_offset, magma_int_t ldda, 
              magmaDoubleComplex_ptr dw, size_t dw_offset, magma_int_t lddw, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated d Wed Jun 27 23:49:50 2012
+       @generated d Wed Oct 24 00:32:47 2012
 */
 
 #include <stdio.h>
@@ -20,7 +20,7 @@ magma_dlarfb_gpu( int side, int trans, int direct, int storev,
                   magmaDouble_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
 		  magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

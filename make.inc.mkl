@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- MAGMA (version 0.3.0) --
+#   -- MAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of	Colorado, Denver
@@ -37,7 +37,7 @@ MKLROOT   = /mnt/scratch/sw/intel/2011.2.137/composerxe-2011.2.137/mkl
 LIB        = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lm -fopenmp
 LIB       += -lclAmdBlas -lOpenCL
 
-GPUBLAS   = /opt/clAmdBlas-1.7.245
+GPUBLAS   = /opt/clAmdBlas-1.8.286
 
 LIBDIR    = -L$(MKLROOT)/lib/intel64 \
             -L$(MKLROOT)/../compiler/lib/intel64 \

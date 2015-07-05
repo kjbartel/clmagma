@@ -1,5 +1,5 @@
 /*
- *  -- clMAGMA (version 0.3.0) --
+ *  -- clMAGMA (version 1.0.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
@@ -36,7 +36,6 @@
 */
 int main(int argc , char **argv)
 {
-#if defined(PRECISION_s)
     real_Double_t gflops, gpu_perf, gpu_time;
 	double	Rnorm, Anorm, Xnorm, *work;
     magmaDoubleComplex *hA, *hB, *hX;
@@ -75,7 +74,7 @@ int main(int argc , char **argv)
     magma_err_t err;
     magma_init();
     err = magma_get_devices( &device, 1, &num );
-    if ( err != 0 or num < 1 ) {
+    if ( err != 0 || num < 1 ) {
         fprintf( stderr, "magma_get_devices failed: %d\n", err );
         exit(-1);
     }
@@ -167,7 +166,4 @@ int main(int argc , char **argv)
     TESTING_FREE_DEV( dB );
     magma_queue_destroy( queue );
     magma_finalize();
-#else
-    printf("Only single precision is supported for now.\n");
-#endif
 }

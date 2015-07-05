@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.3.0) --
+#   -- clMAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -17,12 +17,16 @@ ZSRC  = magmablas_z.cpp \
 		ztranspose.cpp   \
 		ztranspose2.cpp  \
 		zauxiliary.cpp  \
-        \
+		zlacpy.cpp  \
+		zswap.cpp		\
+		\
         zinplace_transpose.cl \
         zpermute-v2.cl   \
 		ztranspose.cl    \
         ztranspose-v2.cl \
         zauxiliary.cl \
+		zlacpy.cl	  \
+		zswap.cl	  \
 
 -include Makefile.src
 -include Makefile.local
@@ -41,21 +45,29 @@ CL_SRCS = \
 	stranspose.cl		\
 	stranspose-v2.cl	\
 	sauxiliary.cl	\
+	slacpy.cl	  \
+	sswap.cl	  \
 	dinplace_transpose.cl	\
 	dpermute-v2.cl		\
 	dtranspose.cl		\
 	dtranspose-v2.cl	\
 	dauxiliary.cl	\
+	dlacpy.cl	  \
+	dswap.cl	  \
 	cinplace_transpose.cl	\
 	cpermute-v2.cl		\
 	ctranspose.cl		\
 	ctranspose-v2.cl	\
 	cauxiliary.cl	\
+	clacpy.cl	  \
+	cswap.cl	  \
 	zinplace_transpose.cl	\
 	zpermute-v2.cl		\
 	ztranspose.cl		\
 	ztranspose-v2.cl	\
 	zauxiliary.cl	\
+	zlacpy.cl	  \
+	zswap.cl	  \
 
 CL_OBJS = $(CL_SRCS:.cl=.co)
 
@@ -63,7 +75,7 @@ CL_COMPILER = clcompile
 
 all: $(LIBMAGMA) $(CL_OBJS) $(CL_COMPILER)
 
-$(CL_COMPILER): clcompile.o $(LIBMAGMA)
+$(CL_COMPILER): clcompile.o #$(LIBMAGMA)
 	$(CC) $(LDOPTS) $< -o $@ \
 	-L../lib -lclmagma $(LIBDIR) $(LIB)
 

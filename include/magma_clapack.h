@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
- * @generated c Wed Jun 27 23:49:46 2012
+ * @generated c Wed Oct 24 00:32:41 2012
  */
 
 #ifndef MAGMA_CLAPACK_H
@@ -23,8 +23,8 @@ extern "C" {
    -- LAPACK Externs used in MAGMA
 */
 
-#define blasf77_caxpy      FORTRAN_NAME( caxpy,  ZAXPY  )
-#define blasf77_ccopy      FORTRAN_NAME( ccopy,  ZCOPY  )
+#define blasf77_caxpy      FORTRAN_NAME( caxpy,  CAXPY  )
+#define blasf77_ccopy      FORTRAN_NAME( ccopy,  CCOPY  )
 
 /* complex versions use C wrapper to return value; no name mangling. */
 #if  defined(PRECISION_z) || defined(PRECISION_c)    
@@ -34,34 +34,34 @@ extern "C" {
 #endif
 
 #define blasf77_cgemm      FORTRAN_NAME( cgemm,  CGEMM  )
-#define blasf77_cgemv      FORTRAN_NAME( cgemv,  ZGEMV  )
+#define blasf77_cgemv      FORTRAN_NAME( cgemv,  CGEMV  )
 #define blasf77_chemm      FORTRAN_NAME( chemm,  CHEMM  )
 #define blasf77_chemv      FORTRAN_NAME( chemv,  CHEMV  )
 #define blasf77_cher2k     FORTRAN_NAME( cher2k, CHER2K )
 #define blasf77_cherk      FORTRAN_NAME( cherk,  CHERK  )
-#define blasf77_cscal      FORTRAN_NAME( cscal,  ZSCAL  )
-#define blasf77_csscal     FORTRAN_NAME( csscal, ZDSCAL ) 
+#define blasf77_cscal      FORTRAN_NAME( cscal,  CSCAL  )
+#define blasf77_csscal     FORTRAN_NAME( csscal, CSSCAL ) 
 #define blasf77_csymm      FORTRAN_NAME( csymm,  CSYMM  )
 #define blasf77_csyr2k     FORTRAN_NAME( csyr2k, CSYR2K )
 #define blasf77_csyrk      FORTRAN_NAME( csyrk,  CSYRK  )
-#define blasf77_cswap      FORTRAN_NAME( cswap,  ZSWAP  )
+#define blasf77_cswap      FORTRAN_NAME( cswap,  CSWAP  )
 #define blasf77_ctrmm      FORTRAN_NAME( ctrmm,  CTRMM  )
-#define blasf77_ctrmv      FORTRAN_NAME( ctrmv,  ZTRMV  )
+#define blasf77_ctrmv      FORTRAN_NAME( ctrmv,  CTRMV  )
 #define blasf77_ctrsm      FORTRAN_NAME( ctrsm,  CTRSM  )
 #define blasf77_ctrsv      FORTRAN_NAME( ctrsv,  CTRSV  )
-#define blasf77_cgeru      FORTRAN_NAME( cgeru,  ZGERU  )
+#define blasf77_cgeru      FORTRAN_NAME( cgeru,  CGERU  )
 
-#define lapackf77_cbdsqr   FORTRAN_NAME( cbdsqr, ZBDSQR )
-#define lapackf77_cgebak   FORTRAN_NAME( cgebak, ZGEBAK )
-#define lapackf77_cgebal   FORTRAN_NAME( cgebal, ZGEBAL )
-#define lapackf77_cgebd2   FORTRAN_NAME( cgebd2, ZGEBD2 )
+#define lapackf77_cbdsqr   FORTRAN_NAME( cbdsqr, CBDSQR )
+#define lapackf77_cgebak   FORTRAN_NAME( cgebak, CGEBAK )
+#define lapackf77_cgebal   FORTRAN_NAME( cgebal, CGEBAL )
+#define lapackf77_cgebd2   FORTRAN_NAME( cgebd2, CGEBD2 )
 #define lapackf77_cgebrd   FORTRAN_NAME( cgebrd, CGEBRD )
 #define lapackf77_cgeev    FORTRAN_NAME( cgeev,  CGEEV  )
-#define lapackf77_cgehd2   FORTRAN_NAME( cgehd2, ZGEHD2 )
+#define lapackf77_cgehd2   FORTRAN_NAME( cgehd2, CGEHD2 )
 #define lapackf77_cgehrd   FORTRAN_NAME( cgehrd, CGEHRD )
 #define lapackf77_cgelqf   FORTRAN_NAME( cgelqf, CGELQF )
 #define lapackf77_cgels    FORTRAN_NAME( cgels,  CGELS  )
-#define lapackf77_cgeqlf   FORTRAN_NAME( cgeqlf, ZGEQLF )
+#define lapackf77_cgeqlf   FORTRAN_NAME( cgeqlf, CGEQLF )
 #define lapackf77_cgeqrf   FORTRAN_NAME( cgeqrf, CGEQRF )
 #define lapackf77_cgesvd   FORTRAN_NAME( cgesvd, CGESVD )
 #define lapackf77_cgetrf   FORTRAN_NAME( cgetrf, CGETRF )
@@ -69,64 +69,65 @@ extern "C" {
 #define lapackf77_cgetrs   FORTRAN_NAME( cgetrs, CGETRS )
 #define lapackf77_cheev    FORTRAN_NAME( cheev,  CHEEV  )
 #define lapackf77_cheevd   FORTRAN_NAME( cheevd, CHEEVD )
-#define lapackf77_chegs2   FORTRAN_NAME( chegs2, ZHEGS2 )
+#define lapackf77_chegs2   FORTRAN_NAME( chegs2, CHEGS2 )
 #define lapackf77_chegvd   FORTRAN_NAME( chegvd, CHEGVD )
-#define lapackf77_chetd2   FORTRAN_NAME( chetd2, ZHETD2 )
+#define lapackf77_chetd2   FORTRAN_NAME( chetd2, CHETD2 )
 #define lapackf77_chetrd   FORTRAN_NAME( chetrd, CHETRD )
-#define lapackf77_chseqr   FORTRAN_NAME( chseqr, ZHSEQR )
-#define lapackf77_clacpy   FORTRAN_NAME( clacpy, ZLACPY )
-#define lapackf77_clacgv   FORTRAN_NAME( clacgv, ZLACGV )
+#define lapackf77_chseqr   FORTRAN_NAME( chseqr, CHSEQR )
+#define lapackf77_clacpy   FORTRAN_NAME( clacpy, CLACPY )
+#define lapackf77_clacgv   FORTRAN_NAME( clacgv, CLACGV )
 #define lapackf77_clange   FORTRAN_NAME( clange, CLANGE )
 #define lapackf77_clanhe   FORTRAN_NAME( clanhe, CLANHE )
+#define lapackf77_clanht   FORTRAN_NAME( clanht, CLANHT )
 #define lapackf77_clansy   FORTRAN_NAME( clansy, CLANSY )
 #define lapackf77_clarfb   FORTRAN_NAME( clarfb, CLARFB )
-#define lapackf77_clarfg   FORTRAN_NAME( clarfg, ZLARFG )
-#define lapackf77_clarft   FORTRAN_NAME( clarft, ZLARFT )
-#define lapackf77_clarnv   FORTRAN_NAME( clarnv, ZLARNV )
-#define lapackf77_clartg   FORTRAN_NAME( clartg, ZLARTG )
-#define lapackf77_clascl   FORTRAN_NAME( clascl, ZLASCL )
-#define lapackf77_claset   FORTRAN_NAME( claset, ZLASET )
-#define lapackf77_claswp   FORTRAN_NAME( claswp, ZLASWP )
+#define lapackf77_clarfg   FORTRAN_NAME( clarfg, CLARFG )
+#define lapackf77_clarft   FORTRAN_NAME( clarft, CLARFT )
+#define lapackf77_clarnv   FORTRAN_NAME( clarnv, CLARNV )
+#define lapackf77_clartg   FORTRAN_NAME( clartg, CLARTG )
+#define lapackf77_clascl   FORTRAN_NAME( clascl, CLASCL )
+#define lapackf77_claset   FORTRAN_NAME( claset, CLASET )
+#define lapackf77_claswp   FORTRAN_NAME( claswp, CLASWP )
 #define lapackf77_clatrd   FORTRAN_NAME( clatrd, CLATRD )
 #define lapackf77_clabrd   FORTRAN_NAME( clabrd, CLABRD )
-#define lapackf77_clauum   FORTRAN_NAME( clauum, ZLAUUM )
+#define lapackf77_clauum   FORTRAN_NAME( clauum, CLAUUM )
 #define lapackf77_cpotrf   FORTRAN_NAME( cpotrf, CPOTRF )
 #define lapackf77_cpotrs   FORTRAN_NAME( cpotrs, CPOTRS )
-#define lapackf77_cpotri   FORTRAN_NAME( cpotri, ZPOTRI )
-#define lapackf77_ctrevc   FORTRAN_NAME( ctrevc, ZTREVC )
-#define lapackf77_sstebz   FORTRAN_NAME( sstebz, DSTEBZ )
-#define lapackf77_slamc3   FORTRAN_NAME( slamc3, DLAMC3 )
-#define lapackf77_slaed4   FORTRAN_NAME( slaed4, DLAED4 )
-#define lapackf77_slamrg   FORTRAN_NAME( slamrg, DLAMRG )
-#define lapackf77_ctrtri   FORTRAN_NAME( ctrtri, ZTRTRI )
-#define lapackf77_csteqr   FORTRAN_NAME( csteqr, ZSTEQR )
-#define lapackf77_cstedc   FORTRAN_NAME( cstedc, ZSTEDC )
-#define lapackf77_cstein   FORTRAN_NAME( cstein, ZSTEIN )
-#define lapackf77_cstemr   FORTRAN_NAME( cstemr, ZSTEMR )
-#define lapackf77_csymv    FORTRAN_NAME( csymv,  ZSYMV  )
-#define lapackf77_cung2r   FORTRAN_NAME( cung2r, ZUNG2R )
-#define lapackf77_cungbr   FORTRAN_NAME( cungbr, ZUNGBR )
+#define lapackf77_cpotri   FORTRAN_NAME( cpotri, CPOTRI )
+#define lapackf77_ctrevc   FORTRAN_NAME( ctrevc, CTREVC )
+#define lapackf77_sstebz   FORTRAN_NAME( sstebz, SSTEBZ )
+#define lapackf77_slamc3   FORTRAN_NAME( slamc3, SLAMC3 )
+#define lapackf77_slaed4   FORTRAN_NAME( slaed4, SLAED4 )
+#define lapackf77_slamrg   FORTRAN_NAME( slamrg, SLAMRG )
+#define lapackf77_ctrtri   FORTRAN_NAME( ctrtri, CTRTRI )
+#define lapackf77_csteqr   FORTRAN_NAME( csteqr, CSTEQR )
+#define lapackf77_cstedc   FORTRAN_NAME( cstedc, CSTEDC )
+#define lapackf77_cstein   FORTRAN_NAME( cstein, CSTEIN )
+#define lapackf77_cstemr   FORTRAN_NAME( cstemr, CSTEMR )
+#define lapackf77_csymv    FORTRAN_NAME( csymv,  CSYMV  )
+#define lapackf77_cung2r   FORTRAN_NAME( cung2r, CUNG2R )
+#define lapackf77_cungbr   FORTRAN_NAME( cungbr, CUNGBR )
 #define lapackf77_cunghr   FORTRAN_NAME( cunghr, CUNGHR )
 #define lapackf77_cunglq   FORTRAN_NAME( cunglq, CUNGLQ )
-#define lapackf77_cungql   FORTRAN_NAME( cungql, ZUNGQL )
+#define lapackf77_cungql   FORTRAN_NAME( cungql, CUNGQL )
 #define lapackf77_cungqr   FORTRAN_NAME( cungqr, CUNGQR )
-#define lapackf77_cungtr   FORTRAN_NAME( cungtr, ZUNGTR )
-#define lapackf77_cunm2r   FORTRAN_NAME( cunm2r, ZUNM2R )
-#define lapackf77_cunmbr   FORTRAN_NAME( cunmbr, ZUNMBR )
+#define lapackf77_cungtr   FORTRAN_NAME( cungtr, CUNGTR )
+#define lapackf77_cunm2r   FORTRAN_NAME( cunm2r, CUNM2R )
+#define lapackf77_cunmbr   FORTRAN_NAME( cunmbr, CUNMBR )
 #define lapackf77_cunmlq   FORTRAN_NAME( cunmlq, CUNMLQ )
 #define lapackf77_cunmql   FORTRAN_NAME( cunmql, CUNMQL )
 #define lapackf77_cunmqr   FORTRAN_NAME( cunmqr, CUNMQR )
 #define lapackf77_cunmtr   FORTRAN_NAME( cunmtr, CUNMTR )
 
 /* testing functions */
-#define lapackf77_cbdt01   FORTRAN_NAME( cbdt01, ZBDT01 )
-#define lapackf77_cget22   FORTRAN_NAME( cget22, ZGET22 )
-#define lapackf77_chet21   FORTRAN_NAME( chet21, ZHET21 )
-#define lapackf77_chst01   FORTRAN_NAME( chst01, ZHST01 )
-#define lapackf77_cqrt02   FORTRAN_NAME( cqrt02, ZQRT02 )
-#define lapackf77_cunt01   FORTRAN_NAME( cunt01, ZUNT01 )
-#define lapackf77_clarfy   FORTRAN_NAME( clarfy, ZLARFY )
-#define lapackf77_cstt21   FORTRAN_NAME( cstt21, ZSTT21 )
+#define lapackf77_cbdt01   FORTRAN_NAME( cbdt01, CBDT01 )
+#define lapackf77_cget22   FORTRAN_NAME( cget22, CGET22 )
+#define lapackf77_chet21   FORTRAN_NAME( chet21, CHET21 )
+#define lapackf77_chst01   FORTRAN_NAME( chst01, CHST01 )
+#define lapackf77_cqrt02   FORTRAN_NAME( cqrt02, CQRT02 )
+#define lapackf77_cunt01   FORTRAN_NAME( cunt01, CUNT01 )
+#define lapackf77_clarfy   FORTRAN_NAME( clarfy, CLARFY )
+#define lapackf77_cstt21   FORTRAN_NAME( cstt21, CSTT21 )
 
 
 #if defined(PRECISION_z) || defined(PRECISION_c)
@@ -304,6 +305,8 @@ float  lapackf77_clange(const char *norm, magma_int_t *m, magma_int_t *n,
                          const magmaFloatComplex *a, magma_int_t *lda, float *work);
 float  lapackf77_clanhe(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaFloatComplex *a, magma_int_t *lda, float * work);
+float lapackf77_clanht(char* norm, magma_int_t* n, 
+						const float* d, const magmaFloatComplex* e);
 float  lapackf77_clansy(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaFloatComplex *a, magma_int_t *lda, float * work);
 void    lapackf77_clarfb(const char *side, const char *trans, const char *direct, 

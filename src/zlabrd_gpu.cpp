@@ -1,5 +1,5 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include "common_magma.h"
 
+#define PRECISION_z
+
 magma_err_t
 magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
                   magmaDoubleComplex *a, magma_int_t lda, 
@@ -24,11 +26,11 @@ magma_zlabrd_gpu( magma_int_t m, magma_int_t n, magma_int_t nb,
 		  magmaDoubleComplex_ptr dy, size_t dy_offset, magma_int_t lddy,
 		  magma_queue_t queue )
 {
-/*  -- MAGMA (version 0.3.0) --
+/*  -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose   
     =======   

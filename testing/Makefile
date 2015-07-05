@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.3.0) --
+#   -- clMAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -13,17 +13,24 @@ ZSRC = \
 	testing_zpotrf_gpu.cpp	\
 	testing_zgeqrf_gpu.cpp  \
 	testing_zgetrf_gpu.cpp	\
-        \
 	testing_zposv_gpu.cpp	\
 	testing_zgesv_gpu.cpp	\
 	testing_zgeqrs_gpu.cpp	\
-        \
-	testing_zgehrd.cpp	\
-        testing_zgebrd.cpp      \
-        testing_zhetrd.cpp      \
-        \
-        testing_zgemm.cpp	\
-        testing_zgemv.cpp
+	testing_zgetri_gpu.cpp      \
+	testing_zpotri_gpu.cpp      \
+		\
+	testing_zgehrd.cpp		\
+	testing_zgebrd.cpp      \
+	testing_zhetrd.cpp      \
+	testing_zgesvd.cpp      \
+	testing_zheevd.cpp      \
+	testing_dsyevd.cpp      \
+	testing_zgeev.cpp      \
+	testing_dgeev.cpp      \
+		\
+	testing_zgemm.cpp	\
+	testing_zgemv.cpp	\
+	testing_zlaswp.cpp
 
 #ifeq ($(FORT), pgfortran)
 #	FOBJ := fortran_thunking.o
@@ -43,7 +50,7 @@ ALLSRC  = $(ZSRC) $(CSRC) $(DSRC) $(SSRC) \
 	testing_constants.cpp
 ALLOBJF  = $(ALLSRC:.f90=.o)
 ALLOBJF := $(ALLOBJF:.cuf=.o)
-ALLOBJ   = $(ALLOBJF:.cpp=.o)
+ALLOBJ  := $(ALLOBJF:.cpp=.o)
 EXE      = $(ALLOBJ:.o=)
 
 all: $(EXE)
@@ -81,7 +88,7 @@ testing_%_f : testing_%_f.o $(FOBJ)
 	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
 
 testing_% : testing_%.o
-	$(CC) $(OPTS) $(LDOPTS) $(NOMAIN) $< $(OBJ) -o $@ lin/liblapacktest.a \
+	$(CC) $(OPTS) $(LDOPTS) $(NOMAIN) $< -o $@ lin/liblapacktest.a \
 	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
 
 #

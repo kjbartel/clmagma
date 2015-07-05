@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.3.0) --
+#   -- clMAGMA (version 1.0.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -26,10 +26,6 @@ ZSRC = \
 	zgeqrs_gpu.cpp	\
 	zgels_gpu.cpp	\
         \
-	zgehrd.cpp	\
-	zlahru.cpp	\
-	zlahr2.cpp	\
-	zunghr.cpp	\
 	zungqr.cpp	\
         \
 	zlatrd.cpp	\
@@ -38,10 +34,48 @@ ZSRC = \
         zgebrd.cpp      \
         zlabrd_gpu.cpp  \
 
+# Matrix Inverse
+ZSRC += \
+	ztrtri_gpu.cpp  \
+	zgetri_gpu.cpp  \
+	zpotri_gpu.cpp  \
+	zlauum_gpu.cpp  \
+
+# SVD
+ZSRC += \
+    dgesvd.cpp  \
+	zgesvd.cpp  \
+
+# symmetric eigenvalues, CPU interface
+ZSRC += \
+	dsyevd.cpp      \
+	zheevd.cpp      \
+		\
+	zstedx.cpp      \
+	dstedx.cpp      \
+	dlaex0.cpp      \
+	dlaex1.cpp      \
+	dlaex3.cpp      \
+	zunmtr.cpp      \
+	zunmqr.cpp      \
+	zunmql.cpp      \
+
+# non-symmetric eigenvalues
+ZSRC += \
+	dgeev.cpp   \
+	zgeev.cpp   \
+	zgehrd.cpp  \
+	zlahru.cpp  \
+	zlahr2.cpp  \
+	zunghr.cpp  \
+
 -include Makefile.src
 
+ALLSRC_F = dlaed2.f	\
+			slaed2.f
+
 ALLSRC = $(ZSRC) $(CSRC) $(DSRC) $(SSRC)
-ALLOBJ = $(ALLSRC:.cpp=.o) $(ALLSRC:.f=.o)
+ALLOBJ = $(ALLSRC:.cpp=.o) $(ALLSRC_F:.f=.o)
 
 all: $(LIBMAGMA)
 

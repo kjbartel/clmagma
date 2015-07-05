@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -24,17 +24,140 @@ extern "C" {
    -- MAGMA function definitions / Data on CPU
 */
 
-
-/* //////////////////////////////////////////////////////////////////////////// 
- -- MAGMA function definitions / Data on GPU
-*/
-
 magma_err_t
 magma_zgebrd(magma_int_t m, magma_int_t n,
              magmaDoubleComplex *a, magma_int_t lda, double *d, double *e,
              magmaDoubleComplex *tauq, magmaDoubleComplex *taup,
              magmaDoubleComplex *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue);
+
+magma_int_t
+magma_zunmtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans, 
+			magma_int_t m, magma_int_t n,
+			magmaDoubleComplex *a,    magma_int_t lda,
+			magmaDoubleComplex *tau,
+			magmaDoubleComplex *c,    magma_int_t ldc,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zunmqr(magma_side_t side, magma_trans_t trans,
+			magma_int_t m, magma_int_t n, magma_int_t k,
+			magmaDoubleComplex *a,    magma_int_t lda,
+			magmaDoubleComplex *tau,
+			magmaDoubleComplex *c,    magma_int_t ldc,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t
+magma_zunmql(magma_side_t side, magma_trans_t trans,
+			magma_int_t m, magma_int_t n, magma_int_t k,
+			magmaDoubleComplex *a, magma_int_t lda,
+			magmaDoubleComplex *tau,
+			magmaDoubleComplex *c, magma_int_t ldc,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			magma_int_t *info, magma_queue_t queue);
+
+#if defined(PRECISION_z) || defined(PRECISION_c)
+
+magma_int_t 
+magma_zgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
+			magmaDoubleComplex *a, magma_int_t lda,
+			magmaDoubleComplex *geev_w_array,
+			magmaDoubleComplex *vl, magma_int_t ldvl,
+			magmaDoubleComplex *vr, magma_int_t ldvr,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			double *rwork, magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_, 
+			magmaDoubleComplex *a,    magma_int_t lda_, double *s,
+			magmaDoubleComplex *u,    magma_int_t ldu_,
+			magmaDoubleComplex *vt,   magma_int_t ldvt_,
+			magmaDoubleComplex *work, magma_int_t lwork_,
+			double *rwork, magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zheevd(magma_vec_t jobz, magma_uplo_t uplo,
+			magma_int_t n,
+			magmaDoubleComplex *a, magma_int_t lda,
+			double *w,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			double *rwork, magma_int_t lrwork,
+			magma_int_t *iwork, magma_int_t liwork,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
+			magma_int_t il, magma_int_t iu, double* d, double* e,
+			magmaDoubleComplex* z, magma_int_t ldz,
+			double* rwork, magma_int_t lrwork,
+			magma_int_t* iwork, magma_int_t liwork,
+			magmaDouble_ptr dwork, magma_int_t* info, magma_queue_t queue);
+
+#else
+
+magma_int_t 
+magma_zgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
+			magmaDoubleComplex *a, magma_int_t lda,
+			magmaDoubleComplex *WR, double *WI,
+			magmaDoubleComplex *vl, magma_int_t ldvl,
+			magmaDoubleComplex *vr, magma_int_t ldvr,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
+			magmaDoubleComplex *a,    magma_int_t lda_, double *s,
+			magmaDoubleComplex *u,    magma_int_t ldu_,
+			magmaDoubleComplex *vt,   magma_int_t ldvt_,
+			magmaDoubleComplex *work, magma_int_t lwork_,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t 
+magma_zheevd(magma_vec_t jobz, magma_uplo_t uplo,
+			magma_int_t n,
+			magmaDoubleComplex *a, magma_int_t lda,
+			double *w,
+			magmaDoubleComplex *work, magma_int_t lwork,
+			magma_int_t *iwork, magma_int_t liwork,
+			magma_int_t *info, magma_queue_t queue);
+
+magma_int_t
+magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu, 
+			magma_int_t il, magma_int_t iu, double* d, double* e,
+			double* z, magma_int_t ldz,
+			double* rwork, magma_int_t lrwork,
+			magma_int_t* iwork, magma_int_t liwork,
+			magmaDouble_ptr dwork, magma_int_t* info, magma_queue_t queue);
+
+magma_int_t
+magma_zlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
+			double* work, magma_int_t* iwork, magmaDouble_ptr dwork, 
+			magma_vec_t range, double vl, double vu, 
+			magma_int_t il, magma_int_t iu, magma_int_t* info, magma_queue_t queue);
+
+magma_int_t 
+magma_zlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
+			magma_int_t* indxq, double rho, magma_int_t cutpnt,
+			double* work, magma_int_t* iwork, magmaDouble_ptr dwork,
+			magma_vec_t range, double vl, double vu,
+			magma_int_t il, magma_int_t iu, magma_int_t* info, magma_queue_t queue);
+
+
+magma_int_t 
+magma_zlaex3(magma_int_t k, magma_int_t n, magma_int_t n1, double* d, 
+			double* q, magma_int_t ldq, double rho, 
+			double* dlamda, double* q2, magma_int_t* indx,
+			magma_int_t* ctot, double* w, double* s, magma_int_t* indxq,
+			magmaDouble_ptr dwork,
+			magma_vec_t range, double vl, double vu, magma_int_t il, magma_int_t iu,
+			magma_int_t* info, magma_queue_t queue );
+
+#endif
+/* //////////////////////////////////////////////////////////////////////////// 
+ -- MAGMA function definitions / Data on GPU
+*/
 
 magma_err_t
 magma_zgeqrf2_gpu(
@@ -186,12 +309,31 @@ magma_zhetrd(	char uplo, magma_int_t n,
 		magmaDoubleComplex *work, magma_int_t lwork,
 		magma_int_t *info, magma_queue_t queue);
 
+magma_int_t 
+magma_ztrtri_gpu(magma_uplo_t uplo, magma_diag_t diag, magma_int_t n,
+		magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda, magma_int_t *info);
+
+magma_int_t
+magma_zgetri_gpu( magma_int_t n, magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t lda,
+		magma_int_t *ipiv, magmaDoubleComplex_ptr dwork, size_t dwork_offset, magma_int_t lwork,
+		magma_int_t *info, magma_queue_t queue );
+
+magma_int_t
+magma_zlauum_gpu(magma_uplo_t uplo, magma_int_t n,
+		magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
+		magma_int_t *info, magma_queue_t queue);
+
+magma_int_t
+magma_zpotri_gpu(magma_uplo_t uplo, magma_int_t n,
+		magmaDoubleComplex_ptr a, size_t offset_a, magma_int_t lda,
+		magma_int_t *info, magma_queue_t queue);
+
 /* //////////////////////////////////////////////////////////////////////////// 
  -- MAGMA utility function definitions
 */
 
 void magma_zprint    ( magma_int_t m, magma_int_t n, magmaDoubleComplex     *A, magma_int_t lda  );
-void magma_zprint_gpu( magma_int_t m, magma_int_t n, magmaDoubleComplex_ptr dA, magma_int_t ldda );
+void magma_zprint_gpu( magma_int_t m, magma_int_t n, magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda, magma_queue_t queue );
 
 #ifdef __cplusplus
 }

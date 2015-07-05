@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated d Wed Jun 27 23:49:52 2012
+       @generated d Wed Oct 24 00:32:54 2012
 
 */
 
@@ -19,7 +19,7 @@ magma_dorghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
              magmaDouble_ptr dT, size_t dT_offset, magma_int_t nb,
              magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

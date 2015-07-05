@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -78,6 +78,7 @@ extern "C" {
 #define lapackf77_zlacgv   FORTRAN_NAME( zlacgv, ZLACGV )
 #define lapackf77_zlange   FORTRAN_NAME( zlange, ZLANGE )
 #define lapackf77_zlanhe   FORTRAN_NAME( zlanhe, ZLANHE )
+#define lapackf77_zlanht   FORTRAN_NAME( zlanht, ZLANHT )
 #define lapackf77_zlansy   FORTRAN_NAME( zlansy, ZLANSY )
 #define lapackf77_zlarfb   FORTRAN_NAME( zlarfb, ZLARFB )
 #define lapackf77_zlarfg   FORTRAN_NAME( zlarfg, ZLARFG )
@@ -304,6 +305,8 @@ double  lapackf77_zlange(const char *norm, magma_int_t *m, magma_int_t *n,
                          const magmaDoubleComplex *a, magma_int_t *lda, double *work);
 double  lapackf77_zlanhe(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaDoubleComplex *a, magma_int_t *lda, double * work);
+double lapackf77_zlanht(char* norm, magma_int_t* n, 
+						const double* d, const magmaDoubleComplex* e);
 double  lapackf77_zlansy(const char *norm, const char *uplo, magma_int_t *n, 
                          const magmaDoubleComplex *a, magma_int_t *lda, double * work);
 void    lapackf77_zlarfb(const char *side, const char *trans, const char *direct, 

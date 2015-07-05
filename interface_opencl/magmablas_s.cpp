@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated s Wed Jun 27 23:49:54 2012
+ * @generated s Wed Oct 24 00:32:56 2012
  */
 
 #include <stdlib.h>
@@ -16,6 +16,14 @@
 
 #define PRECISION_s
 #ifdef HAVE_clAmdBlas
+
+// AMD is inconsistent in their function names: it's Zsymv but DsymvEx.
+// Use ZsymvEx name below, since DsymvEx requires the Ex, but rename to Zsymv.
+#if defined(PRECISION_z) || defined(PRECISION_c)
+#define clAmdBlasSsymvEx  clAmdBlasSsymv
+#define clAmdBlasSsyrkEx  clAmdBlasSsyrk
+#define clAmdBlasSsyr2kEx  clAmdBlasSsyr2k
+#endif
 
 // ========================================
 // globals, defined in interface.c
@@ -113,6 +121,58 @@ magma_sgetvector(
 							dA_src, dA_offset, ldda,
 							hA_dst, hA_offset, ldha,
 							queue);
+		return err;
+	}
+}
+
+// --------------------
+magma_err_t
+magma_sgetvector_async(
+	magma_int_t n,
+	magmaFloat_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+	float*          hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event )
+{
+	cl_int err;
+	if(incx ==1 && incy ==1){
+		err = clEnqueueReadBuffer(
+							queue, dA_src, CL_FALSE,
+							dA_offset*sizeof(float), n*sizeof(float),
+							hA_dst+hA_offset, 0, NULL, event);
+		return err;
+	}else{
+		magma_int_t ldda = incx;
+		magma_int_t ldha = incy;
+		err = magma_sgetmatrix_async(1, n,
+							dA_src, dA_offset, ldda,
+							hA_dst, hA_offset, ldha,
+							queue, event);
+		return err;
+	}
+}
+
+// --------------------
+magma_err_t
+magma_ssetvector_async(
+	magma_int_t n,
+	float const* hA_src, size_t hA_offset, magma_int_t incx,
+	magmaFloat_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event )
+{
+	cl_int err;
+	if(incx == 1 && incy == 1){
+		err = clEnqueueWriteBuffer(
+							queue, dA_dst, CL_FALSE,
+							dA_offset*sizeof(float), n*sizeof(float),
+							hA_src+hA_offset, 0, NULL, event);
+		return err;
+	}else{
+		magma_int_t ldha = incx;
+		magma_int_t ldda = incy;
+		cl_int err = magma_ssetmatrix_async(1, n,
+							hA_src, hA_offset, ldha,
+							dA_dst, dA_offset, ldda,
+							queue, event);
 		return err;
 	}
 }
@@ -357,34 +417,17 @@ magma_ssyr2k(
 							  magmaFloat_const_ptr dB, size_t dB_offset, magma_int_t ldb, 
 	float beta, magmaFloat_ptr dC, size_t dC_offset, magma_int_t ldc, 
 	magma_queue_t queue)
-{	// cblas wrapper
-	magma_int_t ka, kb;
-	if(trans == MagmaNoTrans){
-		ka = k;
-		kb = k;
-	}else{
-		ka = n;
-		kb = n;
-	}
-	float *hA, *hB, *hC;
-	hA = (float*)malloc(lda*ka*sizeof(float));
-	hB = (float*)malloc(ldb*kb*sizeof(float));
-	hC = (float*)malloc(ldc*n*sizeof(float));
-	magma_sgetmatrix(lda, ka, dA, dA_offset, lda, hA, 0, lda, queue);
-	magma_sgetmatrix(ldb, kb, dB, dB_offset, ldb, hB, 0, ldb, queue);
-	magma_sgetmatrix(ldc, n, dC, dC_offset, ldc, hC, 0, ldc, queue);
-#if defined(PRECISION_z) || defined(PRECISION_c)
-	cblas_ssyr2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
-				n, k, (void*)&alpha, hA, lda, hB, ldb, beta, hC, ldc);
-#else
-	cblas_ssyr2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
-				n, k, alpha, hA, lda, hB, ldb, beta, hC, ldc);
-#endif
-	magma_ssetmatrix(ldc, n, hC, 0, ldc, dC, dC_offset, ldc, queue);	
-	free(hA);
-	free(hB);
-	free(hC);
-	return CL_SUCCESS;
+{	
+ cl_int err = clAmdBlasSsyr2kEx(
+		 clAmdBlasColumnMajor,
+		 amdblas_uplo_const( uplo ),
+		 amdblas_trans_const( trans ),
+		 n, k,
+		 alpha, dA, dA_offset, lda,
+		 dB, dB_offset, ldb,
+		 beta, dC, dC_offset, ldc,
+		 1, &queue, 0, NULL, NULL );
+         return err;
 }
 
 #endif // HAVE_clAmdBlas

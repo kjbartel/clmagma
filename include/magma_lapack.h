@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -56,8 +56,11 @@ void     lapackf77_xerbla( const char* name, magma_int_t* info, int name_len );
 
 float    lapackf77_slamch(const char *cmach);
 double   lapackf77_dlamch(const char *cmach);
-void     lapackf77_slabad(float  *small, float  *large);
-void     lapackf77_dlabad(double *small, double *large);
+
+// "small" (lowercase) defined as char on Windows (reported by MathWorks)
+void     lapackf77_slabad(float  *Small, float  *large);
+void     lapackf77_dlabad(double *Small, double *large);
+
 void     lapackf77_zcgesv(magma_int_t *n, magma_int_t *nrhs, magmaDoubleComplex *A, magma_int_t *lda, magma_int_t *IPIV, magmaDoubleComplex *B, magma_int_t *ldb, 
                           magmaDoubleComplex *X, magma_int_t *ldx, magmaDoubleComplex *work, magmaFloatComplex *swork, double *rwork, magma_int_t *iter, magma_int_t *info);
 void     lapackf77_dsgesv(magma_int_t *n, magma_int_t *nrhs, double          *A, magma_int_t *lda, magma_int_t *IPIV, double          *B, magma_int_t *ldb, 

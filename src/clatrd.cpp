@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 0.3.0) --
+     -- clMAGMA (version 1.0.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
         April 2012
 
-        @generated c Thu Jun 28 19:26:34 2012
+        @generated c Wed Oct 24 00:32:50 2012
 
 */
 
@@ -29,7 +29,7 @@ magma_clatrd(char uplo, magma_int_t n, magma_int_t nb,
              magmaFloatComplex_ptr da, size_t da_offset, magma_int_t ldda, 
              magmaFloatComplex_ptr dw, size_t dw_offset, magma_int_t lddw, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

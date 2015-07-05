@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated d Thu Jun 28 19:26:33 2012
+       @generated d Wed Oct 24 00:32:53 2012
 
 */
 
@@ -28,11 +28,11 @@ magma_dlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose
     =======
-    ZLAHRU is an auxiliary MAGMA routine that is used in DGEHRD to update
+    DLAHRU is an auxiliary MAGMA routine that is used in DGEHRD to update
     the trailing sub-matrices after the reductions of the corresponding
     panels.
     See further details below.

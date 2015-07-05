@@ -1,16 +1,16 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
- * @generated c Thu Jun 28 19:26:36 2012
+ * @generated c Wed Oct 24 00:32:58 2012
  */
 //#include "common_magma.h"
 
 #define PRECISION_c
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 32
 #define __mul24( x, y )  ((x)*(y))
 
 #if defined(PRECISION_c) || defined(PRECISION_z)

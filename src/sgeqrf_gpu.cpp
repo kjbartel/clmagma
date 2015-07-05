@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Thu Jun 28 19:26:33 2012
+       @generated s Wed Oct 24 00:32:48 2012
 */
 
 #include <stdio.h>
@@ -46,11 +46,11 @@ magma_sgeqrf_gpu( magma_int_t m, magma_int_t n,
                   float *tau, magmaFloat_ptr dT, size_t dT_offset, 
                   magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
     Purpose
     =======

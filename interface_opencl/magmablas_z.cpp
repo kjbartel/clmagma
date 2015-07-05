@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -16,6 +16,14 @@
 
 #define PRECISION_z
 #ifdef HAVE_clAmdBlas
+
+// AMD is inconsistent in their function names: it's Zhemv but DsymvEx.
+// Use ZhemvEx name below, since DsymvEx requires the Ex, but rename to Zhemv.
+#if defined(PRECISION_z) || defined(PRECISION_c)
+#define clAmdBlasZhemvEx  clAmdBlasZhemv
+#define clAmdBlasZherkEx  clAmdBlasZherk
+#define clAmdBlasZher2kEx  clAmdBlasZher2k
+#endif
 
 // ========================================
 // globals, defined in interface.c
@@ -113,6 +121,58 @@ magma_zgetvector(
 							dA_src, dA_offset, ldda,
 							hA_dst, hA_offset, ldha,
 							queue);
+		return err;
+	}
+}
+
+// --------------------
+magma_err_t
+magma_zgetvector_async(
+	magma_int_t n,
+	magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx,
+	magmaDoubleComplex*          hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event )
+{
+	cl_int err;
+	if(incx ==1 && incy ==1){
+		err = clEnqueueReadBuffer(
+							queue, dA_src, CL_FALSE,
+							dA_offset*sizeof(magmaDoubleComplex), n*sizeof(magmaDoubleComplex),
+							hA_dst+hA_offset, 0, NULL, event);
+		return err;
+	}else{
+		magma_int_t ldda = incx;
+		magma_int_t ldha = incy;
+		err = magma_zgetmatrix_async(1, n,
+							dA_src, dA_offset, ldda,
+							hA_dst, hA_offset, ldha,
+							queue, event);
+		return err;
+	}
+}
+
+// --------------------
+magma_err_t
+magma_zsetvector_async(
+	magma_int_t n,
+	magmaDoubleComplex const* hA_src, size_t hA_offset, magma_int_t incx,
+	magmaDoubleComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy,
+	magma_queue_t queue, magma_event_t *event )
+{
+	cl_int err;
+	if(incx == 1 && incy == 1){
+		err = clEnqueueWriteBuffer(
+							queue, dA_dst, CL_FALSE,
+							dA_offset*sizeof(magmaDoubleComplex), n*sizeof(magmaDoubleComplex),
+							hA_src+hA_offset, 0, NULL, event);
+		return err;
+	}else{
+		magma_int_t ldha = incx;
+		magma_int_t ldda = incy;
+		cl_int err = magma_zsetmatrix_async(1, n,
+							hA_src, hA_offset, ldha,
+							dA_dst, dA_offset, ldda,
+							queue, event);
 		return err;
 	}
 }
@@ -252,7 +312,7 @@ magma_zhemv(
     magmaDoubleComplex beta,  magmaDoubleComplex_ptr       dy, size_t dy_offset, magma_int_t incy,
     magma_queue_t queue )
 {
-    cl_int err = clAmdBlasZhemv(
+    cl_int err = clAmdBlasZhemvEx(
         clAmdBlasColumnMajor,
         amdblas_uplo_const( uplo ),
         n,
@@ -272,7 +332,7 @@ magma_zherk(
     double beta,  magmaDoubleComplex_ptr       dC, size_t dC_offset, magma_int_t ldc,
     magma_queue_t queue )
 {
-    cl_int err = clAmdBlasZherk(
+    cl_int err = clAmdBlasZherkEx(
         clAmdBlasColumnMajor,
         amdblas_uplo_const( uplo ),
         amdblas_trans_const( trans ),
@@ -357,34 +417,17 @@ magma_zher2k(
 							  magmaDoubleComplex_const_ptr dB, size_t dB_offset, magma_int_t ldb, 
 	double beta, magmaDoubleComplex_ptr dC, size_t dC_offset, magma_int_t ldc, 
 	magma_queue_t queue)
-{	// cblas wrapper
-	magma_int_t ka, kb;
-	if(trans == MagmaNoTrans){
-		ka = k;
-		kb = k;
-	}else{
-		ka = n;
-		kb = n;
-	}
-	magmaDoubleComplex *hA, *hB, *hC;
-	hA = (magmaDoubleComplex*)malloc(lda*ka*sizeof(magmaDoubleComplex));
-	hB = (magmaDoubleComplex*)malloc(ldb*kb*sizeof(magmaDoubleComplex));
-	hC = (magmaDoubleComplex*)malloc(ldc*n*sizeof(magmaDoubleComplex));
-	magma_zgetmatrix(lda, ka, dA, dA_offset, lda, hA, 0, lda, queue);
-	magma_zgetmatrix(ldb, kb, dB, dB_offset, ldb, hB, 0, ldb, queue);
-	magma_zgetmatrix(ldc, n, dC, dC_offset, ldc, hC, 0, ldc, queue);
-#if defined(PRECISION_z) || defined(PRECISION_c)
-	cblas_zher2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
-				n, k, (void*)&alpha, hA, lda, hB, ldb, beta, hC, ldc);
-#else
-	cblas_zher2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
-				n, k, alpha, hA, lda, hB, ldb, beta, hC, ldc);
-#endif
-	magma_zsetmatrix(ldc, n, hC, 0, ldc, dC, dC_offset, ldc, queue);	
-	free(hA);
-	free(hB);
-	free(hC);
-	return CL_SUCCESS;
+{	
+ cl_int err = clAmdBlasZher2kEx(
+		 clAmdBlasColumnMajor,
+		 amdblas_uplo_const( uplo ),
+		 amdblas_trans_const( trans ),
+		 n, k,
+		 alpha, dA, dA_offset, lda,
+		 dB, dB_offset, ldb,
+		 beta, dC, dC_offset, ldc,
+		 1, &queue, 0, NULL, NULL );
+         return err;
 }
 
 #endif // HAVE_clAmdBlas

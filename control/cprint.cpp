@@ -1,12 +1,12 @@
 /*
-    -- MAGMA (version 0.3.0) --
+    -- MAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       June 2012
+       October 2012
 
        @author Mark Gates
-       @generated c Wed Jun 27 23:49:47 2012
+       @generated c Wed Oct 24 00:32:42 2012
 
 */
 #include "common_magma.h"
@@ -40,11 +40,11 @@ void magma_cprint( int m, int n, magmaFloatComplex *A, int lda )
 // Internally allocates memory on host, copies it to the host, prints it,
 // and de-allocates host memory.
 extern "C"
-void magma_cprint_gpu( int m, int n, magmaFloatComplex_ptr dA, int ldda )
+void magma_cprint_gpu( int m, int n, magmaFloatComplex_ptr dA, size_t dA_offset, int ldda, magma_queue_t queue )
 {
     int lda = m;
     magmaFloatComplex* A = (magmaFloatComplex*) malloc( lda*n*sizeof(magmaFloatComplex) );
-    magma_cgetmatrix( m, n, dA, ldda, 0, A, lda, 0, NULL );
+    magma_cgetmatrix( m, n, dA, dA_offset, ldda,  A, 0, lda, queue );
     
     magma_cprint( m, n, A, lda );
     

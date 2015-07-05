@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.3.0) --
+    -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Wed Jun 27 23:49:52 2012
+       @generated s Wed Oct 24 00:32:50 2012
 
 */
 
@@ -14,7 +14,7 @@
 
 // === Define what BLAS to use ============================================
 
-//#define FAST_HEMV
+//#define FAST_SYMV
 
 // === End defining what BLAS to use ======================================
 #define PRECISION_s
@@ -34,7 +34,7 @@ magma_ssytrd(char uplo, magma_int_t n,
              float *work, magma_int_t lwork, 
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.3.0) --
+/*  -- clMAGMA (version 1.0.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -262,7 +262,7 @@ magma_ssytrd(char uplo, magma_int_t n,
         if (1<=n-nx)
           magma_ssetmatrix( n, n, A(0,0), 0, lda, dA(0,0), ldda, queue );
 
-        #ifdef FAST_HEMV
+        #ifdef FAST_SYMV
         // TODO this leaks memory from da, above
         magmaFloat_ptr dwork2;
         if (MAGMA_SUCCESS != magma_malloc( &dwork2, (n*n)*sizeof(float) )) {
@@ -281,7 +281,7 @@ magma_ssytrd(char uplo, magma_int_t n,
             /*   Get the current panel (no need for the 1st iteration) */
             if (i!=0)
               magma_sgetmatrix( n-i, nb, dA(i, i), ldda, A(i, i), 0, lda, queue );
-            #ifdef FAST_HEMV
+            #ifdef FAST_SYMV
 			// unported
             magma_slatrd2(uplo, n-i, nb, A(i, i), lda, &e[i], 
                          &tau[i], work, ldwork, 
@@ -310,7 +310,7 @@ magma_ssytrd(char uplo, magma_int_t n,
             }
           }
 
-        #ifdef FAST_HEMV
+        #ifdef FAST_SYMV
         magma_free( dwork2 );
         #endif
 

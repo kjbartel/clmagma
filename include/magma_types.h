@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.3.0) --
+ *   -- clMAGMA (version 1.0.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -76,6 +76,8 @@ typedef int magma_int_t;
     #define MAGMA_Z_ADD(a, b)     MAGMA_Z_MAKE((a).x+(b).x, (a).y+(b).y)
     #define MAGMA_Z_SUB(a, b)     MAGMA_Z_MAKE((a).x-(b).x, (a).y-(b).y)
     #define MAGMA_Z_CNJG(a)       MAGMA_Z_MAKE((a).x, -(a).y)
+	#define MAGMA_Z_DSCALE(v, t, s)   {(v).x = (t).x/(s); (v).y = (t).y/(s);}
+	#define MAGMA_Z_ABS(a)        magma_cabs(a)
 
     #define MAGMA_C_MAKE(r,i)     floatComplex(r,i)
     #define MAGMA_C_REAL(a)       (a).x
@@ -84,7 +86,11 @@ typedef int magma_int_t;
     #define MAGMA_C_ADD(a, b)     MAGMA_C_MAKE((a).x+(b).x, (a).y+(b).y)
     #define MAGMA_C_SUB(a, b)     MAGMA_C_MAKE((a).x-(b).x, (a).y-(b).y)
     #define MAGMA_C_CNJG(a)       MAGMA_C_MAKE((a).x, -(a).y)
-    
+	#define MAGMA_C_SSCALE(v, t, s)   {(v).x = (t).x/(s); (v).y = (t).y/(s);}
+	#define MAGMA_C_ABS(a)        magma_cabsf(a)
+
+	#define CBLAS_SADDR(a)  &(a)
+
 #else
     // generic types if no GPU code available
     typedef int magma_queue_t;
@@ -128,6 +134,7 @@ typedef int magma_int_t;
 #define MAGMA_D_SET2REAL(a,r) (a) = (r)
 #define MAGMA_D_ADD(a, b)     ((a) + (b))
 #define MAGMA_D_SUB(a, b)     ((a) - (b))
+#define MAGMA_D_ABS(a)        ((a)>0?(a):-(a))
 #define MAGMA_D_CNJG(a)       (a)
 #define MAGMA_D_EQUAL(a,b)    ((a) == (b))
 
@@ -137,6 +144,7 @@ typedef int magma_int_t;
 #define MAGMA_S_SET2REAL(a,r) (a) = (r)
 #define MAGMA_S_ADD(a, b)     ((a) + (b))
 #define MAGMA_S_SUB(a, b)     ((a) - (b))
+#define MAGMA_S_ABS(a)        ((a)>0?(a):-(a))
 #define MAGMA_S_CNJG(a)       (a)
 #define MAGMA_S_EQUAL(a,b)    ((a) == (b))
 
@@ -145,28 +153,28 @@ typedef int magma_int_t;
 #define MAGMA_Z_HALF              MAGMA_Z_MAKE( 0.5, 0.0)
 #define MAGMA_Z_NEG_ONE           MAGMA_Z_MAKE(-1.0, 0.0)
 #define MAGMA_Z_NEG_HALF          MAGMA_Z_MAKE(-0.5, 0.0)
-#define MAGMA_Z_NEGATE(a)		  MAGMA_Z_MAKE(-(a).x, -(a).y)
+#define MAGMA_Z_NEGATE(a)         MAGMA_Z_MAKE(-(a).x, -(a).y)
 
 #define MAGMA_C_ZERO              MAGMA_C_MAKE( 0.0, 0.0)
 #define MAGMA_C_ONE               MAGMA_C_MAKE( 1.0, 0.0)
 #define MAGMA_C_HALF              MAGMA_C_MAKE( 0.5, 0.0)
 #define MAGMA_C_NEG_ONE           MAGMA_C_MAKE(-1.0, 0.0)
 #define MAGMA_C_NEG_HALF          MAGMA_C_MAKE(-0.5, 0.0)
-#define MAGMA_C_NEGATE(a)		  MAGMA_C_MAKE(-(a).x, -(a).y)
+#define MAGMA_C_NEGATE(a)         MAGMA_C_MAKE(-(a).x, -(a).y)
 
 #define MAGMA_D_ZERO              ( 0.0)
 #define MAGMA_D_ONE               ( 1.0)
 #define MAGMA_D_HALF              ( 0.5)
 #define MAGMA_D_NEG_ONE           (-1.0)
 #define MAGMA_D_NEG_HALF          (-0.5)
-#define MAGMA_D_NEGATE(a)	      (-(a))
+#define MAGMA_D_NEGATE(a)         (-(a))
 
 #define MAGMA_S_ZERO              ( 0.0)
 #define MAGMA_S_ONE               ( 1.0)
 #define MAGMA_S_HALF              ( 0.5)
 #define MAGMA_S_NEG_ONE           (-1.0)
 #define MAGMA_S_NEG_HALF          (-0.5)
-#define MAGMA_S_NEGATE(a)	      (-(a))
+#define MAGMA_S_NEGATE(a)         (-(a))
 
 
 #if HAVE_clAmdBlas
@@ -209,7 +217,7 @@ typedef int magma_int_t;
 #define MAGMA_ERR_NOT_IMPLEMENTED    -1001
 #define MAGMA_ERR_HOST_ALLOC         -1002
 #define MAGMA_ERR_DEVICE_ALLOC       -1003
-
+#define MAGMA_ERR_ILLEGAL_VALUE      -1004
 
 // ----------------------------------------
 // parameter constants
@@ -260,6 +268,10 @@ typedef int magma_int_t;
 
 #define MagmaNoVec         301
 #define MagmaVec           302
+#define MagmaIVec          303
+#define MagmaAllVec        304
+#define MagmaSomeVec       305
+#define MagmaOverwriteVec  306
 
 #define MagmaForward       391
 #define MagmaBackward      392
@@ -297,11 +309,14 @@ typedef int magma_int_t;
 #define MagmaColumnwiseStr "Columnwise"
 #define MagmaRowwiseStr    "Rowwise"
 
+#define MagmaVectorsStr    "Vectors"
+#define MagmaNoVectorsStr  "NoVectors"
 // these could be enums, but that isn't portable in C++, e.g., if -fshort-enums is used
 typedef int magma_trans_t;
 typedef int magma_uplo_t;
 typedef int magma_diag_t;
 typedef int magma_side_t;
+typedef int magma_vec_t;
 
 
 #ifdef __cplusplus
