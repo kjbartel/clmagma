@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.2.0) --
+#   -- clMAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -16,11 +16,13 @@ ZSRC  = magmablas_z.cpp \
 		zinplace_transpose.cpp \
 		ztranspose.cpp   \
 		ztranspose2.cpp  \
+		zauxiliary.cpp  \
         \
         zinplace_transpose.cl \
         zpermute-v2.cl   \
 		ztranspose.cl    \
         ztranspose-v2.cl \
+        zauxiliary.cl \
 
 -include Makefile.src
 -include Makefile.local
@@ -38,18 +40,22 @@ CL_SRCS = \
 	spermute-v2.cl		\
 	stranspose.cl		\
 	stranspose-v2.cl	\
+	sauxiliary.cl	\
 	dinplace_transpose.cl	\
 	dpermute-v2.cl		\
 	dtranspose.cl		\
 	dtranspose-v2.cl	\
+	dauxiliary.cl	\
 	cinplace_transpose.cl	\
 	cpermute-v2.cl		\
 	ctranspose.cl		\
 	ctranspose-v2.cl	\
+	cauxiliary.cl	\
 	zinplace_transpose.cl	\
 	zpermute-v2.cl		\
 	ztranspose.cl		\
 	ztranspose-v2.cl	\
+	zauxiliary.cl	\
 
 CL_OBJS = $(CL_SRCS:.cl=.co)
 

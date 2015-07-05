@@ -73,10 +73,11 @@ string CL_MAGMA_RT::fileToString(const char* filename)
 	{
 		size_t fileSize = fileStream.tellg();
 
-		char * cbuffer = new char[fileSize];
+		char* cbuffer = new char[fileSize + 1];
 
 		fileStream.seekg(0, ios::beg);
 		fileStream.read(cbuffer, fileSize);
+		cbuffer[fileSize] = '\0';
 
 		string  memoryBuffer(cbuffer);
 		delete [] cbuffer;
@@ -266,6 +267,24 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   Kernel2FileNamePool["ztranspose_32"         ] = dir + "ztranspose.co";
   Kernel2FileNamePool["myzlaswp2"             ] = dir + "zpermute-v2.co";
 
+//auxiliary functions
+  Kernel2FileNamePool["sset_nbxnb_to_zero"    ] = dir + "sauxiliary.co";
+  Kernel2FileNamePool["dset_nbxnb_to_zero"    ] = dir + "dauxiliary.co";
+  Kernel2FileNamePool["cset_nbxnb_to_zero"    ] = dir + "cauxiliary.co";
+  Kernel2FileNamePool["zset_nbxnb_to_zero"    ] = dir + "zauxiliary.co";
+  Kernel2FileNamePool["slaset"    ] = dir + "sauxiliary.co";
+  Kernel2FileNamePool["dlaset"    ] = dir + "dauxiliary.co";
+  Kernel2FileNamePool["claset"    ] = dir + "cauxiliary.co";
+  Kernel2FileNamePool["zlaset"    ] = dir + "zauxiliary.co";
+  Kernel2FileNamePool["slaset_lower"    ] = dir + "sauxiliary.co";
+  Kernel2FileNamePool["dlaset_lower"    ] = dir + "dauxiliary.co";
+  Kernel2FileNamePool["claset_lower"    ] = dir + "cauxiliary.co";
+  Kernel2FileNamePool["zlaset_lower"    ] = dir + "zauxiliary.co";
+  Kernel2FileNamePool["slaset_upper"    ] = dir + "sauxiliary.co";
+  Kernel2FileNamePool["dlaset_upper"    ] = dir + "dauxiliary.co";
+  Kernel2FileNamePool["claset_upper"    ] = dir + "cauxiliary.co";
+  Kernel2FileNamePool["zlaset_upper"    ] = dir + "zauxiliary.co";
+
   HasBeenInitialized = true;
 
   BuildFromBinaries( (dir + "sinplace_transpose.co").c_str() );
@@ -288,6 +307,11 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   BuildFromBinaries( (dir + "ztranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "zpermute-v2.co"       ).c_str() );
 
+  BuildFromBinaries( (dir + "sauxiliary.co"       ).c_str() );
+  BuildFromBinaries( (dir + "dauxiliary.co"       ).c_str() );
+  BuildFromBinaries( (dir + "cauxiliary.co"       ).c_str() );
+  BuildFromBinaries( (dir + "zauxiliary.co"       ).c_str() );
+  
   bool rtr;
   rtr = CreateKernel("sinplace_T_even_kernel");
   if (rtr==false)
@@ -353,6 +377,55 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   if (rtr==false)
     printf ("error creating kernel myzlaswp2\n");
 
+  rtr = CreateKernel("sset_nbxnb_to_zero");
+  if (rtr==false)
+    printf ("error creating kernel sset_nbxnb_zero\n");
+  rtr = CreateKernel("dset_nbxnb_to_zero");
+  if (rtr==false)
+    printf ("error creating kernel dset_nbxnb_zero\n");
+  rtr = CreateKernel("cset_nbxnb_to_zero");
+  if (rtr==false)
+    printf ("error creating kernel cset_nbxnb_zero\n");
+  rtr = CreateKernel("zset_nbxnb_to_zero");
+  if (rtr==false)
+    printf ("error creating kernel zset_nbxnb_zero\n");
+  rtr = CreateKernel("slaset");
+  if (rtr==false)
+    printf ("error creating kernel slaset\n");
+  rtr = CreateKernel("dlaset");
+  if (rtr==false)
+    printf ("error creating kernel dlaset\n");
+  rtr = CreateKernel("claset");
+  if (rtr==false)
+    printf ("error creating kernel claset");
+  rtr = CreateKernel("zlaset");
+  if (rtr==false)
+    printf ("error creating kernel zlaset\n");
+  rtr = CreateKernel("slaset_lower");
+  if (rtr==false)
+    printf ("error creating kernel slaset_lower\n");
+  rtr = CreateKernel("dlaset_lower");
+  if (rtr==false)
+    printf ("error creating kernel dlaset_lower\n");
+  rtr = CreateKernel("claset_lower");
+  if (rtr==false)
+    printf ("error creating kernel claset_lower");
+  rtr = CreateKernel("zlaset_lower");
+  if (rtr==false)
+    printf ("error creating kernel zlaset_lower\n");
+  rtr = CreateKernel("slaset_upper");
+  if (rtr==false)
+    printf ("error creating kernel slaset_upper\n");
+  rtr = CreateKernel("dlaset_upper");
+  if (rtr==false)
+    printf ("error creating kernel dlaset_upper\n");
+  rtr = CreateKernel("claset_upper");
+  if (rtr==false)
+    printf ("error creating kernel claset_upper");
+  rtr = CreateKernel("zlaset_upper");
+  if (rtr==false)
+    printf ("error creating kernel zlaset_upper\n");
+  
   return true;
 }
 
@@ -466,6 +539,24 @@ bool CL_MAGMA_RT::Init()
 	Kernel2FileNamePool["ztranspose_32"         ] = dir + string("ztranspose.co");
 	Kernel2FileNamePool["myzlaswp2"             ] = dir + string("zpermute-v2.co");
 
+	//auxiliary functions
+	Kernel2FileNamePool["sset_nbxnb_to_zero"    ] = dir + string("sauxiliary.co");
+	Kernel2FileNamePool["dset_nbxnb_to_zero"    ] = dir + string("dauxiliary.co");
+	Kernel2FileNamePool["cset_nbxnb_to_zero"    ] = dir + string("cauxiliary.co");
+	Kernel2FileNamePool["zset_nbxnb_to_zero"    ] = dir + string("zauxiliary.co");
+	Kernel2FileNamePool["slaset"    ] = dir + string("sauxiliary.co");
+	Kernel2FileNamePool["dlaset"    ] = dir + string("dauxiliary.co");
+	Kernel2FileNamePool["claset"    ] = dir + string("cauxiliary.co");
+	Kernel2FileNamePool["zlaset"    ] = dir + string("zauxiliary.co");
+	Kernel2FileNamePool["slaset_lower"    ] = dir + string("sauxiliary.co");
+	Kernel2FileNamePool["dlaset_lower"    ] = dir + string("dauxiliary.co");
+	Kernel2FileNamePool["claset_lower"    ] = dir + string("cauxiliary.co");
+	Kernel2FileNamePool["zlaset_lower"    ] = dir + string("zauxiliary.co");
+	Kernel2FileNamePool["slaset_upper"    ] = dir + string("sauxiliary.co");
+	Kernel2FileNamePool["dlaset_upper"    ] = dir + string("dauxiliary.co");
+	Kernel2FileNamePool["claset_upper"    ] = dir + string("cauxiliary.co");
+	Kernel2FileNamePool["zlaset_upper"    ] = dir + string("zauxiliary.co");
+	
 	HasBeenInitialized = true;
 	return true;
 }

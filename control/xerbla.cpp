@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -18,7 +18,7 @@
 extern "C"
 void magma_xerbla(const char *srname , magma_int_t info)
 {
-/*  -- clMAGMA (version 0.2.0) --
+/*  -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

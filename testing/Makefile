@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.2.0) --
+#   -- clMAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -13,11 +13,17 @@ ZSRC = \
 	testing_zpotrf_gpu.cpp	\
 	testing_zgeqrf_gpu.cpp  \
 	testing_zgetrf_gpu.cpp	\
+        \
 	testing_zposv_gpu.cpp	\
 	testing_zgesv_gpu.cpp	\
 	testing_zgeqrs_gpu.cpp	\
         \
-        testing_zgemm.cpp
+	testing_zgehrd.cpp	\
+        testing_zgebrd.cpp      \
+        testing_zhetrd.cpp      \
+        \
+        testing_zgemm.cpp	\
+        testing_zgemv.cpp
 
 #ifeq ($(FORT), pgfortran)
 #	FOBJ := fortran_thunking.o
@@ -42,12 +48,12 @@ EXE      = $(ALLOBJ:.o=)
 
 all: $(EXE)
 
-#LIBLAPACKTEST = lin/liblapacktest.a
-#
-#$(LIBLAPACKTEST):
-#	cd lin && make liblapacktest.a
+LIBLAPACKTEST = lin/liblapacktest.a
 
-$(EXE): $(LIBMAGMA) $(LIBMAGMABLAS) #$(LIBLAPACKTEST)
+$(LIBLAPACKTEST):
+	cd lin && make liblapacktest.a
+
+$(EXE): $(LIBMAGMA) $(LIBMAGMABLAS) $(LIBLAPACKTEST)
 
 clean:
 	rm -f *.o *~
@@ -70,14 +76,12 @@ cleanall: clean
 # MAGMA Fortran module. Once finalized, the generated magma.mod
 # has to be moved in the include directory
 #
-# lin/liblapacktest.a
 testing_%_f : testing_%_f.o $(FOBJ)
-	$(FORT) $(OPTS) $(LDOPTS) $< $(FOBJ) -o $@ \
+	$(FORT) $(OPTS) $(LDOPTS) $< $(FOBJ) -o $@ lin/liblapacktest.a \
 	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
 
-# lin/liblapacktest.a
 testing_% : testing_%.o
-	$(CC) $(OPTS) $(LDOPTS) $(NOMAIN) $< $(OBJ) -o $@ \
+	$(CC) $(OPTS) $(LDOPTS) $(NOMAIN) $< $(OBJ) -o $@ lin/liblapacktest.a \
 	-L../lib -lclmagma -lclmagmablas $(LIBDIR) $(LIB) 
 
 #

@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -76,7 +76,7 @@ typedef int magma_int_t;
     #define MAGMA_Z_ADD(a, b)     MAGMA_Z_MAKE((a).x+(b).x, (a).y+(b).y)
     #define MAGMA_Z_SUB(a, b)     MAGMA_Z_MAKE((a).x-(b).x, (a).y-(b).y)
     #define MAGMA_Z_CNJG(a)       MAGMA_Z_MAKE((a).x, -(a).y)
-    
+
     #define MAGMA_C_MAKE(r,i)     floatComplex(r,i)
     #define MAGMA_C_REAL(a)       (a).x
     #define MAGMA_C_IMAG(a)       (a).y
@@ -145,24 +145,28 @@ typedef int magma_int_t;
 #define MAGMA_Z_HALF              MAGMA_Z_MAKE( 0.5, 0.0)
 #define MAGMA_Z_NEG_ONE           MAGMA_Z_MAKE(-1.0, 0.0)
 #define MAGMA_Z_NEG_HALF          MAGMA_Z_MAKE(-0.5, 0.0)
+#define MAGMA_Z_NEGATE(a)		  MAGMA_Z_MAKE(-(a).x, -(a).y)
 
 #define MAGMA_C_ZERO              MAGMA_C_MAKE( 0.0, 0.0)
 #define MAGMA_C_ONE               MAGMA_C_MAKE( 1.0, 0.0)
 #define MAGMA_C_HALF              MAGMA_C_MAKE( 0.5, 0.0)
 #define MAGMA_C_NEG_ONE           MAGMA_C_MAKE(-1.0, 0.0)
 #define MAGMA_C_NEG_HALF          MAGMA_C_MAKE(-0.5, 0.0)
+#define MAGMA_C_NEGATE(a)		  MAGMA_C_MAKE(-(a).x, -(a).y)
 
 #define MAGMA_D_ZERO              ( 0.0)
 #define MAGMA_D_ONE               ( 1.0)
 #define MAGMA_D_HALF              ( 0.5)
 #define MAGMA_D_NEG_ONE           (-1.0)
 #define MAGMA_D_NEG_HALF          (-0.5)
+#define MAGMA_D_NEGATE(a)	      (-(a))
 
 #define MAGMA_S_ZERO              ( 0.0)
 #define MAGMA_S_ONE               ( 1.0)
 #define MAGMA_S_HALF              ( 0.5)
 #define MAGMA_S_NEG_ONE           (-1.0)
 #define MAGMA_S_NEG_HALF          (-0.5)
+#define MAGMA_S_NEGATE(a)	      (-(a))
 
 
 #if HAVE_clAmdBlas

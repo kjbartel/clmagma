@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.2.0) --
+#   -- clMAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -17,8 +17,8 @@ lib: libmagma libmagmablas
 
 libmagma:
 	( cd control          && $(MAKE) )
-	( cd interface_opencl && $(MAKE) )
 	( cd src              && $(MAKE) )
+	( cd interface_opencl && $(MAKE) )  # last, clcompiler depends on libmagma
 
 libmagmablas:
 	( cd magmablas        && $(MAKE) )
@@ -26,7 +26,7 @@ libmagmablas:
 #lapacktest:
 #	( cd testing/lin      && $(MAKE) )
 
-test:
+test: lib
 	( cd testing          && $(MAKE) )
 
 clean:

@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 0.2.0) --
+     -- clMAGMA (version 0.3.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
         April 2012
   
-        @generated s Thu May 24 17:09:42 2012
+        @generated s Wed Jun 27 23:49:49 2012
 
 */
 
@@ -23,7 +23,7 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
 		  magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
 		  magma_err_t*   info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 0.2.0) --
+/*  -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver

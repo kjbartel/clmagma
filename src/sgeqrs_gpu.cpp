@@ -1,12 +1,12 @@
 /*  
-    -- clMAGMA (version 0.2.0) --
+    -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
 	   
        April 2012
 	   
-       @generated s Thu May 24 17:09:44 2012
+       @generated s Thu Jun 28 19:26:33 2012
 */
 
 #include <stdio.h>
@@ -231,7 +231,8 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
     if (nb >= k)
       magma_free(dwork);
 
-    clFinish(queue); 
+    magma_queue_sync( queue );
+
     return *info;
 }
 

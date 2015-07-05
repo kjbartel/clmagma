@@ -8,10 +8,10 @@ SHDR = \
 
 
 CSRC = \
-cpanel_to_q.cpp cprint.cpp
+cpanel_to_q.cpp cprint.cpp magma_cf77.cpp magma_cfortran.f90
 
 DSRC = \
-dpanel_to_q.cpp dprint.cpp
+dpanel_to_q.cpp dprint.cpp magma_df77.cpp magma_dfortran.f90
 
 SSRC = \
-spanel_to_q.cpp sprint.cpp
+spanel_to_q.cpp sprint.cpp magma_sf77.cpp magma_sfortran.f90

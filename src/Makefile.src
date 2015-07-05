@@ -8,10 +8,10 @@ SHDR = \
 
 
 CSRC = \
-cpotrf_gpu.cpp clarfb_gpu.cpp cgeqrf2_gpu.cpp cgetrf_gpu.cpp cunmqr_gpu.cpp cgeqrf_gpu.cpp cpotrs_gpu.cpp cposv_gpu.cpp cgetrs_gpu.cpp cgesv_gpu.cpp cgeqrs_gpu.cpp cgels_gpu.cpp
+cpotrf_gpu.cpp clarfb_gpu.cpp cgeqrf2_gpu.cpp cgetrf_gpu.cpp cunmqr_gpu.cpp cgeqrf_gpu.cpp cpotrs_gpu.cpp cposv_gpu.cpp cgetrs_gpu.cpp cgesv_gpu.cpp cgeqrs_gpu.cpp cgels_gpu.cpp cgehrd.cpp clahru.cpp clahr2.cpp cunghr.cpp cungqr.cpp clatrd.cpp chetrd.cpp cgebrd.cpp clabrd_gpu.cpp
 
 DSRC = \
-dpotrf_gpu.cpp dlarfb_gpu.cpp dgeqrf2_gpu.cpp dgetrf_gpu.cpp dormqr_gpu.cpp dgeqrf_gpu.cpp dpotrs_gpu.cpp dposv_gpu.cpp dgetrs_gpu.cpp dgesv_gpu.cpp dgeqrs_gpu.cpp dgels_gpu.cpp
+dpotrf_gpu.cpp dlarfb_gpu.cpp dgeqrf2_gpu.cpp dgetrf_gpu.cpp dormqr_gpu.cpp dgeqrf_gpu.cpp dpotrs_gpu.cpp dposv_gpu.cpp dgetrs_gpu.cpp dgesv_gpu.cpp dgeqrs_gpu.cpp dgels_gpu.cpp dgehrd.cpp dlahru.cpp dlahr2.cpp dorghr.cpp dorgqr.cpp dlatrd.cpp dsytrd.cpp dgebrd.cpp dlabrd_gpu.cpp
 
 SSRC = \
-spotrf_gpu.cpp slarfb_gpu.cpp sgeqrf2_gpu.cpp sgetrf_gpu.cpp sormqr_gpu.cpp sgeqrf_gpu.cpp spotrs_gpu.cpp sposv_gpu.cpp sgetrs_gpu.cpp sgesv_gpu.cpp sgeqrs_gpu.cpp sgels_gpu.cpp
+spotrf_gpu.cpp slarfb_gpu.cpp sgeqrf2_gpu.cpp sgetrf_gpu.cpp sormqr_gpu.cpp sgeqrf_gpu.cpp spotrs_gpu.cpp sposv_gpu.cpp sgetrs_gpu.cpp sgesv_gpu.cpp sgeqrs_gpu.cpp sgels_gpu.cpp sgehrd.cpp slahru.cpp slahr2.cpp sorghr.cpp sorgqr.cpp slatrd.cpp ssytrd.cpp sgebrd.cpp slabrd_gpu.cpp

@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -14,6 +14,7 @@
 
 #include "magma.h"
 
+#define PRECISION_z
 #ifdef HAVE_clAmdBlas
 
 // ========================================
@@ -45,6 +46,32 @@ magma_zsetmatrix(
 }
 
 // --------------------
+magma_err_t 
+magma_zsetvector(
+	magma_int_t n, 
+	magmaDoubleComplex const* hA_src, size_t hA_offset, magma_int_t incx, 
+	magmaDoubleComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy, 
+	magma_queue_t queue )
+{
+	cl_int err;
+	if(incx == 1 && incy == 1){
+		err = clEnqueueWriteBuffer(
+				queue, dA_dst, CL_TRUE, 
+				dA_offset*sizeof(magmaDoubleComplex), n*sizeof(magmaDoubleComplex), 
+				hA_src+hA_offset, 0, NULL, NULL);
+		return err;
+	}else{
+		magma_int_t ldha = incx;
+		magma_int_t ldda = incy;
+		cl_int err = magma_zsetmatrix(1, n, 
+					hA_src, hA_offset, ldha, 
+					dA_dst, dA_offset, ldda, 
+					queue);
+		return err;
+	}
+}
+
+// --------------------
 magma_err_t
 magma_zgetmatrix(
     magma_int_t m, magma_int_t n,
@@ -62,6 +89,32 @@ magma_zgetmatrix(
         ldha*sizeof(magmaDoubleComplex), 0,
         hA_dst, 0, NULL, NULL );
     return err;
+}
+
+// --------------------
+magma_err_t 
+magma_zgetvector(
+	magma_int_t n, 
+	magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx, 
+	magmaDoubleComplex*			 hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue )
+{
+	cl_int err;
+	if(incx ==1 && incy ==1){
+		err = clEnqueueReadBuffer(
+							queue, dA_src, CL_TRUE, 
+							dA_offset*sizeof(magmaDoubleComplex), n*sizeof(magmaDoubleComplex), 
+							hA_dst+hA_offset, 0, NULL, NULL);
+		return err;			
+	}else{
+		magma_int_t ldda = incx;
+		magma_int_t ldha = incy;
+		err = magma_zgetmatrix(1, n, 
+							dA_src, dA_offset, ldda,
+							hA_dst, hA_offset, ldha,
+							queue);
+		return err;
+	}
 }
 
 // --------------------
@@ -293,6 +346,45 @@ magma_ztrmm(
                dB, dB_offset, ldb,
         1, &queue, 0, NULL, NULL );
     return err;
+}
+
+// --------------------
+magma_err_t
+magma_zher2k(
+	magma_uplo_t uplo, magma_trans_t trans, 
+	magma_int_t n, magma_int_t k, 
+	magmaDoubleComplex alpha, magmaDoubleComplex_const_ptr dA, size_t dA_offset, magma_int_t lda, 
+							  magmaDoubleComplex_const_ptr dB, size_t dB_offset, magma_int_t ldb, 
+	double beta, magmaDoubleComplex_ptr dC, size_t dC_offset, magma_int_t ldc, 
+	magma_queue_t queue)
+{	// cblas wrapper
+	magma_int_t ka, kb;
+	if(trans == MagmaNoTrans){
+		ka = k;
+		kb = k;
+	}else{
+		ka = n;
+		kb = n;
+	}
+	magmaDoubleComplex *hA, *hB, *hC;
+	hA = (magmaDoubleComplex*)malloc(lda*ka*sizeof(magmaDoubleComplex));
+	hB = (magmaDoubleComplex*)malloc(ldb*kb*sizeof(magmaDoubleComplex));
+	hC = (magmaDoubleComplex*)malloc(ldc*n*sizeof(magmaDoubleComplex));
+	magma_zgetmatrix(lda, ka, dA, dA_offset, lda, hA, 0, lda, queue);
+	magma_zgetmatrix(ldb, kb, dB, dB_offset, ldb, hB, 0, ldb, queue);
+	magma_zgetmatrix(ldc, n, dC, dC_offset, ldc, hC, 0, ldc, queue);
+#if defined(PRECISION_z) || defined(PRECISION_c)
+	cblas_zher2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
+				n, k, (void*)&alpha, hA, lda, hB, ldb, beta, hC, ldc);
+#else
+	cblas_zher2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
+				n, k, alpha, hA, lda, hB, ldb, beta, hC, ldc);
+#endif
+	magma_zsetmatrix(ldc, n, hC, 0, ldc, dC, dC_offset, ldc, queue);	
+	free(hA);
+	free(hB);
+	free(hC);
+	return CL_SUCCESS;
 }
 
 #endif // HAVE_clAmdBlas

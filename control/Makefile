@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.2.0) --
+#   -- clMAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -12,6 +12,12 @@ include ../Makefile.internal
 ZSRC := \
 	zpanel_to_q.cpp	\
 	zprint.cpp	\
+
+ZSRC := $(ZSRC)         \
+    magma_zf77.cpp      \
+	magma_param.f90     \
+	magma_zfortran.f90  \
+	magma.f90
 
 -include Makefile.src
 
@@ -31,8 +37,7 @@ all: $(LIBMAGMA)
 $(LIBMAGMA): $(ALLOBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $(ALLOBJ)
 	$(RANLIB) $@
-
-#-cp *.mod ../include  # use if has Fortran files
+	cp *.mod ../include  # use if has Fortran files
 
 .cpp.o:
 	$(CC) $(OPTS) $(INC) -c $< -o $@
@@ -46,3 +51,7 @@ clean:
 cleanall: clean
 	rm -f *.a
 	rm -f $(LIBMAGMA)
+
+# Extra dependencies
+magma.o: magma_zfortran.o magma_cfortran.o magma_dfortran.o magma_sfortran.o
+

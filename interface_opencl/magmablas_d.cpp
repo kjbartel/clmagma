@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated d Thu May 24 17:09:45 2012
+ * @generated d Wed Jun 27 23:49:54 2012
  */
 
 #include <stdlib.h>
@@ -14,6 +14,7 @@
 
 #include "magma.h"
 
+#define PRECISION_d
 #ifdef HAVE_clAmdBlas
 
 // ========================================
@@ -45,6 +46,32 @@ magma_dsetmatrix(
 }
 
 // --------------------
+magma_err_t 
+magma_dsetvector(
+	magma_int_t n, 
+	double const* hA_src, size_t hA_offset, magma_int_t incx, 
+	magmaDouble_ptr dA_dst, size_t dA_offset, magma_int_t incy, 
+	magma_queue_t queue )
+{
+	cl_int err;
+	if(incx == 1 && incy == 1){
+		err = clEnqueueWriteBuffer(
+				queue, dA_dst, CL_TRUE, 
+				dA_offset*sizeof(double), n*sizeof(double), 
+				hA_src+hA_offset, 0, NULL, NULL);
+		return err;
+	}else{
+		magma_int_t ldha = incx;
+		magma_int_t ldda = incy;
+		cl_int err = magma_dsetmatrix(1, n, 
+					hA_src, hA_offset, ldha, 
+					dA_dst, dA_offset, ldda, 
+					queue);
+		return err;
+	}
+}
+
+// --------------------
 magma_err_t
 magma_dgetmatrix(
     magma_int_t m, magma_int_t n,
@@ -62,6 +89,32 @@ magma_dgetmatrix(
         ldha*sizeof(double), 0,
         hA_dst, 0, NULL, NULL );
     return err;
+}
+
+// --------------------
+magma_err_t 
+magma_dgetvector(
+	magma_int_t n, 
+	magmaDouble_const_ptr dA_src, size_t dA_offset, magma_int_t incx, 
+	double*			 hA_dst, size_t hA_offset, magma_int_t incy,
+	magma_queue_t queue )
+{
+	cl_int err;
+	if(incx ==1 && incy ==1){
+		err = clEnqueueReadBuffer(
+							queue, dA_src, CL_TRUE, 
+							dA_offset*sizeof(double), n*sizeof(double), 
+							hA_dst+hA_offset, 0, NULL, NULL);
+		return err;			
+	}else{
+		magma_int_t ldda = incx;
+		magma_int_t ldha = incy;
+		err = magma_dgetmatrix(1, n, 
+							dA_src, dA_offset, ldda,
+							hA_dst, hA_offset, ldha,
+							queue);
+		return err;
+	}
 }
 
 // --------------------
@@ -293,6 +346,45 @@ magma_dtrmm(
                dB, dB_offset, ldb,
         1, &queue, 0, NULL, NULL );
     return err;
+}
+
+// --------------------
+magma_err_t
+magma_dsyr2k(
+	magma_uplo_t uplo, magma_trans_t trans, 
+	magma_int_t n, magma_int_t k, 
+	double alpha, magmaDouble_const_ptr dA, size_t dA_offset, magma_int_t lda, 
+							  magmaDouble_const_ptr dB, size_t dB_offset, magma_int_t ldb, 
+	double beta, magmaDouble_ptr dC, size_t dC_offset, magma_int_t ldc, 
+	magma_queue_t queue)
+{	// cblas wrapper
+	magma_int_t ka, kb;
+	if(trans == MagmaNoTrans){
+		ka = k;
+		kb = k;
+	}else{
+		ka = n;
+		kb = n;
+	}
+	double *hA, *hB, *hC;
+	hA = (double*)malloc(lda*ka*sizeof(double));
+	hB = (double*)malloc(ldb*kb*sizeof(double));
+	hC = (double*)malloc(ldc*n*sizeof(double));
+	magma_dgetmatrix(lda, ka, dA, dA_offset, lda, hA, 0, lda, queue);
+	magma_dgetmatrix(ldb, kb, dB, dB_offset, ldb, hB, 0, ldb, queue);
+	magma_dgetmatrix(ldc, n, dC, dC_offset, ldc, hC, 0, ldc, queue);
+#if defined(PRECISION_z) || defined(PRECISION_c)
+	cblas_dsyr2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
+				n, k, (void*)&alpha, hA, lda, hB, ldb, beta, hC, ldc);
+#else
+	cblas_dsyr2k(CblasColMajor, cblas_uplo_const(uplo), cblas_trans_const(trans), 
+				n, k, alpha, hA, lda, hB, ldb, beta, hC, ldc);
+#endif
+	magma_dsetmatrix(ldc, n, hC, 0, ldc, dC, dC_offset, ldc, queue);	
+	free(hA);
+	free(hB);
+	free(hC);
+	return CL_SUCCESS;
 }
 
 #endif // HAVE_clAmdBlas

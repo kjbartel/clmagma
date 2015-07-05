@@ -10,8 +10,20 @@ Included are routines for the following algorithms:
 
     * LU, QR, and Cholesky factorizations in both real and complex
       arithmetic (single and double);
+    * Hessenberg, bidiagonal, and tridiagonal reductions in both real
+      and complex arithmetic (single and double);
+    * Linear solvers based on LU, QR, and Cholesky in both real and
+      complex arithmetic (single and double);
 
- 0.2.0
+ 0.3.0 - 06-29-2012
+    * Reduction to upper Hessenberg form by similarity orthogonal 
+      transformations (routines magma_{z|c|d|s}gehrd )
+    * Reduction to upper/lower bidiagonal form by similarity orthogonal 
+      transformations (routines magma_{z|c|d|s}gebrd )
+    * Reduction to tridiagonal form by similarity orthogonal transformations
+      ( routines magma_{zhe|che|dsy|ssy}trd )
+
+ 0.2.0 - 05-26-2012
     * Change GPU_TARGET in make.inc to descriptive name (e.g., AMD).
     * Added solvers for general and symmetric matrices 
     * Added least squares solver
@@ -19,6 +31,6 @@ Included are routines for the following algorithms:
     * All routines provided in this release support s/d/c/z 
       precision arithmetic
 
- 0.1.0 - 04-01-11
+ 0.1.0 - 04-04-2012
     * LU, QR, and Cholesky dense matrix factorizations
     * Auxiliary OpenCL kernels

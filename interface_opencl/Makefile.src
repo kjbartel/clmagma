@@ -8,10 +8,10 @@ SHDR = \
 
 
 CSRC = \
-magmablas_c.cpp cpermute.cpp cinplace_transpose.cpp ctranspose.cpp ctranspose2.cpp cinplace_transpose.cl cpermute-v2.cl ctranspose.cl ctranspose-v2.cl
+magmablas_c.cpp cpermute.cpp cinplace_transpose.cpp ctranspose.cpp ctranspose2.cpp cauxiliary.cpp cinplace_transpose.cl cpermute-v2.cl ctranspose.cl ctranspose-v2.cl cauxiliary.cl
 
 DSRC = \
-magmablas_d.cpp dpermute.cpp dinplace_transpose.cpp dtranspose.cpp dtranspose2.cpp dinplace_transpose.cl dpermute-v2.cl dtranspose.cl dtranspose-v2.cl
+magmablas_d.cpp dpermute.cpp dinplace_transpose.cpp dtranspose.cpp dtranspose2.cpp dauxiliary.cpp dinplace_transpose.cl dpermute-v2.cl dtranspose.cl dtranspose-v2.cl dauxiliary.cl
 
 SSRC = \
-magmablas_s.cpp spermute.cpp sinplace_transpose.cpp stranspose.cpp stranspose2.cpp sinplace_transpose.cl spermute-v2.cl stranspose.cl stranspose-v2.cl
+magmablas_s.cpp spermute.cpp sinplace_transpose.cpp stranspose.cpp stranspose2.cpp sauxiliary.cpp sinplace_transpose.cl spermute-v2.cl stranspose.cl stranspose-v2.cl sauxiliary.cl

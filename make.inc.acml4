@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- MAGMA (version 0.2.0) --
+#   -- MAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of	Colorado, Denver
@@ -15,7 +15,7 @@
 # See http://developer.nvidia.com/cuda-gpus
 GPU_TARGET = AMD
 
-CC        = gcc
+CC        = g++
 NVCC      = nvcc
 FORT      = gfortran
 
@@ -30,20 +30,16 @@ FOPTS     = -O0 -DADD_ -g -Wall -x f95-cpp-input
 NVOPTS    = -O3 -DADD_ --compiler-options -fno-strict-aliasing -DUNIX
 LDOPTS    = -fPIC -Xlinker -zmuldefs
 
-# to set MKLROOT run: /mnt/scratch/sw/intel/2011.2.137/mkl/bin/mklvars.sh intel64
-MKLROOT   = /mnt/scratch/sw/intel/2011.2.137/composerxe-2011.2.137/mkl
+ACMLROOT   = /mnt/scratch/sw/acml-4.4.0
 
-#LIB       = -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lpthread -lm -fopenmp
-LIB        = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lm -fopenmp
-LIB        = -L/mnt/scratch/sw/acml-4.4.0/gfortran64/lib -lacml -lacml_mv
-LIB        = -L/mnt/scratch/sw/acml-4.4.0/gfortran64_mp/lib -lacml_mp -lacml_mv
+#LIB       = -lacml -lacml_mv
+LIB        = -lacml_mp -lacml_mv
 LIB       += -lclAmdBlas -lOpenCL
 
-CUDADIR   = /mnt/scratch/cuda-4.0.17
 GPUBLAS   = /opt/clAmdBlas-1.7.245
 
-LIBDIR    = -L$(MKLROOT)/lib/intel64 \
-            -L$(MKLROOT)/../compiler/lib/intel64 \
+LIBDIR    = -L$(ACMLROOT)/gfortran64/lib
+            -L$(ACMLROOT)/gfortran64_mp/lib
             -L$(GPUBLAS)/lib64
 INC       = -I$(GPUBLAS)/include \
             -I/opt/AMDAPP/include

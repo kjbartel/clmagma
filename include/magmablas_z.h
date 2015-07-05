@@ -1,5 +1,5 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
@@ -28,11 +28,25 @@ magma_zsetmatrix(
     magma_queue_t queue );
 
 magma_err_t
+magma_zsetvector(
+    magma_int_t n, 
+	magmaDoubleComplex const* hA_src, size_t hA_offset, magma_int_t incx, 
+	magmaDoubleComplex_ptr dA_dst, size_t dA_offset, magma_int_t incy, 
+	magma_queue_t queue );
+
+magma_err_t
 magma_zgetmatrix(
     magma_int_t m, magma_int_t n,
     magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
     magmaDoubleComplex*          hA_dst, size_t hA_offset, magma_int_t ldha,
     magma_queue_t queue );
+
+magma_err_t
+magma_zgetvector(
+    magma_int_t n, 
+	magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t incx, 
+	magmaDoubleComplex*          hA_dst, size_t hA_offset, magma_int_t incy, 
+	magma_queue_t queue );
 
 magma_err_t
 magma_zsetmatrix_async(
@@ -54,6 +68,12 @@ magma_zcopymatrix(
     magmaDoubleComplex_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
     magmaDoubleComplex_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
     magma_queue_t queue );
+
+void zzero_nbxnb_block(int nb, magmaDoubleComplex_ptr dA, size_t dA_offset, int ldda, 
+		       magma_queue_t queue);
+
+void magmablas_zlaset(int uplo, magma_int_t m, magma_int_t n, magmaDoubleComplex_ptr A, 
+		      size_t A_offset, magma_int_t lda, magma_queue_t queue);
 
 // ========================================
 // matrix transpose and swapping functions
@@ -152,6 +172,14 @@ magma_ztrmm(
     magmaDoubleComplex alpha, magmaDoubleComplex_const_ptr dA, size_t dA_offset, magma_int_t lda,
                               magmaDoubleComplex_ptr       dB, size_t dB_offset, magma_int_t ldb,
     magma_queue_t queue );
+
+magma_err_t
+magma_zher2k(
+    magma_uplo_t uplo, magma_trans_t trans, magma_int_t n, magma_int_t k, 
+	magmaDoubleComplex alpha, magmaDoubleComplex_const_ptr dA, size_t dA_offset, magma_int_t lda, 
+	magmaDoubleComplex_const_ptr dB, size_t dB_offset, magma_int_t ldb,
+	double beta, magmaDoubleComplex_ptr dC, size_t dC_offset, magma_int_t ldc,
+	magma_queue_t queue );
 
 #ifdef __cplusplus
 }

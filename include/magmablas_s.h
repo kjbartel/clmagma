@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 0.2.0) --
+ *   -- clMAGMA (version 0.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
  *      April 2012
  *
  * @author Mark Gates
- * @generated s Thu May 24 17:09:40 2012
+ * @generated s Thu Jun 28 19:26:29 2012
  */
 
 #ifndef MAGMA_BLAS_S_H
@@ -28,11 +28,25 @@ magma_ssetmatrix(
     magma_queue_t queue );
 
 magma_err_t
+magma_ssetvector(
+    magma_int_t n, 
+	float const* hA_src, size_t hA_offset, magma_int_t incx, 
+	magmaFloat_ptr dA_dst, size_t dA_offset, magma_int_t incy, 
+	magma_queue_t queue );
+
+magma_err_t
 magma_sgetmatrix(
     magma_int_t m, magma_int_t n,
     magmaFloat_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
     float*          hA_dst, size_t hA_offset, magma_int_t ldha,
     magma_queue_t queue );
+
+magma_err_t
+magma_sgetvector(
+    magma_int_t n, 
+	magmaFloat_const_ptr dA_src, size_t dA_offset, magma_int_t incx, 
+	float*          hA_dst, size_t hA_offset, magma_int_t incy, 
+	magma_queue_t queue );
 
 magma_err_t
 magma_ssetmatrix_async(
@@ -54,6 +68,12 @@ magma_scopymatrix(
     magmaFloat_const_ptr dA_src, size_t dA_offset, magma_int_t ldda,
     magmaFloat_ptr    dB_dst, size_t dB_offset, magma_int_t lddb,
     magma_queue_t queue );
+
+void szero_nbxnb_block(int nb, magmaFloat_ptr dA, size_t dA_offset, int ldda, 
+		       magma_queue_t queue);
+
+void magmablas_slaset(int uplo, magma_int_t m, magma_int_t n, magmaFloat_ptr A, 
+		      size_t A_offset, magma_int_t lda, magma_queue_t queue);
 
 // ========================================
 // matrix transpose and swapping functions
@@ -152,6 +172,14 @@ magma_strmm(
     float alpha, magmaFloat_const_ptr dA, size_t dA_offset, magma_int_t lda,
                               magmaFloat_ptr       dB, size_t dB_offset, magma_int_t ldb,
     magma_queue_t queue );
+
+magma_err_t
+magma_ssyr2k(
+    magma_uplo_t uplo, magma_trans_t trans, magma_int_t n, magma_int_t k, 
+	float alpha, magmaFloat_const_ptr dA, size_t dA_offset, magma_int_t lda, 
+	magmaFloat_const_ptr dB, size_t dB_offset, magma_int_t ldb,
+	float beta, magmaFloat_ptr dC, size_t dC_offset, magma_int_t ldc,
+	magma_queue_t queue );
 
 #ifdef __cplusplus
 }

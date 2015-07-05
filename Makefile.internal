@@ -1,5 +1,5 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 0.2.0) --
+#   -- clMAGMA (version 0.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
@@ -35,7 +35,7 @@ else ifeq (${GPU_TARGET}, Fermi)
 	OPTS   += -DGPUSHMEM=200 -DHAVE_CUBLAS
 	LDOPTS += -DGPUSHMEM=200
 else ifeq (${GPU_TARGET}, AMD)
-	OPTS += -DHAVE_clAmdBlas
+	OPTS += -DHAVE_clAmdBlas -DHAVE_CBLAS
 else
 $(error GPU_TARGET, currently ${GPU_TARGET}, must be one of Tesla, Fermi, or AMD. Please edit your make.inc file)
 endif

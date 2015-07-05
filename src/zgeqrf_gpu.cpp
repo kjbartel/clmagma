@@ -1,5 +1,5 @@
 /*
-    -- clMAGMA (version 0.2.0) --
+    -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
@@ -46,11 +46,11 @@ magma_zgeqrf_gpu( magma_int_t m, magma_int_t n,
                   magmaDoubleComplex *tau, magmaDoubleComplex_ptr dT, size_t dT_offset, 
                   magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.2.0) --
+/*  -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       May 2012
+       June 2012
 
     Purpose
     =======

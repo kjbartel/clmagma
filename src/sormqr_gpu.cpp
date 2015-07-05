@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 0.2.0) --
+    -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
        April 2012
 
-       @generated s Thu May 24 17:09:43 2012
+       @generated s Wed Jun 27 23:49:50 2012
 
 */
 
@@ -22,7 +22,7 @@ magma_sormqr_gpu(magma_side_t side, magma_trans_t trans,
                  magmaFloat_ptr dT, size_t dT_offset, magma_int_t nb, 
                  magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 0.2.0) --
+/*  -- clMAGMA (version 0.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
