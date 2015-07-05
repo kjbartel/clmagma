@@ -1,13 +1,13 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Raffaele Solca
 
-       @generated d Mon Nov 25 17:56:00 2013
+       @generated from zunmql.cpp normal z -> d, Fri Jan 10 15:51:18 2014
 
 */
 #include <stdio.h>
@@ -22,11 +22,11 @@ magma_dormql(magma_side_t side, magma_trans_t trans,
              double *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -66,7 +66,7 @@ magma_dormql(magma_side_t side, magma_trans_t trans,
             If SIDE = 'L', M >= K >= 0;
             if SIDE = 'R', N >= K >= 0.
 
-    A       (input) COMPLEX*16 array, dimension (LDA,K)
+    A       (input) DOUBLE PRECISION array, dimension (LDA,K)
             The i-th column must contain the vector which defines the
             elementary reflector H(i), for i = 1,2,...,k, as returned by
             DGEQLF in the last k columns of its array argument A.
@@ -77,18 +77,18 @@ magma_dormql(magma_side_t side, magma_trans_t trans,
             If SIDE = 'L', LDA >= max(1,M);
             if SIDE = 'R', LDA >= max(1,N).
 
-    TAU     (input) COMPLEX*16 array, dimension (K)
+    TAU     (input) DOUBLE PRECISION array, dimension (K)
             TAU(i) must contain the scalar factor of the elementary
             reflector H(i), as returned by DGEQLF.
 
-    C       (input/output) COMPLEX*16 array, dimension (LDC,N)
+    C       (input/output) DOUBLE PRECISION array, dimension (LDC,N)
             On entry, the M-by-N matrix C.
             On exit, C is overwritten by Q*C or Q**T*C or C*Q**T or C*Q.
 
     LDC     (input) INTEGER
             The leading dimension of the array C. LDC >= max(1,M).
 
-    WORK    (workspace/output) COMPLEX*16 array, dimension (MAX(1,LWORK))
+    WORK    (workspace/output) DOUBLE PRECISION array, dimension (MAX(1,LWORK))
             On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 
     LWORK   (input) INTEGER

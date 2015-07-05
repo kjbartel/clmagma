@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -107,16 +107,16 @@ int main( int argc, char** argv)
     min_mn = min(M, N);
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(      tau, magmaDoubleComplex, min_mn );
-    TESTING_MALLOC(      h_A, magmaDoubleComplex, n2     );
-    TESTING_MALLOC_HOST( h_R, magmaDoubleComplex, n2     );
-    TESTING_MALLOC_DEV ( d_A, magmaDoubleComplex, ldda*N );
+    TESTING_MALLOC_CPU( tau, magmaDoubleComplex, min_mn );
+    TESTING_MALLOC_CPU( h_A, magmaDoubleComplex, n2     );
+    TESTING_MALLOC_PIN( h_R, magmaDoubleComplex, n2     );
+    TESTING_MALLOC_DEV( d_A, magmaDoubleComplex, ldda*N );
 
     lhwork = -1;
     lapackf77_zgeqrf(&M, &N, h_A, &M, tau, tmp, &lhwork, &info);
     lhwork = (magma_int_t)MAGMA_Z_REAL( tmp[0] );
 
-    TESTING_MALLOC( hwork, magmaDoubleComplex, lhwork );
+    TESTING_MALLOC_CPU( hwork, magmaDoubleComplex, lhwork );
 
     printf("\n\n");
     printf("  M     N    CPU GFlop/s (sec)   GPU GFlop/s (sec)   ||R||_F / ||A||_F\n");
@@ -138,9 +138,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_zgeqrf(&M, &N, h_A, &M, tau, hwork, &lhwork, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of lapack_zgeqrf had an illegal value.\n", -info);
 
@@ -153,9 +153,9 @@ int main( int argc, char** argv)
         magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
 
         magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue1 );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
           printf("Argument %d of magma_zgeqrf2 had an illegal value.\n", -info);
         
@@ -178,10 +178,10 @@ int main( int argc, char** argv)
     }
     
     /* clean up */
-    TESTING_FREE( tau );
-    TESTING_FREE( h_A );
-    TESTING_FREE( hwork );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_CPU( tau );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_CPU( hwork );
+    TESTING_FREE_PIN( h_R );
     TESTING_FREE_DEV( d_A );
 
     magma_queue_destroy( queue1 );

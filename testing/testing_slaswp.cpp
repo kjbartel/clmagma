@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated s Mon Nov 25 17:56:09 2013
+ * @generated from testing_zlaswp.cpp normal z -> s, Fri Jan 10 15:51:19 2014
  *
  **/
 // includes, system
@@ -96,12 +96,12 @@ int main( int argc, char** argv)
     n2 = M*N;
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(h_A1, float, n2);
-    TESTING_MALLOC(h_A2, float, n2);
-    TESTING_MALLOC(h_A3, float, n2);
-    TESTING_MALLOC(h_AT, float, n2);
+    TESTING_MALLOC_CPU( h_A1, float, n2 );
+    TESTING_MALLOC_CPU( h_A2, float, n2 );
+    TESTING_MALLOC_CPU( h_A3, float, n2 );
+    TESTING_MALLOC_CPU( h_AT, float, n2 );
     
-    TESTING_MALLOC_DEV(  d_A1, float, n2 );
+    TESTING_MALLOC_DEV( d_A1, float, n2 );
 
     ipiv = (int*)malloc(M * sizeof(int));
     if (ipiv == 0) {
@@ -138,31 +138,31 @@ int main( int argc, char** argv)
          *  BLAS swap
          */
         /* Column Major */
-        cpu_time1 = get_time();
+        cpu_time1 = magma_wtime();
         for ( j=0; j<M; j++) {
             if ( j != (ipiv[j]-1)) {
                 blasf77_sswap( &N, h_A1+j, &lda, h_A1+(ipiv[j]-1), &lda);
             }
         }
-        cpu_time1 = get_time() - cpu_time1;
+        cpu_time1 = magma_wtime() - cpu_time1;
 
         /*
          *  LAPACK laswp
          */
-        cpu_time2 = get_time();
+        cpu_time2 = magma_wtime();
         k1 = 1;
         k2 = M;
         incx = 1;
         lapackf77_slaswp(&N, h_A2, &lda, &k1, &k2, ipiv, &incx);
-        cpu_time2 = get_time() - cpu_time2;
+        cpu_time2 = magma_wtime() - cpu_time2;
         
         /*
          *  GPU swap
          */
         /* Col swap on transpose matrix*/
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_spermute_long2(N, d_A1, 0, ldat, ipiv, M, 0, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         
         /* Check Result */
         magma_sgetmatrix( N, M, d_A1, 0, ldat, h_AT, 0, ldat, queue);
@@ -196,11 +196,11 @@ int main( int argc, char** argv)
     }
     
     /* clean up */
-    TESTING_FREE( ipiv );
-    TESTING_FREE( h_A1 );
-    TESTING_FREE( h_A2 );
-    TESTING_FREE( h_A3 );
-    TESTING_FREE( h_AT );
+    TESTING_FREE_CPU( ipiv );
+    TESTING_FREE_CPU( h_A1 );
+    TESTING_FREE_CPU( h_A2 );
+    TESTING_FREE_CPU( h_A3 );
+    TESTING_FREE_CPU( h_AT );
     TESTING_FREE_DEV( d_A1 );
 
     magma_queue_destroy( queue );

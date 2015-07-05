@@ -1,9 +1,9 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
  * @precisions normal z -> c d s
  *
@@ -99,8 +99,8 @@ int main( int argc, char** argv)
     }
 
      /* Allocate host memory for the matrix */
-    TESTING_MALLOC_HOST( h_A, magmaDoubleComplex, n2);
-    TESTING_MALLOC_HOST( h_R, magmaDoubleComplex, n2);
+    TESTING_MALLOC_PIN( h_A, magmaDoubleComplex, n2 );
+    TESTING_MALLOC_PIN( h_R, magmaDoubleComplex, n2 );
 
     /* Initialize */
     magma_queue_t  queues[MagmaMaxGPUs * 2];
@@ -222,9 +222,9 @@ int main( int argc, char** argv)
             }
         }
     
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_zpotrf_mgpu( num_gpus, uplo, N, d_lA, 0, ldda, &info, queues );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info != 0)
             printf( "magma_zpotrf had error %d.\n", info );
 
@@ -254,13 +254,13 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         if(uplo == MagmaLower){
             lapackf77_zpotrf( MagmaLowerStr, &N, h_A, &lda, &info );
         }else{
             lapackf77_zpotrf( MagmaUpperStr, &N, h_A, &lda, &info );
         }
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info != 0)
             printf( "lapackf77_zpotrf had error %d.\n", info );
         
@@ -280,11 +280,11 @@ int main( int argc, char** argv)
     }
 
     /* clean up */
-    TESTING_FREE_HOST( h_A );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_PIN( h_A );
+    TESTING_FREE_PIN( h_R );
     for(i=0;i<num_gpus;i++){
-        TESTING_FREE_DEV(d_lA[i]);
-        magma_queue_destroy( queues[2*i] );
+        TESTING_FREE_DEV( d_lA[i] );
+        magma_queue_destroy( queues[2*i]   );
         magma_queue_destroy( queues[2*i+1] );
     }
     magma_finalize();

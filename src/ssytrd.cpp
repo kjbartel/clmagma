@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:00 2013
+       @generated from zhetrd.cpp normal z -> s, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -14,7 +14,7 @@
 
 // === Define what BLAS to use ============================================
 
-//#define FAST_SYMV
+//#define FAST_HEMV
 
 // === End defining what BLAS to use ======================================
 #define PRECISION_s
@@ -34,11 +34,11 @@ magma_ssytrd(char uplo, magma_int_t n,
              float *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -262,7 +262,7 @@ magma_ssytrd(char uplo, magma_int_t n,
         if (1<=n-nx)
           magma_ssetmatrix( n, n, A(0,0), 0, lda, dA(0,0), ldda, queue );
 
-        #ifdef FAST_SYMV
+        #ifdef FAST_HEMV
         // TODO this leaks memory from da, above
         magmaFloat_ptr dwork2;
         if (MAGMA_SUCCESS != magma_smalloc( &dwork2, (n*n) )) {
@@ -281,7 +281,7 @@ magma_ssytrd(char uplo, magma_int_t n,
             /*   Get the current panel (no need for the 1st iteration) */
             if (i!=0)
               magma_sgetmatrix( n-i, nb, dA(i, i), ldda, A(i, i), 0, lda, queue );
-            #ifdef FAST_SYMV
+            #ifdef FAST_HEMV
             // unported
             magma_slatrd2(uplo, n-i, nb, A(i, i), lda, &e[i],
                          &tau[i], work, ldwork,
@@ -310,7 +310,7 @@ magma_ssytrd(char uplo, magma_int_t n,
             }
           }
 
-        #ifdef FAST_SYMV
+        #ifdef FAST_HEMV
         magma_free( dwork2 );
         #endif
 

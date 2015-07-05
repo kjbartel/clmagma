@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated d Mon Nov 25 17:56:04 2013
+       @generated from zgemm_reduce.cl normal z -> d, Fri Jan 10 15:51:19 2014
 */
 
 #include "kernels_header.h"
@@ -67,9 +67,9 @@ void magmablas_dgemm_reduce_kernel(int k, double alpha,
         const int i = get_local_id(0);
 
         /*
-        const cuDoubleComplex *dA = d_A + (blockIdx.x*BLK_M + threadIdx.y) * lda;
-        const cuDoubleComplex *dB = d_B + (blockIdx.y*BLK_N + threadIdx.z) * ldb;
-        cuDoubleComplex *dC = d_C + blockIdx.x*BLK_M + blockIdx.y*BLK_N * ldc;
+        const double *dA = d_A + (blockIdx.x*BLK_M + threadIdx.y) * lda;
+        const double *dB = d_B + (blockIdx.y*BLK_N + threadIdx.z) * ldb;
+        double *dC = d_C + blockIdx.x*BLK_M + blockIdx.y*BLK_N * ldc;
         */
 
         d_A += (get_group_id(0)*BLK_M + get_local_id(1)) * lda;

@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zgetrf_msub.cpp normal z -> d, Fri Jan 10 15:51:20 2014
  *
  **/
 // includes, system
@@ -49,8 +49,8 @@ double get_residual(
     double *x, *b;
 
     // initialize RHS
-    TESTING_MALLOC( x, double, n );
-    TESTING_MALLOC( b, double, n );
+    TESTING_MALLOC_CPU( x, double, n );
+    TESTING_MALLOC_CPU( b, double, n );
     lapackf77_dlarnv( &ione, ISEED, &n, b );
     blasf77_dcopy( &n, b, &ione, x, &ione );
 
@@ -71,8 +71,8 @@ double get_residual(
     norm_r = lapackf77_dlange( "F", &n, &ione, b, &n, work );
     norm_x = lapackf77_dlange( "F", &n, &ione, x, &n, work );
 
-    TESTING_FREE( x );
-    TESTING_FREE( b );
+    TESTING_FREE_CPU( x );
+    TESTING_FREE_CPU( b );
 
     return norm_r / (n * norm_A * norm_x);
 }
@@ -89,8 +89,8 @@ double get_LU_error(magma_int_t M, magma_int_t N,
     double *L, *U;
     double work[1], matnorm, residual;
                        
-    TESTING_MALLOC( L, double, M*min_mn);
-    TESTING_MALLOC( U, double, min_mn*N);
+    TESTING_MALLOC_CPU( L, double, M*min_mn );
+    TESTING_MALLOC_CPU( U, double, min_mn*N );
     memset( L, 0, M*min_mn*sizeof(double) );
     memset( U, 0, min_mn*N*sizeof(double) );
 
@@ -112,8 +112,8 @@ double get_LU_error(magma_int_t M, magma_int_t N,
         }
     }
     residual = lapackf77_dlange("f", &M, &N, LU, &lda, work);
-    TESTING_FREE(L);
-    TESTING_FREE(U);
+    TESTING_FREE_CPU( L );
+    TESTING_FREE_CPU( U );
 
     return residual / (matnorm * N);
 }
@@ -224,9 +224,9 @@ int main( int argc, char** argv)
         }
 
         /* Allocate host memory for the matrix */
-        TESTING_MALLOC( ipiv, magma_int_t, min_mn );
-        TESTING_MALLOC( h_P, double, lda*nb );
-        TESTING_MALLOC( h_R, double, n2 );
+        TESTING_MALLOC_CPU( ipiv, magma_int_t, min_mn );
+        TESTING_MALLOC_CPU( h_P, double, lda*nb );
+        TESTING_MALLOC_CPU( h_R, double, n2 );
         /* Allocate device memory */
         if (trans == MagmaNoTrans) {
             ldda = N/nb;                     /* number of block columns         */
@@ -263,9 +263,9 @@ int main( int argc, char** argv)
        /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dgetrf(&M, &N, h_R, &lda, ipiv, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0) {
             printf("Argument %d of dgetrf had an illegal value.\n", (int) -info);
             break;
@@ -344,9 +344,9 @@ int main( int argc, char** argv)
             }
         }
         /* == calling MAGMA with multiple GPUs == */
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dgetrf_msub( trans, num_subs, num_gpus, M, N, d_lA, 0, ldda, ipiv, &info, queues);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         if (info < 0) {
             printf("Argument %d of magma_dgetrf_mgpu had an illegal value.\n", (int) -info);
@@ -387,10 +387,10 @@ int main( int argc, char** argv)
            Check the factorization
            =================================================================== */
         if (check == 1) {
-            TESTING_MALLOC( h_A, double, n2 );
+            TESTING_MALLOC_CPU( h_A, double, n2 );
             init_matrix( M, N, h_A, lda );
             error = get_LU_error(M, N, h_A, lda, h_R, ipiv);
-            TESTING_FREE_HOST( h_A );
+            TESTING_FREE_PIN( h_A );
         
             printf("%5d %5d  %6.2f (%6.2f)        %6.2f (%6.2f)        %e\n",
                    (int) M, (int) N, cpu_perf, cpu_time, gpu_perf, gpu_time, error);
@@ -410,9 +410,9 @@ int main( int argc, char** argv)
                 TESTING_FREE_DEV( d_lA[j*num_subs+k] );
             }
         }
-        TESTING_FREE_HOST( ipiv );
-        TESTING_FREE_HOST( h_P );
-        TESTING_FREE_HOST( h_R );
+        TESTING_FREE_PIN( ipiv );
+        TESTING_FREE_PIN( h_P );
+        TESTING_FREE_PIN( h_R );
 
         if (flag != 0)
             break;

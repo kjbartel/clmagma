@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
- * @generated c Mon Nov 25 17:55:49 2013
+ * @generated from magma_zlapack.h normal z -> c, Fri Jan 10 15:51:16 2014
  */
 
 #ifndef MAGMA_CLAPACK_H

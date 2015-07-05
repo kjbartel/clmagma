@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -28,7 +28,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -106,7 +106,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
     magmaDoubleComplex c_neg_one = MAGMA_Z_NEG_ONE;
 
     magma_int_t ldda = lda;
-    //cuDoubleComplex *v0 = v + ihi - k;
+    //magmaDoubleComplex *v0 = v + ihi - k;
     magmaDoubleComplex_ptr v0 = v;
     size_t v0_offset = v_offset + ihi - k;
 

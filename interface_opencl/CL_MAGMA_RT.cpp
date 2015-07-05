@@ -262,26 +262,26 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   if ( dir.size() > 0 && dir[dir.size()-1] != '/' ) {
         dir += '/';
   }
-  Kernel2FileNamePool["sinplace_T_even_kernel"] = dir + "sinplace_transpose.co";
-  Kernel2FileNamePool["sinplace_T_odd_kernel" ] = dir + "sinplace_transpose.co";
+  Kernel2FileNamePool["stranspose_inplace_even_kernel"] = dir + "stranspose_inplace.co";
+  Kernel2FileNamePool["stranspose_inplace_odd_kernel" ] = dir + "stranspose_inplace.co";
   Kernel2FileNamePool["stranspose3_32"        ] = dir + "stranspose-v2.co";
   Kernel2FileNamePool["stranspose_32"         ] = dir + "stranspose.co";
   Kernel2FileNamePool["myslaswp2"             ] = dir + "spermute-v2.co";
 
-  Kernel2FileNamePool["dinplace_T_even_kernel"] = dir + "dinplace_transpose.co";
-  Kernel2FileNamePool["dinplace_T_odd_kernel" ] = dir + "dinplace_transpose.co";
+  Kernel2FileNamePool["dtranspose_inplace_even_kernel"] = dir + "dtranspose_inplace.co";
+  Kernel2FileNamePool["dtranspose_inplace_odd_kernel" ] = dir + "dtranspose_inplace.co";
   Kernel2FileNamePool["dtranspose3_32"        ] = dir + "dtranspose-v2.co";
   Kernel2FileNamePool["dtranspose_32"         ] = dir + "dtranspose.co";
   Kernel2FileNamePool["mydlaswp2"             ] = dir + "dpermute-v2.co";
 
-  Kernel2FileNamePool["cinplace_T_even_kernel"] = dir + "cinplace_transpose.co";
-  Kernel2FileNamePool["cinplace_T_odd_kernel" ] = dir + "cinplace_transpose.co";
+  Kernel2FileNamePool["ctranspose_inplace_even_kernel"] = dir + "ctranspose_inplace.co";
+  Kernel2FileNamePool["ctranspose_inplace_odd_kernel" ] = dir + "ctranspose_inplace.co";
   Kernel2FileNamePool["ctranspose3_32"        ] = dir + "ctranspose-v2.co";
   Kernel2FileNamePool["ctranspose_32"         ] = dir + "ctranspose.co";
   Kernel2FileNamePool["myclaswp2"             ] = dir + "cpermute-v2.co";
 
-  Kernel2FileNamePool["zinplace_T_even_kernel"] = dir + "zinplace_transpose.co";
-  Kernel2FileNamePool["zinplace_T_odd_kernel" ] = dir + "zinplace_transpose.co";
+  Kernel2FileNamePool["ztranspose_inplace_even_kernel"] = dir + "ztranspose_inplace.co";
+  Kernel2FileNamePool["ztranspose_inplace_odd_kernel" ] = dir + "ztranspose_inplace.co";
   Kernel2FileNamePool["ztranspose3_32"        ] = dir + "ztranspose-v2.co";
   Kernel2FileNamePool["ztranspose_32"         ] = dir + "ztranspose.co";
   Kernel2FileNamePool["myzlaswp2"             ] = dir + "zpermute-v2.co";
@@ -373,26 +373,35 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   Kernel2FileNamePool["magma_dlarfgx_gpu_kernel"    ] = dir + "dlarfgx-v2.co";
   Kernel2FileNamePool["magma_clarfgx_gpu_kernel"    ] = dir + "clarfgx-v2.co";
   Kernel2FileNamePool["magma_zlarfgx_gpu_kernel"    ] = dir + "zlarfgx-v2.co";
-  
+
+//zlag2c and clag2z
+  Kernel2FileNamePool["magmaint_zlag2c"    ] = dir + "zlag2c.co";
+  Kernel2FileNamePool["magmaint_dlag2s"    ] = dir + "dlag2s.co";
+  Kernel2FileNamePool["clag2z_generic"    ] = dir + "clag2z.co";
+  Kernel2FileNamePool["clag2z_special"    ] = dir + "clag2z.co";
+  Kernel2FileNamePool["slag2d_generic"    ] = dir + "slag2d.co";
+  Kernel2FileNamePool["slag2d_special"    ] = dir + "slag2d.co";
+
+
 /////////////////////////////////////////////////////////////////////////////////////////
   HasBeenInitialized = true;
 
-  BuildFromBinaries( (dir + "sinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "stranspose_inplace.co").c_str() );
   BuildFromBinaries( (dir + "stranspose-v2.co"     ).c_str() );
   BuildFromBinaries( (dir + "stranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "spermute-v2.co"       ).c_str() );
 
-  BuildFromBinaries( (dir + "dinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "dtranspose_inplace.co").c_str() );
   BuildFromBinaries( (dir + "dtranspose-v2.co"     ).c_str() );
   BuildFromBinaries( (dir + "dtranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "dpermute-v2.co"       ).c_str() );
 
-  BuildFromBinaries( (dir + "cinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "ctranspose_inplace.co").c_str() );
   BuildFromBinaries( (dir + "ctranspose-v2.co"     ).c_str() );
   BuildFromBinaries( (dir + "ctranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "cpermute-v2.co"       ).c_str() );
 
-  BuildFromBinaries( (dir + "zinplace_transpose.co").c_str() );
+  BuildFromBinaries( (dir + "ztranspose_inplace.co").c_str() );
   BuildFromBinaries( (dir + "ztranspose-v2.co"     ).c_str() );
   BuildFromBinaries( (dir + "ztranspose.co"        ).c_str() );
   BuildFromBinaries( (dir + "zpermute-v2.co"       ).c_str() );
@@ -436,15 +445,20 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   BuildFromBinaries( (dir + "dlarfgx-v2.co"       ).c_str() );
   BuildFromBinaries( (dir + "clarfgx-v2.co"       ).c_str() );
   BuildFromBinaries( (dir + "zlarfgx-v2.co"       ).c_str() );
+  
+  BuildFromBinaries( (dir + "zlag2c.co"       ).c_str() );
+  BuildFromBinaries( (dir + "dlag2s.co"       ).c_str() );
+  BuildFromBinaries( (dir + "clag2z.co"       ).c_str() );
+  BuildFromBinaries( (dir + "slag2d.co"       ).c_str() );
 ////////////////////////////////////////////////////////////////////////////////////  
   
   bool rtr;
-  rtr = CreateKernel("sinplace_T_even_kernel");
+  rtr = CreateKernel("stranspose_inplace_even_kernel");
   if (rtr==false)
-    printf ("error creating kernel sinplace_T_even_kernel\n");
-  rtr = CreateKernel("sinplace_T_odd_kernel");
+    printf ("error creating kernel stranspose_inplace_even_kernel\n");
+  rtr = CreateKernel("stranspose_inplace_odd_kernel");
   if (rtr==false)
-    printf ("error creating kernel sinplace_T_odd_kernel\n");
+    printf ("error creating kernel stranspose_inplace_odd_kernel\n");
   rtr = CreateKernel("stranspose3_32");
   if (rtr==false)
     printf ("error creating kernel stranspose3_32\n");
@@ -455,12 +469,12 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   if (rtr==false)
     printf ("error creating kernel myslaswp2\n");
 
-  rtr = CreateKernel("dinplace_T_even_kernel");
+  rtr = CreateKernel("dtranspose_inplace_even_kernel");
   if (rtr==false)
-    printf ("error creating kernel dinplace_T_even_kernel\n");
-  rtr = CreateKernel("dinplace_T_odd_kernel");
+    printf ("error creating kernel dtranspose_inplace_even_kernel\n");
+  rtr = CreateKernel("dtranspose_inplace_odd_kernel");
   if (rtr==false)
-    printf ("error creating kernel dinplace_T_odd_kernel\n");
+    printf ("error creating kernel dtranspose_inplace_odd_kernel\n");
   rtr = CreateKernel("dtranspose3_32");
   if (rtr==false)
     printf ("error creating kernel dtranspose3_32\n");
@@ -471,12 +485,12 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   if (rtr==false)
     printf ("error creating kernel mydlaswp2\n");
 
-  rtr = CreateKernel("cinplace_T_even_kernel");
+  rtr = CreateKernel("ctranspose_inplace_even_kernel");
   if (rtr==false)
-    printf ("error creating kernel cinplace_T_even_kernel\n");
-  rtr = CreateKernel("cinplace_T_odd_kernel");
+    printf ("error creating kernel ctranspose_inplace_even_kernel\n");
+  rtr = CreateKernel("ctranspose_inplace_odd_kernel");
   if (rtr==false)
-    printf ("error creating kernel cinplace_T_odd_kernel\n");
+    printf ("error creating kernel ctranspose_inplace_odd_kernel\n");
   rtr = CreateKernel("ctranspose3_32");
   if (rtr==false)
     printf ("error creating kernel ctranspose3_32\n");
@@ -487,12 +501,12 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   if (rtr==false)
     printf ("error creating kernel myclaswp2\n");
 
-  rtr = CreateKernel("zinplace_T_even_kernel");
+  rtr = CreateKernel("ztranspose_inplace_even_kernel");
   if (rtr==false)
-    printf ("error creating kernel zinplace_T_even_kernel\n");
-  rtr = CreateKernel("zinplace_T_odd_kernel");
+    printf ("error creating kernel ztranspose_inplace_even_kernel\n");
+  rtr = CreateKernel("ztranspose_inplace_odd_kernel");
   if (rtr==false)
-    printf ("error creating kernel zinplace_T_odd_kernel\n");
+    printf ("error creating kernel ztranspose_inplace_odd_kernel\n");
   rtr = CreateKernel("ztranspose3_32");
   if (rtr==false)
     printf ("error creating kernel ztranspose3_32\n");
@@ -710,6 +724,27 @@ bool CL_MAGMA_RT::Init(cl_platform_id gPlatform, cl_context gContext)
   rtr = CreateKernel("magma_zlarfgx_gpu_kernel");
   if (rtr==false)
       printf ("error creating kernel magma_zlarfgx_gpu_kernel\n");
+
+  
+  rtr = CreateKernel("magmaint_zlag2c");
+  if (rtr==false)
+      printf ("error creating kernel magmaint_zlag2c\n");
+  rtr = CreateKernel("magmaint_dlag2s");
+  if (rtr==false)
+      printf ("error creating kernel magmaint_dlag2s\n");
+  rtr = CreateKernel("clag2z_generic");
+  if (rtr==false)
+      printf ("error creating kernel clag2z_generic\n");
+  rtr = CreateKernel("clag2z_special");
+  if (rtr==false)
+      printf ("error creating kernel clag2z_special\n");
+  rtr = CreateKernel("slag2d_generic");
+  if (rtr==false)
+      printf ("error creating kernel slag2d_generic\n");
+  rtr = CreateKernel("slag2d_special");
+  if (rtr==false)
+      printf ("error creating kernel slag2d_special\n");
+  
 ///////////////////////////////////////////////////////////////////////////////////
   return true;
 }
@@ -800,26 +835,26 @@ bool CL_MAGMA_RT::Init()
 
     // setup kernel name -> file name (this will be done later automatically)
     string dir = "/Users/mgates/Documents/magma-cl/interface_opencl/";
-    Kernel2FileNamePool["sinplace_T_even_kernel"] = dir + string("sinplace_transpose.co");
-    Kernel2FileNamePool["sinplace_T_odd_kernel" ] = dir + string("sinplace_transpose.co");
+    Kernel2FileNamePool["stranspose_inplace_even_kernel"] = dir + string("stranspose_inplace.co");
+    Kernel2FileNamePool["stranspose_inplace_odd_kernel" ] = dir + string("stranspose_inplace.co");
     Kernel2FileNamePool["stranspose3_32"        ] = dir + string("stranspose-v2.co");
     Kernel2FileNamePool["stranspose_32"         ] = dir + string("stranspose.co");
     Kernel2FileNamePool["myslaswp2"             ] = dir + string("spermute-v2.co");
 
-    Kernel2FileNamePool["dinplace_T_even_kernel"] = dir + string("dinplace_transpose.co");
-    Kernel2FileNamePool["dinplace_T_odd_kernel" ] = dir + string("dinplace_transpose.co");
+    Kernel2FileNamePool["dtranspose_inplace_even_kernel"] = dir + string("dtranspose_inplace.co");
+    Kernel2FileNamePool["dtranspose_inplace_odd_kernel" ] = dir + string("dtranspose_inplace.co");
     Kernel2FileNamePool["dtranspose3_32"        ] = dir + string("dtranspose-v2.co");
     Kernel2FileNamePool["dtranspose_32"         ] = dir + string("dtranspose.co");
     Kernel2FileNamePool["mydlaswp2"             ] = dir + string("dpermute-v2.co");
 
-    Kernel2FileNamePool["cinplace_T_even_kernel"] = dir + string("cinplace_transpose.co");
-    Kernel2FileNamePool["cinplace_T_odd_kernel" ] = dir + string("cinplace_transpose.co");
+    Kernel2FileNamePool["ctranspose_inplace_even_kernel"] = dir + string("ctranspose_inplace.co");
+    Kernel2FileNamePool["ctranspose_inplace_odd_kernel" ] = dir + string("ctranspose_inplace.co");
     Kernel2FileNamePool["ctranspose3_32"        ] = dir + string("ctranspose-v2.co");
     Kernel2FileNamePool["ctranspose_32"         ] = dir + string("ctranspose.co");
     Kernel2FileNamePool["myclaswp2"             ] = dir + string("cpermute-v2.co");
 
-    Kernel2FileNamePool["zinplace_T_even_kernel"] = dir + string("zinplace_transpose.co");
-    Kernel2FileNamePool["zinplace_T_odd_kernel" ] = dir + string("zinplace_transpose.co");
+    Kernel2FileNamePool["ztranspose_inplace_even_kernel"] = dir + string("ztranspose_inplace.co");
+    Kernel2FileNamePool["ztranspose_inplace_odd_kernel" ] = dir + string("ztranspose_inplace.co");
     Kernel2FileNamePool["ztranspose3_32"        ] = dir + string("ztranspose-v2.co");
     Kernel2FileNamePool["ztranspose_32"         ] = dir + string("ztranspose.co");
     Kernel2FileNamePool["myzlaswp2"             ] = dir + string("zpermute-v2.co");
@@ -905,6 +940,16 @@ bool CL_MAGMA_RT::Init()
     
     Kernel2FileNamePool["magma_ztrmv_kernel2"    ] = dir + string("zlarfx.co");
     Kernel2FileNamePool["magma_ztrmv_tkernel"    ] = dir + string("zlarfx.co");
+
+    //zlag2c and clag2z
+    Kernel2FileNamePool["magmaint_zlag2c"    ] = dir + string("zlag2c.co");
+    Kernel2FileNamePool["magmaint_dlag2s"    ] = dir + string("dlag2s.co");
+    
+    Kernel2FileNamePool["clag2z_generic"    ] = dir + string("clag2z.co");
+    Kernel2FileNamePool["clag2z_special"    ] = dir + string("clag2z.co");
+    Kernel2FileNamePool["slag2d_generic"    ] = dir + string("slag2d.co");
+    Kernel2FileNamePool["slag2d_special"    ] = dir + string("slag2d.co");
+
 ///////////////////////////////////////////////////////////////////////////////////////////
     HasBeenInitialized = true;
     return true;

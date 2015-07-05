@@ -1,13 +1,13 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
  * @author Mark Gates
  * @author Chongxiao Cao
- * @generated s Mon Nov 25 17:56:03 2013
+ * @generated from magmablas_z.cpp normal z -> s, Fri Jan 10 15:51:19 2014
  */
 
 #include <stdlib.h>
@@ -18,8 +18,8 @@
 #define PRECISION_s
 #ifdef HAVE_clAmdBlas
 
-// AMD is inconsistent in their function names: it's Zsymv but DsymvEx.
-// Use ZsymvEx name below, since DsymvEx requires the Ex, but rename to Zsymv.
+// AMD is inconsistent in their function names: it's Ssymv but DsymvEx.
+// Use SsymvEx name below, since DsymvEx requires the Ex, but rename to Ssymv.
 #if defined(PRECISION_z) || defined(PRECISION_c)
 #define clAmdBlasSsymvEx  clAmdBlasSsymv
 #define clAmdBlasSsyrkEx  clAmdBlasSsyrk

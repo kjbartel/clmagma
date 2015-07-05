@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -112,11 +112,11 @@ int main(int argc, char **argv)
     szeX = incx*Xm;
     szeY = incy*Ym;
       
-    TESTING_MALLOC_HOST( A, magmaDoubleComplex, szeA );
-    TESTING_MALLOC_HOST( X, magmaDoubleComplex, szeX );
-    TESTING_MALLOC_HOST( Y, magmaDoubleComplex, szeY );
-    TESTING_MALLOC_HOST( Ymagma, magmaDoubleComplex, szeY );
-    TESTING_MALLOC_HOST( Ycpu, magmaDoubleComplex, szeY );
+    TESTING_MALLOC_PIN( A, magmaDoubleComplex, szeA );
+    TESTING_MALLOC_PIN( X, magmaDoubleComplex, szeX );
+    TESTING_MALLOC_PIN( Y, magmaDoubleComplex, szeY );
+    TESTING_MALLOC_PIN( Ymagma, magmaDoubleComplex, szeY );
+    TESTING_MALLOC_PIN( Ycpu, magmaDoubleComplex, szeY );
 
     TESTING_MALLOC_DEV( dA, magmaDoubleComplex, szeA );
     TESTING_MALLOC_DEV( dX, magmaDoubleComplex, szeX );
@@ -164,10 +164,10 @@ int main(int argc, char **argv)
         clFinish(queue);
 
         magma_zsetvector( Ym, Y, 0, incy, dY, 0, incy, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_zgemv( trans, M, N, alpha, dA, 0, lda, dX, 0, incx, beta, dY, 0, incy, queue );
         clFinish(queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         
         magma_zgetvector( Ym, dY, 0, incy, Ymagma, 0, incy, queue );
         
@@ -183,12 +183,12 @@ int main(int argc, char **argv)
             blastrans = MagmaTransStr;
             
         blasf77_zcopy( &Ym, Y, &incy, Ycpu, &incy );
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         blasf77_zgemv( blastrans, &M, &N,
                         &alpha, A,       &lda,
                                 X,       &incx,
                         &beta,  Ycpu, &incy );
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         cpu_perf = gflops / cpu_time;
             
         blasf77_zaxpy( &Ym, &c_neg_one, Ymagma, &incy, Ycpu, &incy);
@@ -199,11 +199,11 @@ int main(int argc, char **argv)
     }
     
     /* Free Memory */
-    TESTING_FREE_HOST( A );
-    TESTING_FREE_HOST( X );
-    TESTING_FREE_HOST( Y );
-    TESTING_FREE_HOST( Ycpu );
-    TESTING_FREE_HOST( Ymagma );
+    TESTING_FREE_PIN( A );
+    TESTING_FREE_PIN( X );
+    TESTING_FREE_PIN( Y );
+    TESTING_FREE_PIN( Ycpu );
+    TESTING_FREE_PIN( Ymagma );
 
     TESTING_FREE_DEV( dA );
     TESTING_FREE_DEV( dX );

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:55:59 2013
+       @generated from zpotrf2_msub.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
 */
 #include <stdio.h>
@@ -13,8 +13,10 @@
 
 #include "trace.h"
 
-#define Alo(i, j)  (a   +            ((j)+off_j)*lda  + (nb*(((i)/nb)%h)+off_i))
-#define Aup(i, j)  (a   +(nb*(((j)/nb)%h)+off_j)*lda  +               (i+off_i))
+#define Alo(i, j)  (a   +              ((j)+off_j)*lda  + (nb*(((i)/nb)%h)+off_i))
+#define Aup(i, j)  (a   +  (nb*(((j)/nb)%h)+off_j)*lda  +               (i+off_i))
+#define Alo_off(i, j)   a,             ((j)+off_j)*lda  + (nb*(((i)/nb)%h)+off_i)
+#define Aup_off(i, j)   a, (nb*(((j)/nb)%h)+off_j)*lda  +               (i+off_i)
 
 #define dlA(id, i, j)     d_lA[(id)], ((j)*ldda + (i))
 #define dlA_offset(i, j)  ((j)*ldda + (i))
@@ -31,11 +33,11 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                    float *a, magma_int_t lda, magma_int_t h,
                    magma_int_t *info, magma_queue_t *queues )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose   
     =======   
@@ -149,7 +151,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                 for (dd=0; dd<num_gpus; dd++) {
                     if (d != id%num_gpus) {
                         magma_ssetmatrix_async( j, jb, 
-                                                Aup(0,j), 0, lda, 
+                                                Aup_off(0,j),            lda, 
                                                 dlP(d,jb,0,id%num_gpus), lddp, 
                                                 queues[2*d], 
                                                 trace_gpu_event(d, 0, "set", "set-col") );
@@ -157,7 +159,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                     d = (d+1)%num_gpus;
                 }
                 /* Update the current diagonal block */
-                trace_gpu_start(id%num_gpus, 1, "syrk", "syrk");
+                trace_gpu_start(id%num_gpus, 1, "herk", "herk");
                 magma_ssyrk(MagmaUpper, MagmaTrans, jb, j, 
                             d_neg_one, dlA(id, 0, nb*j_local), ldda,
                             d_one,     dlA(id, j, nb*j_local), ldda,
@@ -167,7 +169,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
             /* Send the diagonal to cpu */
             magma_sgetmatrix_async( jb, jb, 
                                     dlA(id, j, nb*j_local), ldda,
-                                    Aup(j,j), 0, lda,
+                                    Aup_off(j,j),           lda,
                                     queues[2*(id%num_gpus)], 
                                     trace_gpu_event(id%num_gpus, 0, "get", "get-diag") );
             if (j > 0) {
@@ -225,7 +227,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                         ldpanel = lddp;
                     }
                     magma_ssetmatrix_async( jb, jb, 
-                                            Aup(j,j), 0, lda,
+                                            Aup_off(j,j),            lda,
                                             dlpanel, dlpanel_offset, ldpanel, 
                                             queues[2*d], 
                                             trace_gpu_event(d, 0, "set", "set-diag"));
@@ -233,7 +235,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                 }
             } else {
                 magma_ssetmatrix_async( jb, jb, 
-                                        Aup(j,j), 0, lda, 
+                                        Aup_off(j,j),           lda, 
                                         dlA(id, j, nb*j_local), ldda,
                                         queues[2*(id%num_gpus)], 
                                         trace_gpu_event(id%num_gpus, 0, "set", "set-diag") );
@@ -270,7 +272,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                         magma_queue_sync(queues[2*(d%num_gpus)+1]);  // wait for lookahead
                         magma_sgetmatrix_async( (j+jb), nb0, 
                                                 dlA(d, 0, nb*j_local2), ldda, 
-                                                Aup(0,j+jb), 0, lda,
+                                                Aup_off(0,j+jb),        lda,
                                                 queues[2*(d%num_gpus)], 
                                                 trace_gpu_event(d%num_gpus, 0, "get", "get-col") );
                         /* update the remaining blocks */
@@ -306,15 +308,17 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
             j_local = j/(nb*tot_subs);
             jb = min(nb, (n-j));
             if (j > 0) {
-                // Wait for the row on CPU
-                magma_queue_sync(queues[2*(id%num_gpus)]); 
+                if (num_gpus > 1) {
+                    // Wait for the row on CPU to broadcast
+                    magma_queue_sync(queues[2*(id%num_gpus)]); 
+                }
                 /* broadcast off-diagonal row to all the GPUs */
                 d = (j/nb+1)%num_gpus;
                 for (dd=0; dd<num_gpus; dd++) {
                     if (d != id%num_gpus) {
                         /* send it to GPU-d */
                         magma_ssetmatrix_async( jb, j,
-                                                Alo(j,0), 0,              lda,
+                                                Alo_off(j,0),             lda,
                                                 dlPT(d,0,jb,id%num_gpus), nb, 
                                                 queues[2*d], 
                                                 trace_gpu_event(d, 0, "set", "set-row") );
@@ -322,7 +326,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                     d = (d+1)%num_gpus;
                 }
                 /* Update the current diagonal block */
-                trace_gpu_start(id%num_gpus, 1, "syrk", "syrk");
+                trace_gpu_start(id%num_gpus, 1, "herk", "herk");
                 magma_ssyrk(MagmaLower, MagmaNoTrans, jb, j,
                             d_neg_one, dlA(id, nb*j_local, 0), ldda,
                             d_one,     dlA(id, nb*j_local, j), ldda,
@@ -332,7 +336,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
             /* send the diagonal to cpu */
             magma_sgetmatrix_async( jb, jb,
                                     dlA(id, nb*j_local, j), ldda,
-                                    Alo(j,j), 0,            lda, 
+                                    Alo_off(j,j),           lda, 
                                     queues[2*(id%num_gpus)], 
                                     trace_gpu_event(id%num_gpus, 0, "get", "get") );
             /* update the offdiagonal blocks */
@@ -393,15 +397,15 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                         ldpanel = nb;
                     }
                     magma_ssetmatrix_async( jb, jb,
-                                            Alo(j,j), 0, lda,
-                                            dlpanel,  dlpanel_offset, ldpanel, 
+                                            Alo_off(j,j), lda,
+                                            dlpanel,      dlpanel_offset, ldpanel, 
                                             queues[2*d], 
                                             trace_gpu_event(d, 0, "set", "set-diag") );
                     d = (d+1)%num_gpus;
                 }
             } else {
                 magma_ssetmatrix_async( jb, jb,
-                                        Alo(j,j),       0,      lda,
+                                        Alo_off(j,j),           lda,
                                         dlA(id, nb*j_local, j), ldda, 
                                         queues[2*(id%num_gpus)],
                                         trace_gpu_event(id%num_gpus, 0, "set", "set-diag") );
@@ -439,7 +443,7 @@ magma_spotrf2_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t m,
                         magma_queue_sync( queues[2*(d%num_gpus)+1] ); // wait for lookahead
                         magma_sgetmatrix_async( nb0, j+jb,
                                                 dlA(d, nb*j_local2, 0), ldda,
-                                                Alo(j+jb,0), 0,         lda, 
+                                                Alo_off(j+jb,0),        lda, 
                                                 queues[2*(d%num_gpus)], 
                                                 trace_gpu_event(d%num_gpus, 0, "get", "get") );
                         /* update the remaining blocks */

@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
  * @author Mark Gates
- * @generated c Mon Nov 25 17:55:49 2013
+ * @generated from magma_z.h normal z -> c, Fri Jan 10 15:51:16 2014
  */
 
 #ifndef MAGMA_C_H
@@ -26,7 +26,6 @@ extern "C" {
 magma_int_t magma_get_cpotrf_nb( magma_int_t m );
 magma_int_t magma_get_cgetrf_nb( magma_int_t m );
 magma_int_t magma_get_cgetri_nb( magma_int_t m );
-magma_int_t magma_get_cgeqp3_nb( magma_int_t m );
 magma_int_t magma_get_cgeqrf_nb( magma_int_t m );
 magma_int_t magma_get_cgeqlf_nb( magma_int_t m );
 magma_int_t magma_get_cgehrd_nb( magma_int_t m );
@@ -169,7 +168,7 @@ magma_cstedx(
     magmaFloatComplex* z, magma_int_t ldz,
     float* rwork, magma_int_t lrwork,
     magma_int_t* iwork, magma_int_t liwork,
-    magmaDouble_ptr dwork,
+    magmaFloat_ptr dwork,
     magma_int_t* info, magma_queue_t queue );
 
 #else
@@ -210,13 +209,13 @@ magma_cstedx(
     float* z, magma_int_t ldz,
     float* rwork, magma_int_t lrwork,
     magma_int_t* iwork, magma_int_t liwork,
-    magmaDouble_ptr dwork,
+    magmaFloat_ptr dwork,
     magma_int_t* info, magma_queue_t queue );
 
 magma_int_t
 magma_claex0(
     magma_int_t n, float* d, float* e, float* q, magma_int_t ldq,
-    float* work, magma_int_t* iwork, magmaDouble_ptr dwork,
+    float* work, magma_int_t* iwork, magmaFloat_ptr dwork,
     magma_vec_t range, float vl, float vu,
     magma_int_t il, magma_int_t iu,
     magma_int_t* info, magma_queue_t queue );
@@ -225,7 +224,7 @@ magma_int_t
 magma_claex1(
     magma_int_t n, float* d, float* q, magma_int_t ldq,
     magma_int_t* indxq, float rho, magma_int_t cutpnt,
-    float* work, magma_int_t* iwork, magmaDouble_ptr dwork,
+    float* work, magma_int_t* iwork, magmaFloat_ptr dwork,
     magma_vec_t range, float vl, float vu,
     magma_int_t il, magma_int_t iu,
     magma_int_t* info, magma_queue_t queue );
@@ -237,7 +236,7 @@ magma_claex3(
     float* q, magma_int_t ldq, float rho,
     float* dlamda, float* q2, magma_int_t* indx,
     magma_int_t* ctot, float* w, float* s, magma_int_t* indxq,
-    magmaDouble_ptr dwork,
+    magmaFloat_ptr dwork,
     magma_vec_t range, float vl, float vu, magma_int_t il, magma_int_t iu,
     magma_int_t* info, magma_queue_t queue );
 

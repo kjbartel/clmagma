@@ -1,14 +1,14 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0-beta2) --
+#   -- clMAGMA (version 1.1.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date November 2013
+#      @date January 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 DIR = src
 MAGMA_DIR = ..
-include ../Makefile.internal
+include $(MAGMA_DIR)/Makefile.internal
 
 # ------------------------------------------------------------
 # Loosely, the order is alphabetic in each section, but mixed precision,

@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zhetrd.cpp normal z -> d, Fri Jan 10 15:51:20 2014
  *
  **/
 // includes, system
@@ -23,9 +23,9 @@
 // Flops formula
 #define PRECISION_d
 #if defined(PRECISION_z) || defined(PRECISION_c)
-#define FLOPS(n) ( 6. * FMULS_SYTRD(n) + 2. * FADDS_SYTRD(n))
+#define FLOPS(n) ( 6. * FMULS_HETRD(n) + 2. * FADDS_HETRD(n))
 #else
-#define FLOPS(n) (      FMULS_SYTRD(n) +      FADDS_SYTRD(n))
+#define FLOPS(n) (      FMULS_HETRD(n) +      FADDS_HETRD(n))
 #endif
 
 /* ////////////////////////////////////////////////////////////////////////////
@@ -111,14 +111,14 @@ int main( int argc, char** argv)
     lwork = N*nb;
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC_HOST( h_A,    double, lda*N );
-    TESTING_MALLOC_HOST( h_R1,    double, lda*N );
-    TESTING_MALLOC_HOST( h_R,    double, lda*N );
-    TESTING_MALLOC_HOST( h_work, double, lwork );
-    TESTING_MALLOC_HOST( h_work1, double, lwork );
-    TESTING_MALLOC_HOST( tau,    double, N     );
-    TESTING_MALLOC_HOST( diag,    double, N   );
-    TESTING_MALLOC_HOST( offdiag, double, N-1 );
+    TESTING_MALLOC_PIN( h_A,    double, lda*N );
+    TESTING_MALLOC_PIN( h_R1,    double, lda*N );
+    TESTING_MALLOC_PIN( h_R,    double, lda*N );
+    TESTING_MALLOC_PIN( h_work, double, lwork );
+    TESTING_MALLOC_PIN( h_work1, double, lwork );
+    TESTING_MALLOC_PIN( tau,    double, N     );
+    TESTING_MALLOC_PIN( diag,    double, N   );
+    TESTING_MALLOC_PIN( offdiag, double, N-1 );
 
     /* To avoid uninitialized variable warning */
     h_Q   = NULL;
@@ -126,10 +126,10 @@ int main( int argc, char** argv)
     rwork = NULL;
 
     if ( checkres ) {
-        TESTING_MALLOC( h_Q,  double, lda*N );
-        TESTING_MALLOC( work, double, 2*N*N );
+        TESTING_MALLOC_CPU( h_Q,  double, lda*N );
+        TESTING_MALLOC_CPU( work, double, 2*N*N );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_MALLOC( rwork, double, N );
+        TESTING_MALLOC_CPU( rwork, double, N );
 #endif
     }
 
@@ -147,7 +147,7 @@ int main( int argc, char** argv)
            Initialize the matrix
            =================================================================== */
         lapackf77_dlarnv( &ione, ISEED, &n2, h_A );
-        /* Make the matrix hermitian */
+        /* Make the matrix symmetric */
         {
             magma_int_t i, j;
             for(i=0; i<N; i++) {
@@ -166,10 +166,10 @@ int main( int argc, char** argv)
         magma_dsytrd(uplo[0], N, h_R1, lda, diag, offdiag,
                      tau, h_work1, lwork, &info, queue);
 
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dsytrd(uplo[0], N, h_R, lda, diag, offdiag,
                      tau, h_work, lwork, &info, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if ( info < 0 )
             printf("Argument %d of magma_dsytrd had an illegal value\n", (int) -info);
 
@@ -212,10 +212,10 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dsytrd(uplo, &N, h_A, &lda, diag, offdiag, tau,
                          h_work, &lwork, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
 
         if (info < 0)
             printf("Argument %d of lapackf77_dsytrd had an illegal value.\n", (int) -info);
@@ -239,20 +239,20 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE( h_A );
-    TESTING_FREE( tau );
-    TESTING_FREE( diag );
-    TESTING_FREE( offdiag );
-    TESTING_FREE_HOST( h_R );
-    TESTING_FREE_HOST( h_R1 );
-    TESTING_FREE_HOST( h_work );
-    TESTING_FREE_HOST( h_work1 );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_CPU( tau );
+    TESTING_FREE_CPU( diag );
+    TESTING_FREE_CPU( offdiag );
+    TESTING_FREE_PIN( h_R );
+    TESTING_FREE_PIN( h_R1 );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_work1 );
 
     if ( checkres ) {
-        TESTING_FREE( h_Q );
-        TESTING_FREE( work );
+        TESTING_FREE_CPU( h_Q );
+        TESTING_FREE_CPU( work );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_FREE( rwork );
+        TESTING_FREE_CPU( rwork );
 #endif
     }
 

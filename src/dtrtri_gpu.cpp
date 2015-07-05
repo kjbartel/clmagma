@@ -1,11 +1,11 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
-   @generated d Mon Nov 25 17:56:00 2013
+   @generated from ztrtri_gpu.cpp normal z -> d, Fri Jan 10 15:51:17 2014
 
  */
 
@@ -19,11 +19,11 @@ extern "C" magma_int_t
 magma_dtrtri_gpu(magma_uplo_t uplo, magma_diag_t diag, magma_int_t n,
         magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda, magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date November 2013
+    @date January 2014
 
     Purpose
     =======

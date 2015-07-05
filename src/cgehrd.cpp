@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:00 2013
+       @generated from zgehrd.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -20,11 +20,11 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
              magmaFloatComplex_ptr dT, size_t dT_offset,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -178,7 +178,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     
     magmaFloatComplex_ptr d_A    = da;
     size_t d_A_offset = da_offset;
-    //cuDoubleComplex *d_work = da + (N+nb)*ldda;
+    //magmaFloatComplex *d_work = da + (N+nb)*ldda;
     magmaFloatComplex_ptr d_work = da;
     size_t d_work_offset = da_offset+(N+nb)*ldda;
 

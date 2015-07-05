@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -20,11 +20,11 @@ magma_zgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
              magmaDoubleComplex_ptr dT, size_t dT_offset,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -178,7 +178,7 @@ magma_zgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     
     magmaDoubleComplex_ptr d_A    = da;
     size_t d_A_offset = da_offset;
-    //cuDoubleComplex *d_work = da + (N+nb)*ldda;
+    //magmaDoubleComplex *d_work = da + (N+nb)*ldda;
     magmaDoubleComplex_ptr d_work = da;
     size_t d_work_offset = da_offset+(N+nb)*ldda;
 

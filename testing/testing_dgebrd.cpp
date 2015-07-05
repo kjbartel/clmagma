@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zgebrd.cpp normal z -> d, Fri Jan 10 15:51:20 2014
  *
  **/
 
@@ -105,15 +105,15 @@ int main( int argc, char** argv)
     minmn = min(M, N);
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC( h_A,     double, lda*N );
-    TESTING_MALLOC( tauq,    double, minmn  );
-    TESTING_MALLOC( taup,    double, minmn  );
-    TESTING_MALLOC( diag,    double, minmn   );
-    TESTING_MALLOC( offdiag, double, (minmn-1) );
-    TESTING_MALLOC_HOST( h_Q, double, lda*N );
+    TESTING_MALLOC_CPU( h_A,     double, lda*N );
+    TESTING_MALLOC_CPU( tauq,    double, minmn  );
+    TESTING_MALLOC_CPU( taup,    double, minmn  );
+    TESTING_MALLOC_CPU( diag,    double, minmn   );
+    TESTING_MALLOC_CPU( offdiag, double, (minmn-1) );
+    TESTING_MALLOC_PIN( h_Q, double, lda*N );
 
     lhwork = (M + N)*nb;
-    TESTING_MALLOC_HOST( h_work, double, lhwork );
+    TESTING_MALLOC_PIN( h_work, double, lhwork );
 
     /* To avoid uninitialized variable warning */
     h_PT    = NULL;
@@ -124,10 +124,10 @@ int main( int argc, char** argv)
         lchkwork = max(minmn * nb, M+N);
         /* For optimal performance in dort01 */
         lchkwork = max(lchkwork, minmn*minmn);
-        TESTING_MALLOC( h_PT,    double, lda*N   );
-        TESTING_MALLOC( chkwork, double, lchkwork );
+        TESTING_MALLOC_CPU( h_PT,    double, lda*N   );
+        TESTING_MALLOC_CPU( chkwork, double, lchkwork );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_MALLOC( rwork, double, 5*minmn );
+        TESTING_MALLOC_CPU( rwork, double, 5*minmn );
 #endif
     }
 
@@ -153,7 +153,7 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         if ( uselapack ) {
             lapackf77_dgebrd( &M, &N, h_Q, &lda,
                               diag, offdiag, tauq, taup,
@@ -163,7 +163,7 @@ int main( int argc, char** argv)
                           diag, offdiag, tauq, taup,
                           h_work, lhwork, &info, queue );
         }
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if ( info < 0 )
             printf("Argument %d of lapackf77_dgebrd|magma_dgebrd had an illegal value\n", (int) -info);
 
@@ -206,11 +206,11 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dgebrd(&M, &N, h_A, &lda,
                          diag, offdiag, tauq, taup,
                          h_work, &lhwork, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
 
         if (info < 0)
             printf("Argument %d of lapackf77_dgebrd had an illegal value.\n", (int) -info);
@@ -234,19 +234,19 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE( h_A );
-    TESTING_FREE( tauq );
-    TESTING_FREE( taup );
-    TESTING_FREE( diag );
-    TESTING_FREE( offdiag );
-    TESTING_FREE_HOST( h_Q );
-    TESTING_FREE_HOST( h_work );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_CPU( tauq );
+    TESTING_FREE_CPU( taup );
+    TESTING_FREE_CPU( diag );
+    TESTING_FREE_CPU( offdiag );
+    TESTING_FREE_PIN( h_Q );
+    TESTING_FREE_PIN( h_work );
 
     if ( checkres ) {
-        TESTING_FREE( h_PT );
-        TESTING_FREE( chkwork );
+        TESTING_FREE_CPU( h_PT );
+        TESTING_FREE_CPU( chkwork );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_FREE( rwork );
+        TESTING_FREE_CPU( rwork );
 #endif
     }
 

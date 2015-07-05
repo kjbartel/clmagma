@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zgehrd.cpp normal z -> d, Fri Jan 10 15:51:20 2014
  *
  **/
 // includes, system
@@ -104,12 +104,12 @@ int main( int argc, char** argv)
     /* We suppose the magma nb is bigger than lapack nb */
     lwork = N*nb;
     
-    TESTING_MALLOC_HOST( h_A   , double, n2    );
-    TESTING_MALLOC_HOST( tau   , double, N     );
-    TESTING_MALLOC_HOST( h_R   , double, n2    );
-    TESTING_MALLOC_HOST( h_R1   , double, n2    );
-    TESTING_MALLOC_HOST( h_work, double, lwork );
-    TESTING_MALLOC_DEV ( dT    , double, nb*N  );
+    TESTING_MALLOC_PIN( h_A,    double, n2    );
+    TESTING_MALLOC_PIN( tau,    double, N     );
+    TESTING_MALLOC_PIN( h_R,    double, n2    );
+    TESTING_MALLOC_PIN( h_R1,   double, n2    );
+    TESTING_MALLOC_PIN( h_work, double, lwork );
+    TESTING_MALLOC_DEV( dT,     double, nb*N  );
 
     /* To avoid uninitialized variable warning */
     h_Q   = NULL;
@@ -117,10 +117,10 @@ int main( int argc, char** argv)
 
     if ( checkres ) {
         ltwork = 2*(N*N);
-        TESTING_MALLOC_HOST( h_Q,   double, lda*N  );
-        TESTING_MALLOC_HOST( twork, double, ltwork );
+        TESTING_MALLOC_PIN( h_Q,   double, lda*N  );
+        TESTING_MALLOC_PIN( twork, double, ltwork );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_MALLOC_HOST( rwork, double,          N      );
+        TESTING_MALLOC_PIN( rwork, double,          N      );
 #endif
     }
 
@@ -147,9 +147,9 @@ int main( int argc, char** argv)
         if ( info < 0 )
             printf("Argument %d of magma_dgehrd had an illegal value\n", -info);
         clFinish(queue);
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dgehrd ( N, ione, N, h_R, lda, tau, h_work, lwork, dT, 0, &info, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if ( info < 0 )
             printf("Argument %d of magma_dgehrd had an illegal value\n", -info);
 
@@ -180,9 +180,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dgehrd(&N, &ione, &N, h_A, &lda, tau, h_work, &lwork, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of lapack_dgehrd had an illegal value.\n", -info);
 
@@ -205,18 +205,18 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE    ( h_A  );
-    TESTING_FREE    ( tau  );
-    TESTING_FREE_HOST( h_work);
-    TESTING_FREE_HOST( h_R  );
-    TESTING_FREE_HOST( h_R1  );
-    TESTING_FREE_DEV ( dT   );
+    TESTING_FREE_CPU( h_A    );
+    TESTING_FREE_CPU( tau    );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_R    );
+    TESTING_FREE_PIN( h_R1   );
+    TESTING_FREE_DEV( dT     );
 
     if ( checkres ) {
-        TESTING_FREE_HOST( h_Q );
-        TESTING_FREE( twork );
+        TESTING_FREE_PIN( h_Q );
+        TESTING_FREE_CPU( twork );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-        TESTING_FREE( rwork );
+        TESTING_FREE_CPU( rwork );
 #endif
     }
 

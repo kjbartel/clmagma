@@ -1,31 +1,12 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 */
 
 #include "common_magma.h"
-
-#if defined( _WIN32 ) || defined( _WIN64 )
-#  include <time.h>
-#  include <sys/timeb.h>
-#  if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
-#    define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
-#  else
-#    define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
-#  endif
-#else
-#  include <sys/time.h>
-#endif
-
-#if defined(ADD_)
-#    define magma_gettime_f        magma_gettime_f_
-#    define magma_gettimervalue_f  magma_gettimervalue_f_
-#elif defined(NOCHANGE)
-#endif
-
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Used by chk() macro to print error message.
@@ -38,105 +19,6 @@ void chk_helper( int err, const char* func, const char* file, int line )
     }
 }
 
-
-/* ////////////////////////////////////////////////////////////////////////////
-   -- Get current time
-*/
-#if defined( _WIN32 ) || defined( _WIN64 )
-struct timezone
-{
-    int  tz_minuteswest; /* minutes W of Greenwich */
-    int  tz_dsttime;     /* type of dst correction */
-};
-
-extern "C"
-int gettimeofday(struct timeval* tv, struct timezone* tz)
-{
-    FILETIME         ft;
-    unsigned __int64 tmpres = 0;
-    static int       tzflag;
-
-    if (NULL != tv) {
-        GetSystemTimeAsFileTime(&ft);
-        tmpres |=  ft.dwHighDateTime;
-        tmpres <<= 32;
-        tmpres |=  ft.dwLowDateTime;
-
-        /*converting file time to unix epoch*/
-        tmpres /= 10;  /*convert into microseconds*/
-        tmpres -= DELTA_EPOCH_IN_MICROSECS;
-
-        tv->tv_sec  = (long)(tmpres / 1000000UL);
-        tv->tv_usec = (long)(tmpres % 1000000UL);
-    }
-    if (NULL != tz) {
-        if (!tzflag) {
-            _tzset();
-            tzflag++;
-        }
-        tz->tz_minuteswest = _timezone / 60;
-        tz->tz_dsttime     = _daylight;
-    }
-    return 0;
-}
-#endif
-
-extern "C"
-magma_timestr_t get_current_time(void)
-{
-    static struct timeval time_val;
-
-    magma_timestr_t time;
-
-    //cudaDeviceSynchronize();
-    gettimeofday(&time_val, NULL);
-
-    time.sec  = time_val.tv_sec;
-    time.usec = time_val.tv_usec;
-    return (time);
-}
-
-extern "C"
-void magma_gettime_f(unsigned int *time)
-{
-    magma_timestr_t tmp = get_current_time();
-    time[0] = tmp.sec;
-    time[1] = tmp.usec;
-}
-
-/* ////////////////////////////////////////////////////////////////////////////
-   -- End elapsed time
-*/
-extern "C"
-double GetTimerValue(magma_timestr_t time_1, magma_timestr_t time_2)
-{
-    int sec, usec;
-
-    sec  = time_2.sec  - time_1.sec;
-    usec = time_2.usec - time_1.usec;
-
-    return (1000.*(double)(sec) + (double)(usec) * 0.001);
-}
-
-extern "C"
-void magma_gettimervalue_f(unsigned int *start, unsigned int *end, double *result) {
-    magma_timestr_t time1, time2;
-    time1.sec  = start[0];
-    time1.usec = start[1];
-    time2.sec  = end[0];
-    time2.usec = end[1];
-    *result = GetTimerValue(time1, time2);
-}
-
-/* ////////////////////////////////////////////////////////////////////////////
-   -- Return time in seconds since arbitrary point (e.g., unix epoch).
-*/
-double get_time( void )
-{
-    struct timeval t;
-    gettimeofday( &t, NULL );
-    return t.tv_sec + t.tv_usec*1e-6;
-}
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Auxiliary function: ipiv(i) indicates that row i has been swapped with

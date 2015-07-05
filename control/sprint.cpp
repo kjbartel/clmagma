@@ -1,12 +1,12 @@
 /*
-    -- MAGMA (version 1.1.0-beta2) --
+    -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Mark Gates
-       @generated s Mon Nov 25 17:55:51 2013
+       @generated from zprint.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
 */
 #include "common_magma.h"

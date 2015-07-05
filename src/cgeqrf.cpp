@@ -1,12 +1,12 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
-       @generated c Mon Nov 25 17:56:00 2013
+       @generated from zgeqrf.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
 */
 #include "common_magma.h"
@@ -18,11 +18,11 @@ magma_cgeqrf(magma_int_t m, magma_int_t n,
              magma_int_t *info,
              magma_queue_t* queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

@@ -1,9 +1,9 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
  * @author Mark Gates
  * @precisions normal z -> s d c
@@ -26,7 +26,6 @@ extern "C" {
 magma_int_t magma_get_zpotrf_nb( magma_int_t m );
 magma_int_t magma_get_zgetrf_nb( magma_int_t m );
 magma_int_t magma_get_zgetri_nb( magma_int_t m );
-magma_int_t magma_get_zgeqp3_nb( magma_int_t m );
 magma_int_t magma_get_zgeqrf_nb( magma_int_t m );
 magma_int_t magma_get_zgeqlf_nb( magma_int_t m );
 magma_int_t magma_get_zgehrd_nb( magma_int_t m );

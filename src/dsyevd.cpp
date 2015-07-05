@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
        @author Mark Gates
@@ -23,11 +23,11 @@ magma_dsyevd(magma_vec_t jobz, magma_vec_t uplo,
              magma_int_t *iwork, magma_int_t liwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

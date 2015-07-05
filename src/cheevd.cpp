@@ -1,14 +1,14 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
        @author Raffaele Solca
 
-       @generated c Mon Nov 25 17:56:00 2013
+       @generated from zheevd.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -25,11 +25,11 @@ magma_cheevd(magma_vec_t jobz, magma_uplo_t uplo,
              magma_int_t *iwork, magma_int_t liwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -72,7 +72,7 @@ magma_cheevd(magma_vec_t jobz, magma_uplo_t uplo,
     LDA     (input) INTEGER
             The leading dimension of the array A.  LDA >= max(1,N).
 
-    W       (output) DOUBLE PRECISION array, dimension (N)
+    W       (output) REAL array, dimension (N)
             If INFO = 0, the eigenvalues in ascending order.
 
     WORK    (workspace/output) COMPLEX array, dimension (MAX(1,LWORK))
@@ -91,7 +91,7 @@ magma_cheevd(magma_vec_t jobz, magma_uplo_t uplo,
             the WORK, RWORK and IWORK arrays, and no error message
             related to LWORK or LRWORK or LIWORK is issued by XERBLA.
 
-    RWORK   (workspace/output) DOUBLE PRECISION array, dimension (LRWORK)
+    RWORK   (workspace/output) REAL array, dimension (LRWORK)
             On exit, if INFO = 0, RWORK[0] returns the optimal LRWORK.
 
     LRWORK  (input) INTEGER
@@ -169,7 +169,7 @@ magma_cheevd(magma_vec_t jobz, magma_uplo_t uplo,
     float smlnum;
     magma_int_t lquery;
     
-    magmaDouble_ptr dwork;
+    magmaFloat_ptr dwork;
     
     wantz = lapackf77_lsame(lapack_const(jobz_), MagmaVecStr);
     lower = lapackf77_lsame(lapack_const(uplo_), MagmaLowerStr);

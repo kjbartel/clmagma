@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
- * @generated s Mon Nov 25 17:56:04 2013
+ * @generated from zswap.cpp normal z -> s, Fri Jan 10 15:51:19 2014
  */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ magmablas_sswap( magma_int_t n, magmaFloat_ptr dA1T, size_t offset_dA1T, magma_i
 
 // empty kernel calling, benchmarkde for overhead for iwocl 2013
 extern "C" void
-magmablas_sempty( magma_queue_t queue, magmaDouble_ptr dA, magmaDouble_ptr dB, magmaDouble_ptr dC)
+magmablas_sempty( magma_queue_t queue, magmaFloat_ptr dA, magmaFloat_ptr dB, magmaFloat_ptr dC)
 {
     int m = 1, n =1;
     int i0 = 0, i1 = 1, i2 = 1, i3 = 1, i4 = 1, i5 = 1, i6 = 1, i7 =1, i8 =1, i9 =1;

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:10 2013
+       @generated from testing_zgesv.cpp normal z -> c, Fri Jan 10 15:51:20 2014
        @author Mark Gates
 */
 // includes, system
@@ -78,12 +78,12 @@ int main(int argc, char **argv)
             ldb    = lda;
             gflops = ( FLOPS_CGETRF( N, N ) + FLOPS_CGETRS( N, nrhs ) ) / 1e9;
             
-            TESTING_MALLOC( h_A,  magmaFloatComplex, lda*N    );
-            TESTING_MALLOC( h_LU, magmaFloatComplex, lda*N    );
-            TESTING_MALLOC( h_B,  magmaFloatComplex, ldb*nrhs );
-            TESTING_MALLOC( h_X,  magmaFloatComplex, ldb*nrhs );
-            TESTING_MALLOC( work, float,          N        );
-            TESTING_MALLOC( ipiv, magma_int_t,     N        );
+            TESTING_MALLOC_CPU( h_A,  magmaFloatComplex, lda*N    );
+            TESTING_MALLOC_CPU( h_LU, magmaFloatComplex, lda*N    );
+            TESTING_MALLOC_CPU( h_B,  magmaFloatComplex, ldb*nrhs );
+            TESTING_MALLOC_CPU( h_X,  magmaFloatComplex, ldb*nrhs );
+            TESTING_MALLOC_CPU( work, float,          N        );
+            TESTING_MALLOC_CPU( ipiv, magma_int_t,     N        );
             
             /* Initialize the matrices */
             sizeA = lda*N;
@@ -98,9 +98,9 @@ int main(int argc, char **argv)
             /* ====================================================================
                Performs operation using MAGMA
                =================================================================== */
-            gpu_time = get_time();
+            gpu_time = magma_wtime();
             magma_cgesv( N, nrhs, h_LU, lda, ipiv, h_X, ldb, &info, queue );
-            gpu_time = get_time() - gpu_time;
+            gpu_time = magma_wtime() - gpu_time;
             gpu_perf = gflops / gpu_time;
             if (info != 0)
                 printf("magma_cgesv returned error %d: %s.\n",
@@ -125,9 +125,9 @@ int main(int argc, char **argv)
                Performs operation using LAPACK
                =================================================================== */
             if ( opts.lapack ) {
-                cpu_time = get_time();
+                cpu_time = magma_wtime();
                 lapackf77_cgesv( &N, &nrhs, h_A, &lda, ipiv, h_B, &ldb, &info );
-                cpu_time = get_time() - cpu_time;
+                cpu_time = magma_wtime() - cpu_time;
                 cpu_perf = gflops / cpu_time;
                 if (info != 0)
                     printf("lapackf77_cgesv returned error %d: %s.\n",
@@ -143,12 +143,12 @@ int main(int argc, char **argv)
                         error, (error < tol ? "" : "  failed"));
             }
             
-            TESTING_FREE( h_A  );
-            TESTING_FREE( h_LU );
-            TESTING_FREE( h_B  );
-            TESTING_FREE( h_X  );
-            TESTING_FREE( work );
-            TESTING_FREE( ipiv );
+            TESTING_FREE_CPU( h_A  );
+            TESTING_FREE_CPU( h_LU );
+            TESTING_FREE_CPU( h_B  );
+            TESTING_FREE_CPU( h_X  );
+            TESTING_FREE_CPU( work );
+            TESTING_FREE_CPU( ipiv );
         }
         if ( opts.niter > 1 ) {
             printf( "\n" );

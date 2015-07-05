@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated d Mon Nov 25 17:56:10 2013
+       @generated from testing_zpotri_gpu.cpp normal z -> d, Fri Jan 10 15:51:19 2014
 
 */
 
@@ -75,9 +75,9 @@ int main( int argc, char** argv)
     /* Allocate host memory for the matrix */
     n2   = size[9] * size[9];
     ldda = ((size[9]+31)/32) * 32;
-    TESTING_MALLOC(    h_A, double, n2);
-    TESTING_MALLOC_HOST( h_R, double, n2);
-    TESTING_MALLOC_DEV(  d_A, double, ldda*size[9] );
+    TESTING_MALLOC_CPU( h_A, double, n2 );
+    TESTING_MALLOC_PIN( h_R, double, n2 );
+    TESTING_MALLOC_DEV( d_A, double, ldda*size[9] );
 
     printf("  N    CPU GFlop/s    GPU GFlop/s    ||R||_F / ||A||_F\n");
     printf("========================================================\n");
@@ -119,9 +119,9 @@ int main( int argc, char** argv)
      //   magma_dpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
         
     //    magma_dsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
-        gpu_time = get_time()-gpu_time;
+        gpu_time = magma_wtime()-gpu_time;
         if (info != 0)
             printf("magma_dpotri_gpu returned error %d\n", (int) info);
 
@@ -130,9 +130,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dpotri(lapack_const(uplo), &N, h_A, &lda, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info != 0)
             printf("lapackf77_dpotri returned error %d\n", (int) info);
         
@@ -153,8 +153,8 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE( h_A );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_PIN( h_R );
     TESTING_FREE_DEV( d_A );
 
     /* Shutdown */

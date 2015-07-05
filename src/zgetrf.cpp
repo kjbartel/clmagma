@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
        @precisions normal z -> s d c
@@ -17,11 +17,11 @@ magma_zgetrf(magma_int_t m, magma_int_t n, magmaDoubleComplex *a, magma_int_t ld
              magma_int_t *ipiv, magma_int_t *info,
              magma_queue_t* queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -172,7 +172,7 @@ magma_zgetrf(magma_int_t m, magma_int_t n, magmaDoubleComplex *a, magma_int_t ld
             
             dAT = dA;
             dAT_offset = dA_offset;
-            magma_zinplace_transpose( dAT, dAT_offset, ldda, lddat, queue[0] );
+            magma_ztranspose_inplace( dAT, dAT_offset, ldda, lddat, queue[0] );
         }
         else {
             // if very rectangular, allocate dA and dAT and transpose out-of-place
@@ -297,7 +297,7 @@ magma_zgetrf(magma_int_t m, magma_int_t n, magmaDoubleComplex *a, magma_int_t ld
         }
        
         if (maxdim*maxdim < 2*maxm*maxn) {
-            magma_zinplace_transpose(dAT, dAT_offset, lddat, ldda, queue[0] );
+            magma_ztranspose_inplace(dAT, dAT_offset, lddat, ldda, queue[0] );
             magma_zgetmatrix( m, n, dA, dA_offset, ldda, a, 0, lda, queue[0] );
         } else {
             magma_ztranspose2( dA, dA_offset, ldda, dAT, dAT_offset, lddat, n, m, queue[0] );

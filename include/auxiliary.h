@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 */
 
 #ifndef MAGMA_AUXILIARY_H
@@ -11,19 +11,12 @@
 
 #include "magma_types.h"
 
-typedef struct magma_timestr_s
-{
-  unsigned int sec;
-  unsigned int usec;
-} magma_timestr_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-magma_timestr_t get_current_time(void);
-double GetTimerValue(magma_timestr_t time_1, magma_timestr_t time_2);
-double get_time(void);
+double magma_wtime();
+double magma_sync_wtime( magma_queue_t queue );
 
 void magma_print_devices();
 

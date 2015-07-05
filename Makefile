@@ -1,13 +1,13 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0-beta2) --
+#   -- clMAGMA (version 1.1.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date November 2013
+#      @date January 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 MAGMA_DIR = .
-include ./Makefile.internal
+include $(MAGMA_DIR)/Makefile.internal
 -include Makefile.local
 
 .PHONY: all lib libmagma test clean cleanall install shared
@@ -26,7 +26,7 @@ libmagma:
 	( cd interface_opencl && $(MAKE) )
 
 test: lib
-	@echo ======================================== test
+	@echo ======================================== testing
 	( cd testing          && $(MAKE) )
 
 clean:
@@ -43,7 +43,7 @@ cleanall:
 	( cd interface_opencl && $(MAKE) cleanall )
 	( cd testing          && $(MAKE) cleanall )
 	( cd testing/lin      && $(MAKE) cleanall )
-	( cd lib              && rm -f *.a )
+	( cd lib              && rm -f *.a *.so )
 	$(MAKE) cleanall2
 
 # cleanall2 is a dummy rule to run cleanmkgen at the *end* of make cleanall, so
@@ -58,11 +58,11 @@ dir:
 	mkdir -p $(prefix)/lib/pkgconfig
 
 install: lib dir
-#       MAGMA
+	# MAGMA
 	cp $(MAGMA_DIR)/include/*.h  $(prefix)/include
 	cp $(LIBMAGMA)               $(prefix)/lib
 	-cp $(LIBMAGMA_SO)           $(prefix)/lib
-#       pkgconfig
+	# pkgconfig
 	cat $(MAGMA_DIR)/lib/pkgconfig/clmagma.pc.in  | \
 	    sed -e s:@INSTALL_PREFIX@:"$(prefix)":    | \
 	    sed -e s:@INCLUDES@:"$(INC)":             | \
@@ -78,13 +78,13 @@ install: lib dir
 # Better solution would be to use non-recursive make, so make knows all the
 # objects in each subdirectory, or use libtool, or put rules for, e.g., the
 # control directory in src/Makefile (as done in src/CMakeLists.txt)
-LIBMAGMA_SO     = $(LIBMAGMA:.a=.so)
+LIBMAGMA_SO = $(LIBMAGMA:.a=.so)
 
 shared: lib
 	$(MAKE) $(LIBMAGMA_SO)
 
 $(LIBMAGMA_SO): src/*.o control/*.o interface_opencl/*.o
-	@echo ======================================== libmagma.so
+	@echo ======================================== $(LIBMAGMA_SO)
 	rm control/sizeptr.o interface_opencl/clcompile.o
 	$(CC) $(LDOPTS) -shared -o $(LIBMAGMA_SO) \
 	src/*.o control/*.o \

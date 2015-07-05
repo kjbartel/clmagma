@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:55:59 2013
+       @generated from dgesvd.cpp normal d -> s, Fri Jan 10 15:51:18 2014
 
 */
 #include "common_magma.h"
@@ -18,11 +18,11 @@ magma_sgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
              float *work, magma_int_t lwork_,
              magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -72,7 +72,7 @@ magma_sgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
     N       (input) INTEGER
             The number of columns of the input matrix A.  N >= 0.
 
-    A       (input/output) DOUBLE PRECISION array, dimension (LDA,N)
+    A       (input/output) REAL array, dimension (LDA,N)
             On entry, the M-by-N matrix A.
             On exit,
             if JOBU = 'O',  A is overwritten with the first min(m,n)
@@ -87,10 +87,10 @@ magma_sgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
     LDA     (input) INTEGER
             The leading dimension of the array A.  LDA >= max(1,M).
 
-    S       (output) DOUBLE PRECISION array, dimension (min(M,N))
+    S       (output) REAL array, dimension (min(M,N))
             The singular values of A, sorted so that S(i) >= S(i+1).
 
-    U       (output) DOUBLE PRECISION array, dimension (LDU,UCOL)
+    U       (output) REAL array, dimension (LDU,UCOL)
             (LDU,M) if JOBU = 'A' or (LDU,min(M,N)) if JOBU = 'S'.
             If JOBU = 'A', U contains the M-by-M unitary matrix U;
             if JOBU = 'S', U contains the first min(m,n) columns of U
@@ -101,7 +101,7 @@ magma_sgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
             The leading dimension of the array U.  LDU >= 1; if
             JOBU = 'S' or 'A', LDU >= M.
 
-    VT      (output) DOUBLE PRECISION array, dimension (LDVT,N)
+    VT      (output) REAL array, dimension (LDVT,N)
             If JOBVT = 'A', VT contains the N-by-N unitary matrix
             V**H;
             if JOBVT = 'S', VT contains the first min(m,n) rows of
@@ -112,7 +112,7 @@ magma_sgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
             The leading dimension of the array VT.  LDVT >= 1; if
             JOBVT = 'A', LDVT >= N; if JOBVT = 'S', LDVT >= min(M,N).
 
-    WORK    (workspace/output) DOUBLE PRECISION array, dimension (MAX(1,LWORK))
+    WORK    (workspace/output) REAL array, dimension (MAX(1,LWORK))
             On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
             if INFO > 0, WORK(2:MIN(M,N)) contains the unconverged
             superdiagonal elements of an upper bidiagonal matrix B

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:04 2013
+       @generated from zlarfgx-v2.cpp normal z -> s, Fri Jan 10 15:51:19 2014
 
 */
 
@@ -34,7 +34,7 @@
 */
 extern "C" magma_err_t
 magma_slarfgx_gpu(int n, magmaFloat_ptr dx0, size_t dx0_offset, magmaFloat_ptr dx, size_t dx_offset,  
-                  magmaFloat_ptr dtau, size_t dtau_offset, magmaDouble_ptr dxnorm, size_t dxnorm_offset,  
+                  magmaFloat_ptr dtau, size_t dtau_offset, magmaFloat_ptr dxnorm, size_t dxnorm_offset,  
                   magmaFloat_ptr dA, size_t dA_offset, int it,
                   magma_queue_t queue)
 {
@@ -56,7 +56,7 @@ magma_slarfgx_gpu(int n, magmaFloat_ptr dx0, size_t dx0_offset, magmaFloat_ptr d
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&dx_offset );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&dtau     );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&dtau_offset );
-    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaDouble_ptr), (void*)&dxnorm     );
+    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&dxnorm     );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&dxnorm_offset );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&dA     );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&dA_offset );
@@ -106,7 +106,7 @@ magma_slarfgx_gpu(int n, magmaFloat_ptr dx0, size_t dx0_offset, magmaFloat_ptr d
 */
 extern "C" magma_err_t
 magma_slarfgtx_gpu(int n, magmaFloat_ptr dx0, size_t dx0_offset, magmaFloat_ptr dx, size_t dx_offset,
-                   magmaFloat_ptr dtau, size_t dtau_offset, magmaDouble_ptr dxnorm, size_t dxnorm_offset, 
+                   magmaFloat_ptr dtau, size_t dtau_offset, magmaFloat_ptr dxnorm, size_t dxnorm_offset, 
                    magmaFloat_ptr dA, size_t dA_offset, int i, 
                    magmaFloat_ptr V, size_t V_offset, int ldv, magmaFloat_ptr T, size_t T_offset, int ldt, 
                    magmaFloat_ptr work, size_t work_offset, 

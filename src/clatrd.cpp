@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.1.0-beta2) --
+     -- clMAGMA (version 1.1.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date November 2013
+        @date January 2014
 
-        @generated c Mon Nov 25 17:55:59 2013
+        @generated from zlatrd.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -29,11 +29,11 @@ magma_clatrd(char uplo, magma_int_t n, magma_int_t nb,
              magmaFloatComplex_ptr da, size_t da_offset, magma_int_t ldda,
              magmaFloatComplex_ptr dw, size_t dw_offset, magma_int_t lddw, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

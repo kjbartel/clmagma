@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated s Mon Nov 25 17:56:10 2013
+ * @generated from testing_zposv_gpu.cpp normal z -> s, Fri Jan 10 15:51:19 2014
  *
  **/
 
@@ -91,12 +91,12 @@ int main(int argc, char **argv)
     ldda = ((N+31)/32) * 32;
    // ldda = N;
     lddb = ldda;
-    TESTING_MALLOC_HOST( hA, float, n2 );
-    TESTING_MALLOC_HOST( hB, float, N*NRHS );
-    TESTING_MALLOC_HOST( hX, float, N*NRHS );
-    TESTING_MALLOC_HOST( work, float, N );
-    TESTING_MALLOC_DEV(  dA, float, ldda*N );
-    TESTING_MALLOC_DEV(  dB, float, lddb*NRHS );
+    TESTING_MALLOC_PIN( hA, float, n2 );
+    TESTING_MALLOC_PIN( hB, float, N*NRHS );
+    TESTING_MALLOC_PIN( hX, float, N*NRHS );
+    TESTING_MALLOC_PIN( work, float, N );
+    TESTING_MALLOC_DEV( dA, float, ldda*N );
+    TESTING_MALLOC_DEV( dB, float, lddb*NRHS );
     
     printf("\n\n");
     printf("    N   NRHS   GPU GFlop/s (sec)   ||B - AX|| / ||A||*||X||\n");
@@ -134,9 +134,9 @@ int main(int argc, char **argv)
            =================================================================== */
         magma_ssetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
         magma_ssetmatrix( N, NRHS, hB, 0, lda, dB, 0, lddb, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_sposv_gpu( MagmaUpper, N, NRHS, dA, 0, ldda, dB, 0, lddb, &info, queue );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info != 0)
             printf( "magma_sposv had error %d.\n", info );
 
@@ -164,10 +164,10 @@ int main(int argc, char **argv)
     }
 
     /* clean up */
-    TESTING_FREE_HOST( hA );
-    TESTING_FREE_HOST( hB );
-    TESTING_FREE_HOST( hX );
-    TESTING_FREE_HOST( work );
+    TESTING_FREE_PIN( hA );
+    TESTING_FREE_PIN( hB );
+    TESTING_FREE_PIN( hX );
+    TESTING_FREE_PIN( work );
     TESTING_FREE_DEV( dA );
     TESTING_FREE_DEV( dB );
     magma_queue_destroy( queue );

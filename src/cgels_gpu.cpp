@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
        
-       @generated c Mon Nov 25 17:56:00 2013
+       @generated from zgels_gpu.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
 */
 #include "common_magma.h"
@@ -21,7 +21,7 @@ magma_cgels_gpu( magma_trans_t trans, magma_int_t m, magma_int_t n, magma_int_t 
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

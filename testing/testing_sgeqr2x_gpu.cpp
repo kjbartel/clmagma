@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:10 2013
+       @generated from testing_zgeqr2x_gpu.cpp normal z -> s, Fri Jan 10 15:51:20 2014
 
 */
 
@@ -45,7 +45,7 @@ magma_sgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
         magmaFloat_ptr dtau, size_t dtau_offset, 
         magmaFloat_ptr dT, size_t dT_offset, 
         magmaFloat_ptr ddA, size_t ddA_offset, 
-        magmaDouble_ptr dwork, size_t dwork_offset, 
+        magmaFloat_ptr dwork, size_t dwork_offset, 
         magma_int_t *info, magma_queue_t queue);
 
 /* ////////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ int main( int argc, char** argv)
     float  c_neg_one = MAGMA_S_NEG_ONE;
     float *h_A, *h_T, *h_R, *tau, *h_work, tmp[1];
     magmaFloat_ptr d_A, d_T, ddA, dtau;
-    magmaDouble_ptr dwork;
+    magmaFloat_ptr dwork;
 
     /* Matrix size */
     magma_int_t M = 0, N = 0, n2, lda, ldda, lwork;
@@ -140,18 +140,17 @@ int main( int argc, char** argv)
     }
 
     /* Allocate memory for the matrix */
-    TESTING_MALLOC_HOST(    tau, float, min_mn );
-    TESTING_MALLOC_HOST(    h_A, float, n2     );
-    TESTING_MALLOC_HOST(    h_T, float,    N*N );
+    TESTING_MALLOC_PIN( tau, float, min_mn );
+    TESTING_MALLOC_PIN( h_A, float, n2     );
+    TESTING_MALLOC_PIN( h_T, float, N*N    );
+    TESTING_MALLOC_PIN( h_R, float, n2     );
 
-    TESTING_MALLOC_HOST( h_R, float, n2     );
-
-    TESTING_MALLOC_DEV(  d_A, float, ldda*N );
-    TESTING_MALLOC_DEV(  d_T, float,    N*N );
-    TESTING_MALLOC_DEV(  ddA, float,    N*N );
+    TESTING_MALLOC_DEV( d_A,  float, ldda*N );
+    TESTING_MALLOC_DEV( d_T,  float, N*N    );
+    TESTING_MALLOC_DEV( ddA,  float, N*N    );
     TESTING_MALLOC_DEV( dtau, float, min_mn );
 
-    TESTING_MALLOC_DEV(dwork, float, max(5*min_mn, (32*2+2)*min_mn) );
+    TESTING_MALLOC_DEV( dwork, float, max(5*min_mn, (32*2+2)*min_mn) );
 
     float *h1 = (float*)malloc(sizeof(float)*N*N);
     memset(h1, 0, N*N*sizeof(float));
@@ -164,7 +163,7 @@ int main( int argc, char** argv)
     lwork = (magma_int_t)MAGMA_S_REAL( tmp[0] );
     lwork = max(lwork, N*N);
 
-    TESTING_MALLOC_HOST( h_work, float, lwork );
+    TESTING_MALLOC_PIN( h_work, float, lwork );
 
     printf("  M     N     CPU GFlop/s (ms)    GPU GFlop/s (ms)   ||R||_F/||A||_F  ||R_T||\n");
     printf("=============================================================================\n");
@@ -175,7 +174,7 @@ int main( int argc, char** argv)
         lda   = M;
         n2    = lda*N;
         ldda  = ((M+31)/32)*32;
-        gflops = (FLOPS_SGEQRF( M, N ) + FLOPS_ZGEQRT( M, N)) / 1e9;
+        gflops = (FLOPS_SGEQRF( M, N ) + FLOPS_SGEQRT( M, N)) / 1e9;
 
         /* Initialize the matrix */
         magma_int_t ISEED[4] = {0,0,0,1};
@@ -196,9 +195,9 @@ int main( int argc, char** argv)
         clEnqueueWriteBuffer(queue, d_T, CL_TRUE, 0, sizeof(float)*N*N, h1, 0, NULL, NULL);
 */
        
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_sgeqr2x3_gpu(&M, &N, d_A, 0, &ldda, dtau, 0, d_T, 0, ddA, 0, dwork, 0, &info, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         if (info != 0)
             printf("magma_sgeqrf returned error %d.\n", (int) info);
@@ -207,12 +206,12 @@ int main( int argc, char** argv)
             /* =====================================================================
                Performs operation using LAPACK
                =================================================================== */
-            cpu_time = get_time();
+            cpu_time = magma_wtime();
             lapackf77_sgeqrf(&M, &N, h_A, &lda, tau, h_work, &lwork, &info);
             lapackf77_slarft( MagmaForwardStr, MagmaColumnwiseStr,
                               &M, &N, h_A, &lda, tau, h_work, &N);
 
-            cpu_time = get_time() - cpu_time;
+            cpu_time = magma_wtime() - cpu_time;
             cpu_perf = gflops / cpu_time;
             if (info != 0)
                 printf("lapackf77_sgeqrf returned error %d.\n", (int) info);
@@ -254,11 +253,12 @@ int main( int argc, char** argv)
     }
     
     /* Memory clean up */
-    TESTING_FREE_HOST( tau );
-    TESTING_FREE_HOST( h_A );
-    TESTING_FREE_HOST( h_T );
-    TESTING_FREE_HOST( h_work );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_PIN( tau );
+    TESTING_FREE_PIN( h_A );
+    TESTING_FREE_PIN( h_T );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_R );
+    
     TESTING_FREE_DEV( d_A  );
     TESTING_FREE_DEV( d_T  );
     TESTING_FREE_DEV( ddA  );

@@ -1,9 +1,9 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
    @precisions normal z -> s d c
 
@@ -20,11 +20,11 @@ magma_zgetri_gpu( magma_int_t n, magmaDoubleComplex_ptr dA, size_t dA_offset, ma
         magma_int_t *ipiv, magmaDoubleComplex_ptr dwork, size_t dwork_offset, magma_int_t lwork,
         magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date November 2013
+    @date January 2014
 
     Purpose
     =======

@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated c Mon Nov 25 17:56:10 2013
+ * @generated from testing_zpotrf_gpu.cpp normal z -> c, Fri Jan 10 15:51:19 2014
  *
  **/
 
@@ -83,9 +83,9 @@ int main( int argc, char** argv)
     N    = size[9];
     n2   = N * N;
     ldda = ((N+31)/32) * 32;
-    TESTING_MALLOC(      hA, magmaFloatComplex, n2 );
-    TESTING_MALLOC_HOST( hR, magmaFloatComplex, n2 );
-    TESTING_MALLOC_DEV(  dA, magmaFloatComplex, ldda*N );
+    TESTING_MALLOC_CPU( hA, magmaFloatComplex, n2 );
+    TESTING_MALLOC_PIN( hR, magmaFloatComplex, n2 );
+    TESTING_MALLOC_DEV( dA, magmaFloatComplex, ldda*N );
     
     printf("\n\n");
     printf("  N    CPU GFlop/s (sec)    GPU GFlop/s (sec)    ||R_magma-R_lapack||_F / ||R_lapack||_F\n");
@@ -116,9 +116,9 @@ int main( int argc, char** argv)
            Performs operation using MAGMA
            =================================================================== */
         magma_csetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_cpotrf_gpu( MagmaUpper, N, dA, 0, ldda, &info, queue );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info != 0)
             printf( "magma_cpotrf had error %d.\n", info );
 
@@ -127,9 +127,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_cpotrf( MagmaUpperStr, &N, hA, &lda, &info );
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info != 0)
             printf( "lapackf77_cpotrf had error %d.\n", info );
         
@@ -151,8 +151,8 @@ int main( int argc, char** argv)
     }
 
     /* clean up */
-    TESTING_FREE( hA );
-    TESTING_FREE_HOST( hR );
+    TESTING_FREE_CPU( hA );
+    TESTING_FREE_PIN( hR );
     TESTING_FREE_DEV( dA );
     magma_queue_destroy( queue );
     magma_finalize();

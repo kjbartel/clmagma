@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     @precisions normal d -> s
 
@@ -110,12 +110,12 @@ int main( int argc, char** argv)
     liwork = aux_iwork[0];
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(    h_A, double, N*N );
-    TESTING_MALLOC(    w1,  double, N   );
-    TESTING_MALLOC(    w2,  double, N   );
-    TESTING_MALLOC_HOST( h_R, double, N*N );
-    TESTING_MALLOC_HOST( h_work, double,      lwork  );
-    TESTING_MALLOC(    iwork,  magma_int_t, liwork );
+    TESTING_MALLOC_CPU( h_A,    double, N*N );
+    TESTING_MALLOC_CPU( w1,     double, N   );
+    TESTING_MALLOC_CPU( w2,     double, N   );
+    TESTING_MALLOC_PIN( h_R,    double, N*N );
+    TESTING_MALLOC_PIN( h_work, double,      lwork  );
+    TESTING_MALLOC_CPU( iwork,  magma_int_t, liwork );
     
     printf("  N     CPU Time(s)    GPU Time(s) \n");
     printf("===================================\n");
@@ -155,13 +155,13 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dsyevd(jobz, uplo,
                      N, h_R, N, w1,
                      h_work, lwork,
                      iwork, liwork,
                      &info, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
 
         lwork  = lwork_save;
         liwork = liwork_save;
@@ -202,13 +202,13 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dsyevd(lapack_const(jobz), lapack_const(uplo),
                          &N, h_A, &N, w2,
                          h_work, &lwork,
                          iwork, &liwork,
                          &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of dsyevd had an illegal value.\n", (int) -info);
 
@@ -229,12 +229,12 @@ int main( int argc, char** argv)
     }
  
     /* Memory clean up */
-    TESTING_FREE(     h_A    );
-    TESTING_FREE(     w1     );
-    TESTING_FREE(     w2     );
-    TESTING_FREE(     iwork  );
-    TESTING_FREE_HOST( h_work );
-    TESTING_FREE_HOST( h_R    );
+    TESTING_FREE_CPU( h_A   );
+    TESTING_FREE_CPU( w1    );
+    TESTING_FREE_CPU( w2    );
+    TESTING_FREE_CPU( iwork );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_R    );
 
     /* Shutdown */
     magma_queue_destroy( queue );

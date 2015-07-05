@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -130,14 +130,14 @@ int main( int argc, char** argv)
         gflops = FLOPS_ZGEQRF( (double)M, (double)N ) / 1e9;
 
         /* Allocate host memory for the matrix */
-        TESTING_MALLOC( tau, magmaDoubleComplex, min_mn );
-        TESTING_MALLOC( h_R, magmaDoubleComplex, n2 );
+        TESTING_MALLOC_CPU( tau, magmaDoubleComplex, min_mn );
+        TESTING_MALLOC_CPU( h_R, magmaDoubleComplex, n2 );
 
         /* Allocate host workspace */
         lhwork = -1;
         lapackf77_zgeqrf(&M, &N, h_R, &M, tau, tmp, &lhwork, &info);
         lhwork = (magma_int_t)MAGMA_Z_REAL( tmp[0] );
-        TESTING_MALLOC( h_work, magmaDoubleComplex, lhwork );
+        TESTING_MALLOC_CPU( h_work, magmaDoubleComplex, lhwork );
 
         /* Allocate device memory for the matrix */
         for (int j=0; j<tot_subs; j++) {      
@@ -166,9 +166,9 @@ int main( int argc, char** argv)
         magma_zgeqrf_msub(num_subs, num_gpus, M, N, d_lA, ldda, tau, &info, queues);
 
         magmablas_zsetmatrix_1D_bcyclic(M, N, h_R, lda, d_lA, ldda, tot_subs, nb, trans_queues);
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_zgeqrf_msub(num_subs, num_gpus, M, N, d_lA, ldda, tau, &info, queues);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
 
         if (info < 0)
@@ -179,15 +179,15 @@ int main( int argc, char** argv)
                Check the result compared to LAPACK
                =================================================================== */
             magmablas_zgetmatrix_1D_bcyclic(M, N, d_lA, ldda, h_R, lda, tot_subs, nb, trans_queues);
-            TESTING_MALLOC( h_A, magmaDoubleComplex, n2 );
+            TESTING_MALLOC_CPU( h_A, magmaDoubleComplex, n2 );
             init_matrix( M, N, h_A, lda );
 
             /* =====================================================================
                Performs operation using LAPACK
                =================================================================== */
-            cpu_time = get_time();
+            cpu_time = magma_wtime();
             lapackf77_zgeqrf(&M, &N, h_A, &lda, tau, h_work, &lhwork, &info);
-            cpu_time = get_time() - cpu_time;
+            cpu_time = magma_wtime() - cpu_time;
             cpu_perf = gflops / cpu_time;
 
             if (info < 0)
@@ -200,15 +200,15 @@ int main( int argc, char** argv)
                    (int) M, (int) N, cpu_perf, cpu_time, gpu_perf, gpu_time,
                    lapackf77_zlange("f", &M, &N, h_R, &M, work) / matnorm);
 
-            TESTING_FREE_HOST( h_A );
+            TESTING_FREE_PIN( h_A );
         } else {
             printf("%5d %5d            -- ( -- )       %6.2f (%6.2f)           --\n",
                    (int) M, (int) N, gpu_perf, gpu_time );
         }
         /* Memory clean up */
-        TESTING_FREE_HOST( tau );
-        TESTING_FREE_HOST( h_work );
-        TESTING_FREE_HOST( h_R );
+        TESTING_FREE_PIN( tau );
+        TESTING_FREE_PIN( h_work );
+        TESTING_FREE_PIN( h_R );
         for (int j=0; j<tot_subs; j++) {
             TESTING_FREE_DEV( d_lA[j] );
         }

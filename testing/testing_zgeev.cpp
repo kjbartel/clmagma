@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> c
 
@@ -90,16 +90,15 @@ int main( int argc, char** argv)
     w2i   = NULL;
     rwork = NULL;
 
-    TESTING_MALLOC( w1,  magmaDoubleComplex, N );
-    TESTING_MALLOC( w2,  magmaDoubleComplex, N );
-
-    TESTING_MALLOC( rwork, double, 2*N ); /* Why is it existing in real ??? */
-
-    TESTING_MALLOC   ( h_A, magmaDoubleComplex, n2);
-    TESTING_MALLOC_HOST( h_R, magmaDoubleComplex, n2);
-    TESTING_MALLOC_HOST( VL , magmaDoubleComplex, n2);
-    TESTING_MALLOC_HOST( VR , magmaDoubleComplex, n2);
-    TESTING_MALLOC_HOST( h_work, magmaDoubleComplex, lwork);
+    TESTING_MALLOC_CPU( w1,     magmaDoubleComplex, N     );
+    TESTING_MALLOC_CPU( w2,     magmaDoubleComplex, N     );
+    TESTING_MALLOC_CPU( rwork,  double,             2*N   );
+    TESTING_MALLOC_CPU( h_A,    magmaDoubleComplex, n2    );
+    
+    TESTING_MALLOC_PIN( h_R,    magmaDoubleComplex, n2    );
+    TESTING_MALLOC_PIN( VL,     magmaDoubleComplex, n2    );
+    TESTING_MALLOC_PIN( VR,     magmaDoubleComplex, n2    );
+    TESTING_MALLOC_PIN( h_work, magmaDoubleComplex, lwork );
     
     /* Initialize */
     magma_queue_t  queue;
@@ -144,26 +143,26 @@ int main( int argc, char** argv)
                     h_work, lwork, rwork, &info, queue);
         
         lapackf77_zlacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_zgeev(jobl, jobr,
                     N, h_R, lda, w1,
                     VL, lda, VR, lda,
                     h_work, lwork, rwork, &info, queue);
 
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
             printf("Argument %d of magma_zgeev had an illegal value.\n", (int) -info);
 
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_zgeev(lapack_const(jobl), lapack_const(jobr),
                         &N, h_A, &lda, w2,
                         VL, &lda, VR, &lda,
                         h_work, &lwork, rwork, &info);
 
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of zgeev had an illegal value.\n", (int) -info);
 
@@ -217,7 +216,7 @@ int main( int argc, char** argv)
             double ulp, ulpinv, vmx, vrmx, vtst;
 
             magmaDoubleComplex *LRE, DUM;
-            TESTING_MALLOC_HOST( LRE , magmaDoubleComplex, n2);
+            TESTING_MALLOC_PIN( LRE, magmaDoubleComplex, n2 );
 
             ulp = lapackf77_dlamch( "P" );
             ulpinv = 1./ulp;
@@ -387,7 +386,7 @@ int main( int argc, char** argv)
             printf("%5d     %6.2f         %6.2f         %e\n",
                    (int) N, cpu_time, gpu_time, result[7]);
 
-            TESTING_FREE_HOST( LRE );
+            TESTING_FREE_PIN( LRE );
           }
         else
           {
@@ -400,15 +399,14 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE(w1);
-    TESTING_FREE(w2);
-
-    TESTING_FREE(rwork);
-    TESTING_FREE( h_A );
-    TESTING_FREE_HOST(  h_R );
-    TESTING_FREE_HOST(  VL  );
-    TESTING_FREE_HOST(  VR  );
-    TESTING_FREE_HOST(h_work);
+    TESTING_FREE_CPU( w1 );
+    TESTING_FREE_CPU( w2 );
+    TESTING_FREE_CPU( rwork );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_PIN( h_R );
+    TESTING_FREE_PIN( VL  );
+    TESTING_FREE_PIN( VR  );
+    TESTING_FREE_PIN( h_work );
 
     /* Shutdown */
     magma_queue_destroy( queue );

@@ -1,12 +1,12 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
-       @generated d Mon Nov 25 17:55:59 2013
+       @generated from zpotrf.cpp normal z -> d, Fri Jan 10 15:51:17 2014
 */
 #include "common_magma.h"
 
@@ -19,11 +19,11 @@ magma_dpotrf(magma_uplo_t uplo, magma_int_t n,
              double *a, magma_int_t lda, magma_int_t *info,
              magma_queue_t* queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

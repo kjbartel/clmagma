@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 */
@@ -67,9 +67,9 @@ void magmablas_zgemm_reduce_kernel(int k, magmaDoubleComplex alpha,
         const int i = get_local_id(0);
 
         /*
-        const cuDoubleComplex *dA = d_A + (blockIdx.x*BLK_M + threadIdx.y) * lda;
-        const cuDoubleComplex *dB = d_B + (blockIdx.y*BLK_N + threadIdx.z) * ldb;
-        cuDoubleComplex *dC = d_C + blockIdx.x*BLK_M + blockIdx.y*BLK_N * ldc;
+        const magmaDoubleComplex *dA = d_A + (blockIdx.x*BLK_M + threadIdx.y) * lda;
+        const magmaDoubleComplex *dB = d_B + (blockIdx.y*BLK_N + threadIdx.z) * ldb;
+        magmaDoubleComplex *dC = d_C + blockIdx.x*BLK_M + blockIdx.y*BLK_N * ldc;
         */
 
         d_A += (get_group_id(0)*BLK_M + get_local_id(1)) * lda;

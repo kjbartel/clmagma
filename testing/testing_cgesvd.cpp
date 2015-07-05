@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:10 2013
+       @generated from testing_zgesvd.cpp normal z -> c, Fri Jan 10 15:51:20 2014
 
 */
 
@@ -154,16 +154,16 @@ int main( int argc, char** argv)
     }
     
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(h_A, magmaFloatComplex,  n2);
-    TESTING_MALLOC( VT, magmaFloatComplex, N*N);
-    TESTING_MALLOC(  U, magmaFloatComplex, M*M);
-    TESTING_MALLOC( S1, float,       min_mn);
-    TESTING_MALLOC( S2, float,       min_mn);
+    TESTING_MALLOC_CPU( h_A, magmaFloatComplex, n2  );
+    TESTING_MALLOC_CPU( VT,  magmaFloatComplex, N*N );
+    TESTING_MALLOC_CPU( U,   magmaFloatComplex, M*M );
+    TESTING_MALLOC_CPU( S1,  float, min_mn );
+    TESTING_MALLOC_CPU( S2,  float, min_mn );
 
 #if defined(PRECISION_z) || defined(PRECISION_c)
-    TESTING_MALLOC(rwork, float,   5*min_mn);
+    TESTING_MALLOC_CPU( rwork, float, 5*min_mn );
 #endif
-    TESTING_MALLOC_HOST(h_R, magmaFloatComplex, n2);
+    TESTING_MALLOC_PIN( h_R, magmaFloatComplex, n2 );
 
     magma_int_t nb = magma_get_cgesvd_nb(N);
     magma_int_t lwork;
@@ -181,7 +181,7 @@ int main( int argc, char** argv)
 #endif
     }
 
-    TESTING_MALLOC_HOST(h_work, magmaFloatComplex, lwork);
+    TESTING_MALLOC_PIN( h_work, magmaFloatComplex, lwork );
     
     const char* jobs[] = { "None", "Some", "Over", "All" };
 
@@ -227,7 +227,7 @@ int main( int argc, char** argv)
             #endif
             for(int j=0;j<n2;j++)
                 h_R[j] = h_A[j];
-            gpu_time = get_time();
+            gpu_time = magma_wtime();
             #if defined(PRECISION_z) || defined(PRECISION_c)
             magma_cgesvd( jobu[0], jobv[0], M, N,
                           h_R, M, S1, U, M,
@@ -237,7 +237,7 @@ int main( int argc, char** argv)
                           h_R, M, S1, U, M,
                           VT, N, h_work, lwork, &info, queue );
             #endif
-            gpu_time = get_time() - gpu_time;
+            gpu_time = magma_wtime() - gpu_time;
 
             if (info != 0)
                 printf("magma_cgesvd returned error %d.\n", (int) info);
@@ -258,7 +258,7 @@ int main( int argc, char** argv)
                 float *E;
                 magmaFloatComplex *h_work_err;
                 magma_int_t lwork_err = max(5*min_mn, (3*min_mn + max(M,N)))*128;
-                TESTING_MALLOC(h_work_err, magmaFloatComplex, lwork_err);
+                TESTING_MALLOC_CPU( h_work_err, magmaFloatComplex, lwork_err );
                 
                 // get size and location of U and V^T depending on jobu and jobv
                 // U2=NULL and VT2=NULL if they were not computed (e.g., jobu=N)
@@ -318,14 +318,14 @@ int main( int argc, char** argv)
                 result[1] *= eps;
                 result[2] *= eps;
                 
-                TESTING_FREE( h_work_err );
+                TESTING_FREE_CPU( h_work_err );
             }
     
             /* =====================================================================
                Performs operation using LAPACK
                =================================================================== */
             if ( lapack ) {
-                cpu_time = get_time();
+                cpu_time = magma_wtime();
                 #if defined(PRECISION_z) || defined(PRECISION_c)
                 lapackf77_cgesvd( jobu, jobv, &M, &N,
                                   h_A, &M, S2, U, &M,
@@ -335,7 +335,7 @@ int main( int argc, char** argv)
                                   h_A, &M, S2, U, &M,
                                   VT, &N, h_work, &lwork, &info);
                 #endif
-                cpu_time = get_time() - cpu_time;
+                cpu_time = magma_wtime() - cpu_time;
                 if (info != 0)
                     printf("lapackf77_cgesvd returned error %d.\n", (int) info);
                 
@@ -370,16 +370,16 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE(       h_A);
-    TESTING_FREE(        VT);
-    TESTING_FREE(        S1);
-    TESTING_FREE(        S2);
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_CPU( VT  );
+    TESTING_FREE_CPU( S1  );
+    TESTING_FREE_CPU( S2  );
 #if defined(PRECISION_z) || defined(PRECISION_c)
-    TESTING_FREE(     rwork);
+    TESTING_FREE_CPU( rwork );
 #endif
-    TESTING_FREE(         U);
-    TESTING_FREE_HOST(h_work);
-    TESTING_FREE_HOST(   h_R);
+    TESTING_FREE_CPU( U );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_R );
 
     /* Shutdown */
     magma_queue_destroy( queue );

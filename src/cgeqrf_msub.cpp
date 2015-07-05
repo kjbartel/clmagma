@@ -1,14 +1,19 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
-   @generated c Mon Nov 25 17:56:00 2013
+   @generated from zgeqrf_msub.cpp normal z -> c, Fri Jan 10 15:51:18 2014
 
  */
 #include "common_magma.h"
+
+#define USE_PINNED_CLMEMORY
+#ifdef  USE_PINNED_CLMEMORY
+extern cl_context gContext;
+#endif
 
 extern "C" magma_err_t
 magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus, 
@@ -17,11 +22,11 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                    magmaFloatComplex *tau, 
                    magma_int_t *info, magma_queue_t *queues)
 {
-    /*  -- clMAGMA (version 1.1.0-beta2) --
+    /*  -- clMAGMA (version 1.1.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date November 2013
+        @date January 2014
 
         Purpose
         =======
@@ -82,10 +87,12 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
 
 #define hwrk_ref(a_1)    ( local_work + (a_1))
 #define lhwrk            ( local_work + (nb)*(m))
+#define hwrk_off(a_1)      local_work,  (a_1)
+#define lhwrk_off          local_work,  (nb)*(m)
 
     magmaFloatComplex_ptr dwork[MagmaMaxGPUs], panel[MagmaMaxGPUs];
     size_t panel_offset[MagmaMaxGPUs];
-    magmaFloatComplex *local_work;
+    magmaFloatComplex *local_work = NULL;
 
     magma_int_t i, j, k, ldwork, lddwork, old_i, old_ib, rows;
     magma_int_t nbmin, nx, ib, nb;
@@ -132,16 +139,22 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
         else if (i == (n/nb)%tot_subs)
             n_local[i] += n%nb;
     }
-
+    #ifdef USE_PINNED_CLMEMORY
+    cl_mem buffer = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(magmaFloatComplex)*lwork, NULL, NULL);
+    for (j=0; j<num_gpus; j++) {
+        local_work = (magmaFloatComplex*)clEnqueueMapBuffer(queues[2*j], buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0,
+                                                       sizeof(magmaFloatComplex)*lwork, 0, NULL, NULL, NULL);
+    }
+    #else
     if (MAGMA_SUCCESS != magma_cmalloc_cpu( (&local_work), lwork )) {
         *info = -9;
         for (i=0; i<num_gpus; i++) {
             magma_free( dwork[i] );
         }
-
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
     }
+    #endif
 
     nbmin = 2;
     nx    = nb;
@@ -164,7 +177,7 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
             magma_queue_sync(queues[2*(panel_id%num_gpus)]);
             magma_cgetmatrix_async( rows, ib,
                                     dlA(panel_id, i, i_local), ldda,
-                                    hwrk_ref(i), 0, ldwork, 
+                                    hwrk_off(i), ldwork, 
                                     queues[2*(panel_id%num_gpus)+1], NULL );
 
             if (i > 0) {
@@ -183,7 +196,7 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
 
                 la_id = ((i-nb)/nb)%tot_subs;
                 magma_csetmatrix_async( old_ib, old_ib,
-                                        hwrk_ref(old_i), 0, ldwork,
+                                        hwrk_off(old_i), ldwork,
                                         panel[la_id%num_gpus], panel_offset[la_id%num_gpus], ldda, 
                                         queues[2*(la_id%num_gpus)], NULL );
             }
@@ -212,13 +225,13 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                 }
                 magma_queue_sync( queues[2*j] );
                 magma_csetmatrix_async( rows, ib,
-                                        hwrk_ref(i), 0, ldwork,
+                                        hwrk_off(i), ldwork,
                                         panel[j], panel_offset[j], ldda, 
                                         queues[2*j+1], NULL );
 
                 /* Send the T matrix to the GPU. 
                    Has to be done with asynchronous copies */
-                magma_csetmatrix_async( ib, ib, lhwrk, 0, ib,
+                magma_csetmatrix_async( ib, ib, lhwrk_off, ib,
                                         dwork[j], 0, lddwork, 
                                         queues[2*j+1], NULL );
             }
@@ -279,7 +292,7 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                     cq_to_panel( MagmaUpper, ib, hwrk_ref(i), ldwork, lhwrk+ib*ib ); 
                     
                     magma_csetmatrix( ib, ib,
-                                      hwrk_ref(i), 0, ldwork,
+                                      hwrk_off(i), ldwork,
                                       dlA(panel_id, i, i_local), ldda,
                                       queues[2*(panel_id%num_gpus)]);
                 }
@@ -291,7 +304,7 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
         i = 0;
     }
 
-    for(j=0; j<num_gpus; j++){
+    for (j=0; j<num_gpus; j++) {
         magma_free( dwork[j] );
     }
 
@@ -306,19 +319,21 @@ magma_cgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
 
         magma_cgetmatrix( rows, ib,
                           dlA(panel_id, i, i_loc), ldda,
-                          lhwrk, 0, rows, 
+                          lhwrk_off, rows, 
                           queues[2*(panel_id%num_gpus)]);
 
         lhwork = lwork - rows*ib;
         lapackf77_cgeqrf(&rows, &ib, lhwrk, &rows, tau+i, lhwrk+ib*rows, &lhwork, info);
 
         magma_csetmatrix( rows, ib,
-                          lhwrk, 0, rows,
+                          lhwrk_off, rows,
                           dlA(panel_id, i, i_loc), ldda, 
                           queues[2*(panel_id%num_gpus)]);
     }
-
+    #ifdef USE_PINNED_CLMEMORY
+    #else
     magma_free_cpu( local_work );
+    #endif
 
     return *info;
 } /* magma_cgeqrf_msub */

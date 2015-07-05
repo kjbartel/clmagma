@@ -1,9 +1,9 @@
 /*
-    -- MAGMA (version 1.1.0-beta2) --
+    -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -12,17 +12,22 @@
 #include <stdio.h>
 #include "common_magma.h"
 
+#define USE_PINNED_CLMEMORY
+#ifdef  USE_PINNED_CLMEMORY
+extern cl_context gContext;
+#endif
+
 extern "C" magma_err_t
 magma_zpotrf_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t n, 
                   magmaDoubleComplex_ptr *d_lA, size_t dA_offset, 
                   magma_int_t ldda, magma_int_t *info, 
                   magma_queue_t *queues)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose   
     =======   
@@ -108,7 +113,7 @@ magma_zpotrf_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t n,
         magma_free_cpu( work );
     } else {
         lddp = 32*((n+31)/32);
-        for( d=0; d<num_gpus; d++ ) {
+        for (d=0; d<num_gpus; d++) {
             if (MAGMA_SUCCESS != magma_zmalloc( &dwork[d], num_gpus*nb*lddp )) {
                 for( j=0; j<d; j++ ) magma_free( dwork[j] );
                 *info = MAGMA_ERR_DEVICE_ALLOC;
@@ -116,14 +121,24 @@ magma_zpotrf_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t n,
             }
         }
         h = 1; //num_gpus; //(n+nb-1)/nb;
+        #ifdef USE_PINNED_CLMEMORY
+        cl_mem buffer = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(magmaDoubleComplex)*n*nb*h, NULL, NULL);
+        for (d=0; d<num_gpus; d++) {
+            work = (magmaDoubleComplex*)clEnqueueMapBuffer(queues[2*d], buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 
+                                                           sizeof(magmaDoubleComplex)*n*nb*h, 0, NULL, NULL, NULL);
+        }
+        #else
         if (MAGMA_SUCCESS != magma_zmalloc_cpu( &work, n*nb*h )) {
             *info = MAGMA_ERR_HOST_ALLOC;
             return *info;
         }
+        #endif
         if (uplo == MagmaUpper) {
             /* with two queues for each device */
             magma_zpotrf2_msub(num_subs, num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, 
                                dwork, lddp, work, n, h, info, queues);
+            //magma_zpotrf3_msub(num_subs, num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, 
+            //                   dwork, lddp, work, n, h, info, queues);
             /* with three streams */
             //magma_zpotrf3_msub(num_gpus, uplo, n, n, 0, 0, nb, d_lA, ldda, dwork, lddp, work, n,  
             //                   h, stream, event, info);
@@ -131,14 +146,25 @@ magma_zpotrf_msub(int num_subs, int num_gpus, magma_uplo_t uplo, magma_int_t n,
             /* with two queues for each device */
             magma_zpotrf2_msub(num_subs, num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, 
                                dwork, lddp, work, nb*h, h, info, queues);
+            //magma_zpotrf3_msub(num_subs, num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, 
+            //                   dwork, lddp, work, nb*h, h, info, queues);
+            //magma_zpotrf4_msub(num_subs, num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, 
+            //                   dwork, lddp, work, nb*h, h, info, queues);
             /* with three streams */
             //magma_zpotrf3_msub(num_gpus, uplo, n, n, 0, 0, nb, d_lA, ldda, dwork, lddp, work, nb*h, 
             //                   h, stream, event, info);
         }
 
         /* clean up */
-        for( d=0; d<num_gpus; d++ ) magma_free( dwork[d] );
+        for (d=0; d<num_gpus; d++) magma_free( dwork[d] );
+        #ifdef USE_PINNED_CLMEMORY
+        for (d=0; d<num_gpus; d++) {
+            clEnqueueUnmapMemObject(queues[2*d], buffer, work, 0, NULL, NULL);
+        }
+        clReleaseMemObject( buffer );
+        #else
         magma_free_cpu( work );
+        #endif
     } /* end of not lapack */
 
     return *info;

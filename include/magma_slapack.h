@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
- * @generated s Mon Nov 25 17:55:49 2013
+ * @generated from magma_zlapack.h normal z -> s, Fri Jan 10 15:51:16 2014
  */
 
 #ifndef MAGMA_SLAPACK_H
@@ -40,7 +40,7 @@ extern "C" {
 #define blasf77_ssyr2k     FORTRAN_NAME( ssyr2k, SSYR2K )
 #define blasf77_ssyrk      FORTRAN_NAME( ssyrk,  SSYRK  )
 #define blasf77_sscal      FORTRAN_NAME( sscal,  SSCAL  )
-#define blasf77_ssscal     FORTRAN_NAME( sscal, SSCAL ) 
+#define blasf77_sscal     FORTRAN_NAME( sscal, SSCAL ) 
 #define blasf77_ssymm      FORTRAN_NAME( ssymm,  SSYMM  )
 #define blasf77_ssyr2k     FORTRAN_NAME( ssyr2k, SSYR2K )
 #define blasf77_ssyrk      FORTRAN_NAME( ssyrk,  SSYRK  )
@@ -179,7 +179,7 @@ void    blasf77_ssyrk( const char *, const char *, const int *, const int *, flo
                        const int *);
 void    blasf77_sscal( const int *, float *, float *, const int *);
 #if defined(PRECISION_z) || defined(PRECISION_c)
-void    blasf77_ssscal( const int *, float *, float *, const int *);
+void    blasf77_sscal( const int *, float *, float *, const int *);
 #endif
 void    blasf77_ssymm( const char *, const char *, const int *, const int *, 
                        float *, float *, const int *, 

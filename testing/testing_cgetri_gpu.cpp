@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:10 2013
+       @generated from testing_zgetri_gpu.cpp normal z -> c, Fri Jan 10 15:51:20 2014
 
 */
 
@@ -91,12 +91,12 @@ int main( int argc, char** argv)
     /* Allocate memory */
     n2   = N * N;
     ldda = ((N+31)/32) * 32;
-    TESTING_MALLOC(    ipiv,  magma_int_t,     N      );
-    TESTING_MALLOC(    work,  magmaFloatComplex, lwork  );
-    TESTING_MALLOC(    h_A,   magmaFloatComplex, n2     );
-    TESTING_MALLOC_HOST( h_R,   magmaFloatComplex, n2     );
-    TESTING_MALLOC_DEV(  d_A,   magmaFloatComplex, ldda*N );
-    TESTING_MALLOC_DEV(  dwork, magmaFloatComplex, ldwork );
+    TESTING_MALLOC_CPU( ipiv,  magma_int_t,        N      );
+    TESTING_MALLOC_CPU( work,  magmaFloatComplex, lwork  );
+    TESTING_MALLOC_CPU( h_A,   magmaFloatComplex, n2     );
+    TESTING_MALLOC_PIN( h_R,   magmaFloatComplex, n2     );
+    TESTING_MALLOC_DEV( d_A,   magmaFloatComplex, ldda*N );
+    TESTING_MALLOC_DEV( dwork, magmaFloatComplex, ldwork );
 
     printf("  N    CPU GFlop/s    GPU GFlop/s    ||R||_F / ||A||_F\n");
     printf("========================================================\n");
@@ -128,9 +128,9 @@ int main( int argc, char** argv)
         magma_cgetri_gpu( N,    d_A, 0, ldda, ipiv, dwork, 0, ldwork, &info, queue );
         
         magma_csetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_cgetri_gpu( N,    d_A, 0, ldda, ipiv, dwork, 0, ldwork, &info, queue );
-        gpu_time = get_time()-gpu_time;
+        gpu_time = magma_wtime()-gpu_time;
         if (info != 0)
             printf("magma_cgetri_gpu returned error %d\n", (int) info);
 
@@ -141,9 +141,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_cgetri( &N,     h_A, &lda, ipiv, work, &lwork, &info );
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info != 0)
             printf("lapackf77_cgetri returned error %d\n", (int) info);
         
@@ -163,12 +163,12 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE(     ipiv  );
-    TESTING_FREE(     work  );
-    TESTING_FREE(     h_A   );
-    TESTING_FREE_HOST( h_R   );
-    TESTING_FREE_DEV(  d_A   );
-    TESTING_FREE_DEV(  dwork );
+    TESTING_FREE_CPU( ipiv );
+    TESTING_FREE_CPU( work );
+    TESTING_FREE_CPU( h_A  );
+    TESTING_FREE_PIN( h_R );
+    TESTING_FREE_DEV( d_A   );
+    TESTING_FREE_DEV( dwork );
 
     /* Shutdown */
     magma_queue_destroy( queue );

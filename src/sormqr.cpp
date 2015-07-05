@@ -1,13 +1,13 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
  
        @author Stan Tomov
 
-       @generated s Mon Nov 25 17:55:59 2013
+       @generated from zunmqr.cpp normal z -> s, Fri Jan 10 15:51:18 2014
 
 */
 #include <stdio.h>
@@ -22,11 +22,11 @@ magma_sormqr(magma_side_t side, magma_trans_t trans,
              float *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

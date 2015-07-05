@@ -1,14 +1,14 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0-beta2) --
+#   -- clMAGMA (version 1.1.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date November 2013
+#      @date January 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 DIR = testing
 MAGMA_DIR = ..
-include ../Makefile.internal
+include $(MAGMA_DIR)/Makefile.internal
 
 # ----------
 # BLAS and auxiliary
@@ -97,12 +97,12 @@ ZSRC += \
 -include Makefile.local
 -include Makefile.src
 
-ALLSRC  := $(ZSRC) $(CSRC) $(DSRC) $(SSRC)
+ALLSRC := $(ZSRC) $(CSRC) $(DSRC) $(SSRC)
 
-ALLOBJ := $(ALLSRC:.f90=.o)
+ALLOBJ := $(ALLSRC:.cpp=.o)
+ALLOBJ := $(ALLOBJ:.f90=.o)
 ALLOBJ := $(ALLOBJ:.F90=.o)
 ALLOBJ := $(ALLOBJ:.cuf=.o)
-ALLOBJ := $(ALLOBJ:.cpp=.o)
 
 EXE    := $(ALLOBJ:.o=)
 
@@ -115,13 +115,15 @@ LIBEXE  := $(LIBOBJ:.o=)
 # testing_zutil.cpp isn't in ZSRC (since they don't generate EXEs),
 # so add generation rules here instead of .Makefile.gen
 testing_cutil.cpp: testing_zutil.cpp
-	$(PYTHON) ../tools/codegen.py  -p c --file testing_zutil.cpp
+	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p c --file testing_zutil.cpp
 
 testing_dutil.cpp: testing_zutil.cpp
-	$(PYTHON) ../tools/codegen.py  -p d --file testing_zutil.cpp
+	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p d --file testing_zutil.cpp
 
 testing_sutil.cpp: testing_zutil.cpp
-	$(PYTHON) ../tools/codegen.py  -p s --file testing_zutil.cpp
+	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p s --file testing_zutil.cpp
+
+gen += testing_cutil.cpp testing_dutil.cpp  testing_sutil.cpp
 
 generate: testing_cutil.cpp testing_dutil.cpp testing_sutil.cpp
 
@@ -160,7 +162,7 @@ cleanall: clean cleanexe
 
 testing_% : testing_%.o
 	$(CC) $(LDOPTS) $(NOMAIN) $< -o $@ \
-	$(LIBTEST) $(LIBLAPACKTEST) -L../lib -lclmagma \
+	$(LIBTEST) $(LIBLAPACKTEST) -L$(MAGMA_DIR)/lib -lclmagma \
 	$(LIBDIR) \
 	$(LIB)
 

@@ -1,11 +1,11 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
-   @generated c Mon Nov 25 17:55:59 2013
+   @generated from zgetri_gpu.cpp normal z -> c, Fri Jan 10 15:51:17 2014
 
  */
 
@@ -20,11 +20,11 @@ magma_cgetri_gpu( magma_int_t n, magmaFloatComplex_ptr dA, size_t dA_offset, mag
         magma_int_t *ipiv, magmaFloatComplex_ptr dwork, size_t dwork_offset, magma_int_t lwork,
         magma_int_t *info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date November 2013
+    @date January 2014
 
     Purpose
     =======
@@ -56,7 +56,7 @@ magma_cgetri_gpu( magma_int_t n, magmaFloatComplex_ptr dA, size_t dA_offset, mag
     The pivot indices from CGETRF; for 1<=i<=N, row i of the
     matrix was interchanged with row IPIV(i).
 
-    DWORK    (workspace/output) COMPLEX*16 array on the GPU, dimension (MAX(1,LWORK))
+    DWORK    (workspace/output) COMPLEX array on the GPU, dimension (MAX(1,LWORK))
 
     LWORK   (input) INTEGER
     The dimension of the array DWORK.  LWORK >= N*NB, where NB is

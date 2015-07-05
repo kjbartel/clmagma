@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @author Stan Tomov
        @author Raffaele Solca
@@ -23,11 +23,11 @@ magma_zunmtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
              magmaDoubleComplex *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

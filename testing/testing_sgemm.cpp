@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated s Mon Nov 25 17:56:08 2013
+ * @generated from testing_zgemm.cpp normal z -> s, Fri Jan 10 15:51:19 2014
  *
  **/
 
@@ -153,10 +153,10 @@ int main( int argc, char** argv)
     M+=32;
     N +=32;
 
-    TESTING_MALLOC( h_A,  float, lda*K );
-    TESTING_MALLOC( h_B,  float, ldb*Bn );
-    TESTING_MALLOC( h_C,  float, ldc*N );
-    TESTING_MALLOC( h_C2, float, ldc*N );
+    TESTING_MALLOC_CPU( h_A,  float, lda*K );
+    TESTING_MALLOC_CPU( h_B,  float, ldb*Bn );
+    TESTING_MALLOC_CPU( h_C,  float, ldc*N );
+    TESTING_MALLOC_CPU( h_C2, float, ldc*N );
 
     TESTING_MALLOC_DEV( d_A, float, ldda*K );
     TESTING_MALLOC_DEV( d_B, float, lddb*Bn );
@@ -221,13 +221,13 @@ int main( int argc, char** argv)
         magma_ssetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
         magma_queue_sync( queue );
 
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_sgemm( transA, transB, M, N, K,
                      alpha, d_A, 0, ldda,
                      d_B, 0, lddb,
                      beta,  d_C, 0, lddc, queue );
         magma_queue_sync( queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         
         magma_sgetmatrix( M, N, d_C, 0, lddc, h_C2, 0, ldc, queue );
@@ -236,13 +236,13 @@ int main( int argc, char** argv)
            Performs operation using CPU-BLAS
            =================================================================== */
 
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         blasf77_sgemm( lapack_const(transA), lapack_const(transB),
                        &M, &N, &K,
                        &alpha, h_A, &lda,
                        h_B, &ldb,
                        &beta,  h_C, &ldc );
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         cpu_perf = gflops / cpu_time;
         
         // |C_magma - C_lapack| / |C_lapack|
@@ -258,10 +258,10 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE( h_A );
-    TESTING_FREE( h_B );
-    TESTING_FREE( h_C );
-    TESTING_FREE( h_C2 );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_CPU( h_B );
+    TESTING_FREE_CPU( h_C );
+    TESTING_FREE_CPU( h_C2 );
 
     TESTING_FREE_DEV( d_A );
     TESTING_FREE_DEV( d_B );

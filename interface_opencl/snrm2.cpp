@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:04 2013
+       @generated from dznrm2.cpp normal z -> s, Fri Jan 10 15:51:19 2014
 
 */
 #include "common_magma.h"
@@ -25,7 +25,7 @@
     c was changed with orthogonal transformations.
 */
 extern "C" magma_err_t
-magmablas_snrm2_adjust(int k, magmaDouble_ptr xnorm, size_t xnorm_offset, magmaFloat_ptr c, size_t c_offset, magma_queue_t queue)
+magmablas_snrm2_adjust(int k, magmaFloat_ptr xnorm, size_t xnorm_offset, magmaFloat_ptr c, size_t c_offset, magma_queue_t queue)
 {
     size_t GlobalWorkSize[1]={0}, LocalWorkSize[1]={0};
     
@@ -43,7 +43,7 @@ magmablas_snrm2_adjust(int k, magmaDouble_ptr xnorm, size_t xnorm_offset, magmaF
     }
     
     int nn = 0;
-    ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(magmaDouble_ptr), (void*)&xnorm   );
+    ciErrNum  = clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&xnorm   );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&xnorm_offset );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&c     );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&c_offset   );
@@ -71,7 +71,7 @@ magmablas_snrm2_adjust(int k, magmaDouble_ptr xnorm, size_t xnorm_offset, magmaF
 */
 extern "C" magma_err_t
 magmablas_snrm2(int m, int num, magmaFloat_ptr da, size_t da_offset, magma_int_t ldda, 
-                 magmaDouble_ptr dxnorm, size_t dxnorm_offset, magma_queue_t queue) 
+                 magmaFloat_ptr dxnorm, size_t dxnorm_offset, magma_queue_t queue) 
 {
     size_t GlobalWorkSize[1]={0}, LocalWorkSize[1]={0};
    
@@ -93,7 +93,7 @@ magmablas_snrm2(int m, int num, magmaFloat_ptr da, size_t da_offset, magma_int_t
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&da );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&da_offset     );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&ldda   );
-    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaDouble_ptr), (void*)&dxnorm );
+    ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(magmaFloat_ptr), (void*)&dxnorm );
     ciErrNum |= clSetKernelArg( ckKernel, nn++, sizeof(int), (void*)&dxnorm_offset     );
     if (ciErrNum != CL_SUCCESS)
     {

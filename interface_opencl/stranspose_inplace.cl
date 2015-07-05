@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:04 2013
+       @generated from ztranspose_inplace.cl normal z -> s, Fri Jan 10 15:51:19 2014
 
 */
 // #include "common_magma.h"
@@ -46,7 +46,7 @@ typedef float float;
 */
 
 
-__kernel void sinplace_T_even_kernel( __global float *matrix, int offset, int lda, int half )
+__kernel void stranspose_inplace_even_kernel( __global float *matrix, int offset, int lda, int half )
 {
     //__local float a[NB][NB+1];
     //__local float b[NB][NB+1];
@@ -89,7 +89,7 @@ __kernel void sinplace_T_even_kernel( __global float *matrix, int offset, int ld
     }
 }
 
-__kernel void sinplace_T_odd_kernel( __global float *matrix, int offset, int lda, int half )
+__kernel void stranspose_inplace_odd_kernel( __global float *matrix, int offset, int lda, int half )
 {
     //__local float a[NB][NB+1];
     //__local float b[NB][NB+1];

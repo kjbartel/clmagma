@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.1.0-beta2) --
+     -- clMAGMA (version 1.1.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date November 2013
+        @date January 2014
   
-        @generated s Mon Nov 25 17:55:56 2013
+        @generated from zpotrf_gpu.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
 */
 
@@ -17,11 +17,11 @@ magma_spotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
           magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
           magma_err_t*   info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

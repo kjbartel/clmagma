@@ -1,9 +1,9 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
  *
  **/
@@ -82,13 +82,13 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){    
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }
                 magmablas_zempty(queue, d_A, d_B, d_C);
                 clFlush(queue);
             }
             clFinish(queue);
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -102,12 +102,12 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }
                 magmablas_zempty(queue, d_A, d_B, d_C);
                 clFinish(queue);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -117,9 +117,9 @@ int main( int argc, char** argv)
         t_avg = t_avg/20;
         printf("Sync Summary: avg: %f us  min: %f us  max  %f us\n", t_avg, t_min, t_max);
 
-        TESTING_FREE_DEV(d_A);
-        TESTING_FREE_DEV(d_B);
-        TESTING_FREE_DEV(d_C);
+        TESTING_FREE_DEV( d_A );
+        TESTING_FREE_DEV( d_B );
+        TESTING_FREE_DEV( d_C );
     }
 
 
@@ -128,7 +128,7 @@ int main( int argc, char** argv)
         double klatency;
         int count = 10000;
         double* h_A; 
-        TESTING_MALLOC( h_A, double, 100 );
+        TESTING_MALLOC_CPU( h_A, double, 100 );
         TESTING_MALLOC_DEV( d_A, double, 1 );
         TESTING_MALLOC_DEV( d_B, double, 1 );
         int j;
@@ -136,14 +136,14 @@ int main( int argc, char** argv)
         clFinish(queue);
         for(j=0;j<count;j++){
             if(j==0){
-                t_start = get_time();
+                t_start = magma_wtime();
             }        
             clEnqueueCopyBuffer(queue, d_A, d_B, 0, 0, 1, 0, NULL, NULL);
             //clEnqueueWriteBuffer(queue, d_A, CL_FALSE, 0, 1, h_A, 0, NULL, NULL);
             //clFlush(queue);
         }
         clFinish(queue);
-        t_end = get_time();
+        t_end = magma_wtime();
         klatency = (t_end-t_start)/count*1e6;
         printf("Async Latency: %f us\n", klatency);
 
@@ -151,18 +151,18 @@ int main( int argc, char** argv)
         clFinish(queue);
         for(j=0;j<count;j++){
             if(j==0){
-                t_start = get_time();
+                t_start = magma_wtime();
             }        
             clEnqueueCopyBuffer(queue, d_A, d_B, 0, 0, 1, 0, NULL, NULL);
             //clFlush(queue);
             clFinish(queue);
         }
-        t_end = get_time();
+        t_end = magma_wtime();
         klatency = (t_end-t_start)/count*1e6;
         printf("Sync Latency: %f us\n", klatency);
         
-        TESTING_FREE_DEV(d_A);
-        TESTING_FREE_DEV(d_B);
+        TESTING_FREE_DEV( d_A );
+        TESTING_FREE_DEV( d_B );
     }
 
     if(type == 2){
@@ -200,7 +200,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }
                 clAmdBlasStatus err = clAmdBlasDgemmEx(
                     clAmdBlasColumnMajor,
@@ -212,7 +212,7 @@ int main( int argc, char** argv)
                 //clFlush(queue);
             }
             clFinish(queue);
-            t_end = get_time();
+            t_end = magma_wtime();
             magma_dprint_gpu(1, 1, d_C, 0, 1, queue);
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
@@ -228,7 +228,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 clAmdBlasDgemmEx(clAmdBlasColumnMajor,
                     clAmdBlasNoTrans, clAmdBlasNoTrans, m, n, k, alpha, d_A, 0, ldda,
@@ -237,7 +237,7 @@ int main( int argc, char** argv)
                     0, NULL, NULL);
                 clFinish(queue);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -258,7 +258,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dtrmm(MagmaRight, MagmaUpper, MagmaNoTrans, MagmaNonUnit,
                     m, n,
@@ -267,7 +267,7 @@ int main( int argc, char** argv)
                 //clFlush(queue);
             }
             clFinish(queue);
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -281,7 +281,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dtrmm(MagmaRight, MagmaUpper, MagmaNoTrans, MagmaNonUnit,
                     m, n,
@@ -289,7 +289,7 @@ int main( int argc, char** argv)
                     d_B, 0, lddb, queue );
                 clFinish(queue);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -310,7 +310,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dsyrk(MagmaUpper, MagmaNoTrans, 
                     n, k,
@@ -319,7 +319,7 @@ int main( int argc, char** argv)
                 //clFlush(queue);
             }
             clFinish(queue);
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -333,7 +333,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dsyrk(MagmaUpper, MagmaNoTrans, 
                     n, k,
@@ -341,7 +341,7 @@ int main( int argc, char** argv)
                     beta,  d_C, 0, lddc, queue );
                 clFinish(queue);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -362,7 +362,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dtrsm(MagmaRight, MagmaUpper, MagmaNoTrans, MagmaNonUnit, 
                     m, n, 
@@ -371,7 +371,7 @@ int main( int argc, char** argv)
                 //clFlush(queue);
             }
             clFinish(queue);
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -385,7 +385,7 @@ int main( int argc, char** argv)
         for(kk=0;kk<20;kk++){
             for(j=0;j<count;j++){
                 if(j==0){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }        
                 magma_dtrsm(MagmaRight, MagmaUpper, MagmaNoTrans, MagmaNonUnit, 
                     m, n, 
@@ -393,7 +393,7 @@ int main( int argc, char** argv)
                     d_B, 0, lddb, queue );
                 clFinish(queue);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             klatency = (t_end-t_start)/count*1e6;
             t_avg += klatency;
             if(t_min > klatency) t_min = klatency;
@@ -403,9 +403,9 @@ int main( int argc, char** argv)
         t_avg = t_avg/20;
         printf("Sync DTRSM Summary: avg: %f us  min: %f us  max  %f us\n", t_avg, t_min, t_max);
         
-        TESTING_FREE_DEV(d_A);
-        TESTING_FREE_DEV(d_B);
-        TESTING_FREE_DEV(d_C);
+        TESTING_FREE_DEV( d_A );
+        TESTING_FREE_DEV( d_B );
+        TESTING_FREE_DEV( d_C );
     }
 
     if(type == 3){
@@ -432,11 +432,11 @@ int main( int argc, char** argv)
             int count = 20;
             for(j=0;j<=count;j++){
                 if(j==1){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }
                 clEnqueueWriteBuffer(queue, d_C, CL_TRUE, 0, transfer_bytes, h_A, 0, NULL, NULL);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             t_exec = (t_end-t_start)/count;
             bandwidth = transfer_bytes / t_exec /1e9;
             printf("Buffer_W: %10d\t%6.5f GB/s\t%e us\n",
@@ -450,11 +450,11 @@ int main( int argc, char** argv)
             int count = 20;
             for(j=0;j<=count;j++){
                 if(j==1){
-                    t_start = get_time();
+                    t_start = magma_wtime();
                 }
                 clEnqueueReadBuffer(queue, d_C, CL_TRUE, 0, transfer_bytes, h_A, 0, NULL, NULL);
             }
-            t_end = get_time();
+            t_end = magma_wtime();
             t_exec = (t_end-t_start)/count;
             bandwidth = transfer_bytes / t_exec /1e9;
             printf("Buffer_R: %10d\t%6.5f GB/s\t%e us\n",

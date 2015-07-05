@@ -1,11 +1,11 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
-   @generated s Mon Nov 25 17:55:59 2013
+   @generated from zlauum_gpu.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
  */
 
@@ -20,11 +20,11 @@ magma_slauum_gpu(magma_uplo_t uplo, magma_int_t n,
         magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda, magma_int_t *info,
         magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date November 2013
+    @date January 2014
 
     Purpose
     =======
@@ -51,7 +51,7 @@ magma_slauum_gpu(magma_uplo_t uplo, magma_int_t n,
     N       (input) INTEGER
     The order of the triangular factor U or L.  N >= 0.
 
-    dA       (input/output) DOUBLE PRECISION array on the GPU, dimension (LDDA,N)
+    dA       (input/output) REAL array on the GPU, dimension (LDDA,N)
     On entry, the triangular factor U or L.
     On exit, if UPLO = 'U', the upper triangle of dA is
     overwritten with the upper triangle of the product U * U';

@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated d Mon Nov 25 17:55:59 2013
+       @generated from zlahru.cpp normal z -> d, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -28,7 +28,7 @@ magma_dlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -106,7 +106,7 @@ magma_dlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
     double c_neg_one = MAGMA_D_NEG_ONE;
 
     magma_int_t ldda = lda;
-    //cuDoubleComplex *v0 = v + ihi - k;
+    //double *v0 = v + ihi - k;
     magmaDouble_ptr v0 = v;
     size_t v0_offset = v_offset + ihi - k;
 

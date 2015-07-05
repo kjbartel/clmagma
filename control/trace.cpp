@@ -104,7 +104,7 @@ trace_init( int ncore, int ngpu, int nqueue, magma_queue_t* queues )
             clFinish(glog.queues[t]);
         }
     }
-    glog.cpu_first = get_time();
+    glog.cpu_first = magma_wtime();
 
     for (int dev = 0; dev < ngpu; ++dev) {
         clReleaseMemObject(dA[dev]);
@@ -118,7 +118,7 @@ void
 trace_cpu_start( int core, const char* tag, const char* lbl )
 {
     int id = glog.cpu_id[core];
-    glog.cpu_start[core][id] = get_time();
+    glog.cpu_start[core][id] = magma_wtime();
     magma_strlcpy( glog.cpu_tag  [core][id], tag, MAX_LABEL_LEN );
     magma_strlcpy( glog.cpu_label[core][id], lbl, MAX_LABEL_LEN );
 }
@@ -129,7 +129,7 @@ void
 trace_cpu_end( int core )
 {
     int id = glog.cpu_id[core];
-    glog.cpu_end[core][id] = get_time();
+    glog.cpu_end[core][id] = magma_wtime();
     if (id+1 < MAX_EVENTS) {
         glog.cpu_id[core] = id+1;
     } else {
@@ -161,7 +161,7 @@ trace_gpu_start( int dev, int s, const char* tag, const char* lbl )
     int t = dev*glog.nqueue + s;
     int id = glog.gpu_id[t];
 #if TRACE_METHOD == 2
-    glog.gpu_start[t][id] = get_time();
+    glog.gpu_start[t][id] = magma_wtime();
 #else
     //glog.gpu_start[t][id] = NULL;
     /*
@@ -182,7 +182,7 @@ trace_gpu_event( int dev, int s, const char* tag, const char* lbl )
     int t = dev*glog.nqueue + s;
     int id = glog.gpu_id[t];
 #if TRACE_METHOD == 2
-    glog.gpu_start[t][id] = get_time();
+    glog.gpu_start[t][id] = magma_wtime();
 #else
     //glog.gpu_start[t][id] = NULL;
     /*
@@ -220,7 +220,7 @@ trace_finalize( const char* filename, const char* cssfile )
     fprintf( stderr, "writing trace to '%s'\n", filename );
     
     int h = (int)( (glog.ncore + glog.ngpu*glog.nqueue)*(height + space) - space + height + 2*margin );
-    int w = (int)( (get_time() - glog.cpu_first) * xscale + left + margin );
+    int w = (int)( (magma_wtime() - glog.cpu_first) * xscale + left + margin );
     fprintf( trace_file,
              "<?xml version=\"1.0\" standalone=\"no\"?>\n"
              "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n"

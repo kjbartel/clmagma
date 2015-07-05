@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:55:59 2013
+       @generated from zgetrf2_gpu.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
 */
 
@@ -22,11 +22,11 @@ magma_sgetrf2_gpu(magma_int_t m, magma_int_t n,
                  magma_int_t *ipiv, magma_int_t *info,
                  magma_queue_t* queues )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -141,7 +141,7 @@ magma_sgetrf2_gpu(magma_int_t m, magma_int_t n,
           {
             dAT = dA;
             dAT_offset = dA_offset;
-            magma_sinplace_transpose( dAT, dAT_offset, ldda, lddat, queues[0] );
+            magma_stranspose_inplace( dAT, dAT_offset, ldda, lddat, queues[0] );
           }
         else 
           {
@@ -257,7 +257,7 @@ magma_sgetrf2_gpu(magma_int_t m, magma_int_t n,
                      inAT(s,s)+nb0, lddat, queues[0] );
 
         if ((m == n) && (m % 32 == 0) && (ldda%32 == 0)) {
-          magma_sinplace_transpose( dAT, dAT_offset, lddat, ldda, queues[0] );
+          magma_stranspose_inplace( dAT, dAT_offset, lddat, ldda, queues[0] );
         }
         else {
           magma_stranspose2( dA, dA_offset, ldda, dAT, dAT_offset, lddat, n, m, queues[0] );

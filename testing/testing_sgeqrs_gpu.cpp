@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated s Mon Nov 25 17:56:10 2013
+ * @generated from testing_zgeqrs_gpu.cpp normal z -> s, Fri Jan 10 15:51:20 2014
  *
  **/
 
@@ -105,12 +105,12 @@ int main( int argc, char** argv)
     lworkgpu = (M-N + nb)*(nrhs+2*nb);
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC_HOST( tau,  float, min_mn   );
-    TESTING_MALLOC_HOST( h_A,  float, lda*N    );
-    TESTING_MALLOC_HOST( h_A2, float, lda*N    );
-    TESTING_MALLOC_HOST( h_B,  float, ldb*nrhs );
-    TESTING_MALLOC_HOST( h_X,  float, ldb*nrhs );
-    TESTING_MALLOC_HOST( h_R,  float, ldb*nrhs );
+    TESTING_MALLOC_PIN( tau,  float, min_mn   );
+    TESTING_MALLOC_PIN( h_A,  float, lda*N    );
+    TESTING_MALLOC_PIN( h_A2, float, lda*N    );
+    TESTING_MALLOC_PIN( h_B,  float, ldb*nrhs );
+    TESTING_MALLOC_PIN( h_X,  float, ldb*nrhs );
+    TESTING_MALLOC_PIN( h_R,  float, ldb*nrhs );
 
     TESTING_MALLOC_DEV( d_A, float, ldda*N      );
     TESTING_MALLOC_DEV( d_B, float, lddb*nrhs   );
@@ -128,7 +128,7 @@ int main( int argc, char** argv)
     l2 = (magma_int_t)MAGMA_S_REAL( tmp[0] );
     lhwork = max( max( l1, l2 ), lworkgpu );
 
-    TESTING_MALLOC_HOST( hwork, float, lhwork );
+    TESTING_MALLOC_PIN( hwork, float, lhwork );
 
     printf("\n");
     printf("                                         ||b-Ax|| / (N||A||)\n");
@@ -165,10 +165,10 @@ int main( int argc, char** argv)
         magma_ssetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
         magma_ssetmatrix( M, nrhs, h_B, 0, ldb, d_B, 0, lddb, queue );
         
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_sgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda,
                          d_B, 0, lddb, hwork, lworkgpu, &info, queue);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
             printf("Argument %d of magma_sgels had an illegal value.\n", -info);
         
@@ -189,10 +189,10 @@ int main( int argc, char** argv)
            =================================================================== */
         lapackf77_slacpy( MagmaUpperLowerStr, &M, &nrhs, h_B, &ldb, h_X, &ldb );
 
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_sgels( MagmaNoTransStr, &M, &N, &nrhs,
                          h_A, &lda, h_X, &ldb, hwork, &lhwork, &info);
-        cpu_time = get_time()-cpu_time;
+        cpu_time = magma_wtime()-cpu_time;
         cpu_perf = gflops / cpu_time;
         if (info < 0)
           printf("Argument %d of lapackf77_sgels had an illegal value.\n", -info);
@@ -212,13 +212,13 @@ int main( int argc, char** argv)
     }
 
     /* Memory clean up */
-    TESTING_FREE_HOST( tau );
-    TESTING_FREE_HOST( h_A );
-    TESTING_FREE_HOST( h_A2 );
-    TESTING_FREE_HOST( h_B );
-    TESTING_FREE_HOST( h_X );
-    TESTING_FREE_HOST( h_R );
-    TESTING_FREE_HOST( hwork );
+    TESTING_FREE_PIN( tau );
+    TESTING_FREE_PIN( h_A );
+    TESTING_FREE_PIN( h_A2 );
+    TESTING_FREE_PIN( h_B );
+    TESTING_FREE_PIN( h_X );
+    TESTING_FREE_PIN( h_R );
+    TESTING_FREE_PIN( hwork );
     TESTING_FREE_DEV( d_A );
     TESTING_FREE_DEV( d_B );
 

@@ -1,11 +1,11 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
- * @generated s Mon Nov 25 17:56:04 2013
+ * @generated from ztranspose_inplace.cpp normal z -> c, Fri Jan 10 15:51:19 2014
  */
 
 #include <stdio.h>
@@ -14,25 +14,25 @@
 #include "CL_MAGMA_RT.h"
 
 //#define NB 16
-#define SSIZE_2SHARED 16
+#define CSIZE_2SHARED 16
 
 magma_err_t
-magma_sinplace_transpose(
+magma_ctranspose_inplace(
     cl_mem A, size_t offset, int lda, int m, magma_queue_t queue )
 {
     cl_int ciErrNum;                // Error code var
     //int in = m / NB;
-    int in = m / SSIZE_2SHARED;
+    int in = m / CSIZE_2SHARED;
     cl_kernel ckKernel=NULL;
     if (in&1)
     {
         //printf ("running odd kernel\n");
-        ckKernel = rt->KernelPool["sinplace_T_odd_kernel"];
+        ckKernel = rt->KernelPool["ctranspose_inplace_odd_kernel"];
     }
     else
     {
         //printf ("running even kernel\n");
-        ckKernel = rt->KernelPool["sinplace_T_even_kernel"];
+        ckKernel = rt->KernelPool["ctranspose_inplace_even_kernel"];
     }
     
     if (!ckKernel)
@@ -63,8 +63,8 @@ magma_sinplace_transpose(
     //LocalWorkSize[0] = NB;
     //LocalWorkSize[1] = NB/2;
     
-    LocalWorkSize[0] = SSIZE_2SHARED;
-    LocalWorkSize[1] = SSIZE_2SHARED/2;
+    LocalWorkSize[0] = CSIZE_2SHARED;
+    LocalWorkSize[1] = CSIZE_2SHARED/2;
     
     if (in&1)
     {

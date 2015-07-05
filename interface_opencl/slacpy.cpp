@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:04 2013
+       @generated from zlacpy.cpp normal z -> s, Fri Jan 10 15:51:19 2014
 
 */
 
@@ -47,7 +47,7 @@ magmablas_slacpy( magma_uplo_t uplo, magma_int_t m, magma_int_t n,
   N       (input) INTEGER
           The number of columns of the matrix A.  N >= 0.
 
-  A       (input) COMPLEX DOUBLE PRECISION array, dimension (LDA,N)
+  A       (input) COMPLEX REAL array, dimension (LDA,N)
           The m by n matrix A.  If UPLO = 'U', only the upper triangle
           or trapezoid is accessed; if UPLO = 'L', only the lower
           triangle or trapezoid is accessed.
@@ -55,7 +55,7 @@ magmablas_slacpy( magma_uplo_t uplo, magma_int_t m, magma_int_t n,
   LDA     (input) INTEGER
           The leading dimension of the array A.  LDA >= max(1,M).
 
-  B       (output) COMPLEX DOUBLE PRECISION array, dimension (LDB,N)
+  B       (output) COMPLEX REAL array, dimension (LDB,N)
           On exit, B = A in the locations specified by UPLO.
 
   LDB     (input) INTEGER

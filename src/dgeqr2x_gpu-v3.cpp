@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated d Mon Nov 25 17:56:00 2013
+       @generated from zgeqr2x_gpu-v3.cpp normal z -> d, Fri Jan 10 15:51:18 2014
 
 */
 #include "common_magma.h"
@@ -86,11 +86,11 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
                    magmaDouble_ptr dwork, size_t dwork_offset, 
                    magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose   
     =======   
@@ -173,7 +173,7 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
     //double *dnorm = dwork;
     magmaDouble_ptr dnorm = dwork;
     size_t dnorm_offset = dwork_offset;
-    //cuDoubleComplex *work = (cuDoubleComplex *)(dwork+2*(*n));
+    //double *work = (double *)(dwork+2*(*n));
     magmaDouble_ptr work = (magmaDouble_ptr)dwork;
     size_t work_offset = dwork_offset + 2*(*n);
 

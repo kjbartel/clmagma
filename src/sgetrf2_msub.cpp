@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:00 2013
+       @generated from zgetrf2_msub.cpp normal z -> s, Fri Jan 10 15:51:17 2014
 
 */
 #include <math.h>
@@ -58,11 +58,11 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
          float *w, magma_int_t ldw,
          magma_int_t *info, magma_queue_t *queues)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -116,7 +116,8 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
 
 #define inAT(id,i,j)  d_lAT[(id)], (((offset)+(i)*nb)*lddat + (j)*nb)
 #define inAT_offset(i, j) (((offset)+(i)*nb)*lddat + (j)*nb)
-#define W(j) (w+((j)%(1+num_gpus))*nb*ldw)
+#define W(j)     (w +((j)%(1+num_gpus))*nb*ldw)
+#define W_off(j)  w, ((j)%(1+num_gpus))*nb*ldw
 
     float c_one     = MAGMA_S_ONE;
     float c_neg_one = MAGMA_S_NEG_ONE;
@@ -180,7 +181,7 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
       }
       magma_sgetmatrix_async( m, nb0,
                               d_lAP[0], dlAP_offset, maxm,
-                              W(0), 0, ldw, queues[2*0+1], NULL );
+                              W_off(0), ldw, queues[2*0+1], NULL );
       clFlush(queues[2*0+1]);
       /* ------------------------------------------------------------------------------------- */
 
@@ -210,7 +211,7 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
           d = (i+1)%num_gpus;
           for (dd=0; dd<num_gpus; dd++) {
               magma_ssetmatrix_async( rows, nb,
-                                      W(i), 0, ldw,
+                                      W_off(i), ldw,
                                       d_lAP[d], dlAP_offset+(i%(2+num_gpus))*nb*maxm, maxm, 
                                       queues[2*d+1], NULL );
               d = (d+1)%num_gpus;
@@ -323,7 +324,7 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
                       /* send the panel to cpu */
                       magma_sgetmatrix_async( cols, nb0, 
                                               d_lAP[d%num_gpus], dlAP_offset + ((i+1)%(2+num_gpus))*nb*maxm, ldda, 
-                                              W(i+1), 0,  ldw, queues[2*(d%num_gpus)+1], NULL );
+                                              W_off(i+1), ldw, queues[2*(d%num_gpus)+1], NULL );
                   }
               } else {
                   //trace_gpu_end( d, 0 );
@@ -374,7 +375,7 @@ magma_sgetrf2_msub(magma_int_t num_subs, magma_int_t num_gpus,
 
           /* send the factor to gpus */
           for (d=0; d<num_gpus; d++) {
-              magma_ssetmatrix_async( rows, nb0, W(s), 0, ldw,
+              magma_ssetmatrix_async( rows, nb0, W_off(s), ldw,
                                       d_lAP[d], dlAP_offset+(s%(2+num_gpus))*nb*maxm, cols, 
                                       queues[2*d+1], NULL );
           }

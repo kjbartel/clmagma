@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zgetrf2_gpu.cpp normal z -> d, Fri Jan 10 15:51:20 2014
  *
  **/
 // includes, system
@@ -39,9 +39,9 @@ double get_LU_error(magma_int_t M, magma_int_t N,
     double beta  = MAGMA_D_ZERO;
     double *L, *U;
     double work[1], matnorm, residual;
-                       
-    TESTING_MALLOC( L, double, M*min_mn);
-    TESTING_MALLOC( U, double, min_mn*N);
+    
+    TESTING_MALLOC_CPU( L, double, M*min_mn );
+    TESTING_MALLOC_CPU( U, double, min_mn*N );
     memset( L, 0, M*min_mn*sizeof(double) );
     memset( U, 0, min_mn*N*sizeof(double) );
 
@@ -64,8 +64,8 @@ double get_LU_error(magma_int_t M, magma_int_t N,
     }
     residual = lapackf77_dlange("f", &M, &N, LU, &lda, work);
 
-    TESTING_FREE(L);
-    TESTING_FREE(U);
+    TESTING_FREE_CPU( L );
+    TESTING_FREE_CPU( U );
 
     return residual / (matnorm * N);
 }
@@ -146,10 +146,10 @@ int main( int argc, char** argv)
     //nb     = magma_get_dgetrf_nb(min_mn);
 
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(     ipiv, magma_int_t, min_mn);
-    TESTING_MALLOC(      h_A, double, n2     );
-    TESTING_MALLOC_HOST( h_R, double, n2     );
-    TESTING_MALLOC_DEV(  d_A, double, ldda*N );
+    TESTING_MALLOC_CPU( ipiv, magma_int_t,        min_mn );
+    TESTING_MALLOC_CPU( h_A,  double, n2     );
+    TESTING_MALLOC_PIN( h_R,  double, n2     );
+    TESTING_MALLOC_DEV( d_A,  double, ldda*N );
 
     printf("\n\n");
     printf("  M     N    CPU GFlop/ (sec)s   GPU GFlop/s (sec)   ||PA-LU||/(||A||*N)\n");
@@ -171,9 +171,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dgetrf(&M, &N, h_A, &lda, ipiv, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of dgetrf had an illegal value.\n", -info);
 
@@ -186,9 +186,9 @@ int main( int argc, char** argv)
         magma_dgetrf2_gpu( M, N, d_A, 0, ldda, ipiv, &info, queues );
 
         magma_dsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dgetrf2_gpu( M, N, d_A, 0, ldda, ipiv, &info, queues );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
             printf("Argument %d of dgetrf had an illegal value.\n", -info);
 
@@ -208,9 +208,9 @@ int main( int argc, char** argv)
     }
 
     /* clean up */
-    TESTING_FREE( ipiv );
-    TESTING_FREE( h_A );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_CPU( ipiv );
+    TESTING_FREE_CPU( h_A );
+    TESTING_FREE_PIN( h_R );
     TESTING_FREE_DEV( d_A );
 
     magma_queue_destroy( queue );

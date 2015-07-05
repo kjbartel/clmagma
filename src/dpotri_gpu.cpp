@@ -1,11 +1,11 @@
 /*
-   -- clMAGMA (version 1.1.0-beta2) --
+   -- clMAGMA (version 1.1.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date November 2013
+   @date January 2014
 
-   @generated d Mon Nov 25 17:55:59 2013
+   @generated from zpotri_gpu.cpp normal z -> d, Fri Jan 10 15:51:17 2014
 
  */
 
@@ -18,11 +18,11 @@ extern "C" magma_int_t
 magma_dpotri_gpu(magma_uplo_t uplo, magma_int_t n,
         magmaDouble_ptr a, size_t offset_a, magma_int_t lda, magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date November 2013
+    @date January 2014
 
     Purpose
     =======

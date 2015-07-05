@@ -1,11 +1,11 @@
 /*
-     -- clMAGMA (version 1.1.0-beta2) --
+     -- clMAGMA (version 1.1.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date November 2013
+        @date January 2014
 
-        @generated d Mon Nov 25 17:56:00 2013
+        @generated from zgebrd.cpp normal z -> d, Fri Jan 10 15:51:18 2014
 
 */
 
@@ -25,11 +25,11 @@ magma_dgebrd(magma_int_t m, magma_int_t n,
              double *work, magma_int_t lwork,
              magma_int_t *info, magma_queue_t queue)
 {
-/*  -- MAGMA (version 1.1.0-beta2) --
+/*  -- MAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

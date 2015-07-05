@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> c d s
 */
@@ -74,8 +74,8 @@ int main( int argc, char** argv)
             n2    = lda*N;
             gflops = FLOPS_ZPOTRF( N ) / 1e9;
             
-            TESTING_MALLOC(    h_A, magmaDoubleComplex, n2 );
-            TESTING_MALLOC( h_R, magmaDoubleComplex, n2 );
+            TESTING_MALLOC_CPU( h_A, magmaDoubleComplex, n2 );
+            TESTING_MALLOC_CPU( h_R, magmaDoubleComplex, n2 );
             
             /* Initialize the matrix */
             lapackf77_zlarnv( &ione, ISEED, &n2, h_A );
@@ -85,9 +85,9 @@ int main( int argc, char** argv)
             /* ====================================================================
                Performs operation using MAGMA
                =================================================================== */
-            gpu_time = get_time();
+            gpu_time = magma_wtime();
             magma_zpotrf( opts.uplo, N, h_R, lda, &info, queue );
-            gpu_time = get_time() - gpu_time;
+            gpu_time = magma_wtime() - gpu_time;
             gpu_perf = gflops / gpu_time;
             if (info != 0)
                 printf("magma_zpotrf returned error %d: %s.\n",
@@ -97,9 +97,9 @@ int main( int argc, char** argv)
                 /* =====================================================================
                    Performs operation using LAPACK
                    =================================================================== */
-                cpu_time = get_time();
+                cpu_time = magma_wtime();
                 lapackf77_zpotrf( lapack_uplo_const(opts.uplo), &N, h_A, &lda, &info );
-                cpu_time = get_time() - cpu_time;
+                cpu_time = magma_wtime() - cpu_time;
                 cpu_perf = gflops / cpu_time;
                 if (info != 0)
                     printf("lapackf77_zpotrf returned error %d: %s.\n",
@@ -121,8 +121,8 @@ int main( int argc, char** argv)
                 printf("%5d     ---   (  ---  )   %7.2f (%7.2f)     ---  \n",
                        (int) N, gpu_perf, gpu_time );
             }
-            TESTING_FREE( h_A );
-            TESTING_FREE( h_R );
+            TESTING_FREE_CPU( h_A );
+            TESTING_FREE_CPU( h_R );
         }
     }
 

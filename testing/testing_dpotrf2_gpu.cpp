@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated d Mon Nov 25 17:56:10 2013
+ * @generated from testing_zpotrf2_gpu.cpp normal z -> d, Fri Jan 10 15:51:19 2014
  *
  **/
 
@@ -90,9 +90,9 @@ int main( int argc, char** argv)
     N    = size[9];
     n2   = N * N;
     ldda = ((N+31)/32) * 32;
-    TESTING_MALLOC(      hA, double, n2 );
-    TESTING_MALLOC_HOST( hR, double, n2 );
-    TESTING_MALLOC_DEV(  dA, double, ldda*N );
+    TESTING_MALLOC_CPU( hA, double, n2 );
+    TESTING_MALLOC_PIN( hR, double, n2 );
+    TESTING_MALLOC_DEV( dA, double, ldda*N );
     
     printf("\n\n");
     printf("  N    CPU GFlop/s (sec)    GPU GFlop/s (sec)    ||R_magma-R_lapack||_F / ||R_lapack||_F\n");
@@ -124,9 +124,9 @@ int main( int argc, char** argv)
            =================================================================== */
         magma_dsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue1 );
         clFinish(queue1);
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_dpotrf2_gpu( MagmaLower, N, dA, 0, ldda, &info, queues );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         if (info != 0)
             printf( "magma_dpotrf2 had error %d.\n", info );
 
@@ -135,9 +135,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK 
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_dpotrf( MagmaLowerStr, &N, hA, &lda, &info );
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info != 0)
             printf( "lapackf77_dpotrf had error %d.\n", info );
         
@@ -159,8 +159,8 @@ int main( int argc, char** argv)
     }
 
     /* clean up */
-    TESTING_FREE( hA );
-    TESTING_FREE_HOST( hR );
+    TESTING_FREE_CPU( hA );
+    TESTING_FREE_PIN( hR );
     TESTING_FREE_DEV( dA );
     magma_queue_destroy( queue1 );
     magma_queue_destroy( queue2 );

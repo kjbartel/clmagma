@@ -1,15 +1,20 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
 */
 #include <math.h>
 #include "common_magma.h"
+
+#define USE_PINNED_CLMEMORY
+#ifdef  USE_PINNED_CLMEMORY
+extern cl_context gContext;
+#endif
 
 #define inAT(id,i,j)  d_lAT[(id)], (((i)*nb)*lddat + (j)*nb)
 #define inA( id,i,j)  d_lA[(id)],  (((i)*nb)+ldda  * (j)*nb)
@@ -21,11 +26,11 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
                  magma_int_t *ipiv, magma_int_t *info,
                  magma_queue_t *queues)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======
@@ -174,7 +179,7 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             } else {
                 if ((m == n_local[i]) && (m%32 == 0) && (ldda%32 == 0) && (ldda == lddat)) {
                     d_lAT[i] = d_lA[i];
-                    magma_zinplace_transpose( d_lA[i], 0, ldda, ldda, queues[2*(i%num_gpus)+1] );
+                    magma_ztranspose_inplace( d_lA[i], 0, ldda, ldda, queues[2*(i%num_gpus)+1] );
                 } else {
                     #ifdef SINGLE_GPU_PER_CONTEXT
                     if (MAGMA_SUCCESS != magma_zmalloc_mgpu( i%num_gpus, &d_lAT[i], lddat*maxm )) {
@@ -202,6 +207,13 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
         }
 
         /* cpu workspace */
+        #ifdef USE_PINNED_CLMEMORY
+        cl_mem buffer = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(magmaDoubleComplex)*maxm*nb*(1+num_gpus), NULL, NULL);
+        for (d=0; d<num_gpus; d++) {
+            work = (magmaDoubleComplex*)clEnqueueMapBuffer(queues[2*d], buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0,
+                                                           sizeof(magmaDoubleComplex)*maxm*nb*(1+num_gpus), 0, NULL, NULL, NULL);
+        }
+        #else
         if (MAGMA_SUCCESS != magma_zmalloc_cpu( &work, maxm*nb*(1+num_gpus) )) {
             for(d=0; d<num_gpus; d++ ) magma_free( d_panel[d] );
             for(d=0; d<tot_subs; d++ ) {
@@ -210,6 +222,7 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             *info = MAGMA_ERR_HOST_ALLOC;
             return *info;
         }
+        #endif
 
         /* calling multi-gpu interface with allocated workspaces and streams */
         magma_zgetrf2_msub(num_subs, num_gpus, m, n, nb, 0, d_lAT, 0, lddat, ipiv, d_lAP, d_panel, 0, work, maxm,
@@ -221,7 +234,7 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
                 //magma_zcopymatrix( n_local[d], m, d_lAT[d], 0, lddat, d_lA[d], 0, ldda, queues[2*d+1] );
             } else {
                 if (d_lAT[d] == d_lA[d]) {
-                    magma_zinplace_transpose( d_lA[d], 0, ldda, ldda, queues[2*(d%num_gpus)+1] );
+                    magma_ztranspose_inplace( d_lA[d], 0, ldda, ldda, queues[2*(d%num_gpus)+1] );
                 } else {
                     magma_ztranspose2( d_lA[d], 0, ldda, d_lAT[d], 0, lddat, n_local[d], m, queues[2*(d%num_gpus)+1] );
                 }
@@ -240,7 +253,14 @@ magma_zgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
                 d_lAT[d] = NULL;
             }
         }
+        #ifdef USE_PINNED_CLMEMORY
+        for (d=0; d<num_gpus; d++) {
+            clEnqueueUnmapMemObject(queues[2*d], buffer, work, 0, NULL, NULL);
+        }
+        clReleaseMemObject( buffer );
+        #else
         magma_free_cpu( work );
+        #endif
         work = NULL;
       }
       return *info;       

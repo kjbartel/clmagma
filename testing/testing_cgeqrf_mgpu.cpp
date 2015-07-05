@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:10 2013
+       @generated from testing_zgeqrf_mgpu.cpp normal z -> c, Fri Jan 10 15:51:20 2014
 
 */
 
@@ -120,26 +120,26 @@ int main( int argc, char** argv)
     }
     
     /* Allocate host memory for the matrix */
-    TESTING_MALLOC(    tau, magmaFloatComplex, min_mn );
-    TESTING_MALLOC(    h_A, magmaFloatComplex, n2     );
-    TESTING_MALLOC( h_R, magmaFloatComplex, n2 );
+    TESTING_MALLOC_CPU( tau, magmaFloatComplex, min_mn );
+    TESTING_MALLOC_CPU( h_A, magmaFloatComplex, n2     );
+    TESTING_MALLOC_CPU( h_R, magmaFloatComplex, n2     );
 
     for(i=0; i<num_gpus; i++){      
-      n_local[i] = ((N/nb)/num_gpus)*nb;
-      if (i < (N/nb)%num_gpus)
-        n_local[i] += nb;
-      else if (i == (N/nb)%num_gpus)
-        n_local[i] += N%nb;
-      
-      TESTING_MALLOC_DEV(  d_lA[i], magmaFloatComplex, ldda*n_local[i] );
-      printf("device %2d n_local = %4d\n", (int) i, (int) n_local[i]);  
+        n_local[i] = ((N/nb)/num_gpus)*nb;
+        if (i < (N/nb)%num_gpus)
+            n_local[i] += nb;
+        else if (i == (N/nb)%num_gpus)
+            n_local[i] += N%nb;
+        
+        TESTING_MALLOC_DEV( d_lA[i], magmaFloatComplex, ldda*n_local[i] );
+        printf("device %2d n_local = %4d\n", (int) i, (int) n_local[i]);  
     }
 
     lhwork = -1;
     lapackf77_cgeqrf(&M, &N, h_A, &M, tau, tmp, &lhwork, &info);
     lhwork = (magma_int_t)MAGMA_C_REAL( tmp[0] );
 
-    TESTING_MALLOC( h_work, magmaFloatComplex, lhwork );
+    TESTING_MALLOC_CPU( h_work, magmaFloatComplex, lhwork );
 
     printf("  M     N   CPU GFlop/s (sec)   GPU GFlop/s (sec)   ||R||_F / ||A||_F\n");
     printf("======================================================================\n");
@@ -160,9 +160,9 @@ int main( int argc, char** argv)
         /* =====================================================================
            Performs operation using LAPACK
            =================================================================== */
-        cpu_time = get_time();
+        cpu_time = magma_wtime();
         lapackf77_cgeqrf(&M, &N, h_A, &M, tau, h_work, &lhwork, &info);
-        cpu_time = get_time() - cpu_time;
+        cpu_time = magma_wtime() - cpu_time;
         if (info < 0)
             printf("Argument %d of lapack_cgeqrf had an illegal value.\n", (int) -info);
 
@@ -182,9 +182,9 @@ int main( int argc, char** argv)
         magma_cgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, &info, queues);
 
         magmablas_csetmatrix_1D_bcyclic(M, N, h_R, lda, d_lA, ldda, num_gpus, nb, trans_queues);
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_cgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, &info, queues);
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
 
         if (info < 0)
           printf("Argument %d of magma_cgeqrf2 had an illegal value.\n", (int) -info);
@@ -208,10 +208,10 @@ int main( int argc, char** argv)
     }
     
     /* Memory clean up */
-    TESTING_FREE_HOST( tau );
-    TESTING_FREE_HOST( h_A );
-    TESTING_FREE_HOST( h_work );
-    TESTING_FREE_HOST( h_R );
+    TESTING_FREE_PIN( tau );
+    TESTING_FREE_PIN( h_A );
+    TESTING_FREE_PIN( h_work );
+    TESTING_FREE_PIN( h_R );
 
     for(i=0; i<num_gpus; i++){
         TESTING_FREE_DEV( d_lA[i] );

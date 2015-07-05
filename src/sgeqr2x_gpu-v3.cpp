@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:00 2013
+       @generated from zgeqr2x_gpu-v3.cpp normal z -> s, Fri Jan 10 15:51:18 2014
 
 */
 #include "common_magma.h"
@@ -17,17 +17,17 @@ magma_slarfbx_gpu(int m, int k, magmaFloat_ptr V, size_t v_offset, int ldv,
 
 extern "C" void
 magma_slarfgtx_gpu(int n, magmaFloat_ptr dx0, size_t dx0_offset, magmaFloat_ptr dx, size_t dx_offset, 
-                   magmaFloat_ptr dtau, size_t dtau_offset, magmaDouble_ptr dxnorm, size_t dxnorm_offset, 
+                   magmaFloat_ptr dtau, size_t dtau_offset, magmaFloat_ptr dxnorm, size_t dxnorm_offset, 
                    magmaFloat_ptr dA, size_t dA_offset, int it,
                    magmaFloat_ptr V, size_t V_offset, int ldv, magmaFloat_ptr T, size_t T_offset, int ldt,
                    magmaFloat_ptr dwork, size_t dwork_offset, magma_queue_t queue);
 
 extern "C" void
-magmablas_snrm2(int m, int num, magmaFloat_ptr da, size_t da_offset, magma_int_t ldda, magmaDouble_ptr dxnorm, size_t dxnorm_offset, 
+magmablas_snrm2(int m, int num, magmaFloat_ptr da, size_t da_offset, magma_int_t ldda, magmaFloat_ptr dxnorm, size_t dxnorm_offset, 
                  magma_queue_t queue);
 
 extern "C" void
-magmablas_snrm2_adjust(int k, magmaDouble_ptr xnorm, size_t xnorm_offset, magmaFloat_ptr c, size_t c_offset, magma_queue_t queue);
+magmablas_snrm2_adjust(int k, magmaFloat_ptr xnorm, size_t xnorm_offset, magmaFloat_ptr c, size_t c_offset, magma_queue_t queue);
     
 extern "C" void
 magmablas_sgemm_reduce(magma_int_t m, magma_int_t n, magma_int_t k,
@@ -83,14 +83,14 @@ magma_sgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
                    magmaFloat_ptr dtau, size_t dtau_offset, 
                    magmaFloat_ptr dT, size_t dT_offset, 
                    magmaFloat_ptr ddA, size_t ddA_offset, 
-                   magmaDouble_ptr dwork, size_t dwork_offset, 
+                   magmaFloat_ptr dwork, size_t dwork_offset, 
                    magma_int_t *info, magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose   
     =======   
@@ -171,9 +171,9 @@ magma_sgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
     static magma_int_t i, k;
 
     //float *dnorm = dwork;
-    magmaDouble_ptr dnorm = dwork;
+    magmaFloat_ptr dnorm = dwork;
     size_t dnorm_offset = dwork_offset;
-    //cuDoubleComplex *work = (cuDoubleComplex *)(dwork+2*(*n));
+    //float *work = (float *)(dwork+2*(*n));
     magmaFloat_ptr work = (magmaFloat_ptr)dwork;
     size_t work_offset = dwork_offset + 2*(*n);
 

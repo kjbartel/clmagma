@@ -1,9 +1,9 @@
 /*
-     -- clMAGMA (version 1.1.0-beta2) --
+     -- clMAGMA (version 1.1.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date November 2013
+        @date January 2014
   
         @precisions normal z -> s d c
 
@@ -17,11 +17,11 @@ magma_zpotrf_gpu( magma_uplo_t   uplo, magma_int_t    n,
           magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
           magma_err_t*   info, magma_queue_t queue )
 {
-/*  -- clMAGMA (version 1.1.0-beta2) --
+/*  -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
     Purpose
     =======

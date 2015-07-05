@@ -1,27 +1,27 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated c Mon Nov 25 17:56:04 2013
+       @generated from ztranspose_inplace.cl normal z -> d, Fri Jan 10 15:51:19 2014
 
 */
 // #include "common_magma.h"
-// #define PRECISION_c
+// #define PRECISION_d
 // #include "commonblas.h"
 
 
-#define PRECISION_c
+#define PRECISION_d
 //#define NB 16
-#define CSIZE_2SHARED 16
+#define DSIZE_2SHARED 16
 
 //#define NBhalf (NB/2)
-#define NBhalf (CSIZE_2SHARED/2)
+#define NBhalf (DSIZE_2SHARED/2)
 
 #if defined(PRECISION_c) || defined(PRECISION_z)
-typedef float2 magmaFloatComplex;
+typedef double double;
 #endif
 
 //#if NB == 32
@@ -46,13 +46,13 @@ typedef float2 magmaFloatComplex;
 */
 
 
-__kernel void cinplace_T_even_kernel( __global magmaFloatComplex *matrix, int offset, int lda, int half )
+__kernel void dtranspose_inplace_even_kernel( __global double *matrix, int offset, int lda, int half )
 {
-    //__local magmaFloatComplex a[NB][NB+1];
-    //__local magmaFloatComplex b[NB][NB+1];
+    //__local double a[NB][NB+1];
+    //__local double b[NB][NB+1];
 
-    __local magmaFloatComplex a[CSIZE_2SHARED][CSIZE_2SHARED+1];
-    __local magmaFloatComplex b[CSIZE_2SHARED][CSIZE_2SHARED+1];
+    __local double a[DSIZE_2SHARED][DSIZE_2SHARED+1];
+    __local double b[DSIZE_2SHARED][DSIZE_2SHARED+1];
 
     int inx = get_local_id(0);
     int iny = get_local_id(1);
@@ -64,12 +64,12 @@ __kernel void cinplace_T_even_kernel( __global magmaFloatComplex *matrix, int of
     //ibx *= NB;
     //iby *= NB;
 
-    ibx *= CSIZE_2SHARED;
-    iby *= CSIZE_2SHARED;
+    ibx *= DSIZE_2SHARED;
+    iby *= DSIZE_2SHARED;
 
     matrix += offset;
 
-    __global magmaFloatComplex *A = matrix + ibx + inx + (iby + iny)*lda;
+    __global double *A = matrix + ibx + inx + (iby + iny)*lda;
     COPY_1D_TO_2D( A, lda, a, inx, iny);
 
     if( ibx == iby )
@@ -79,7 +79,7 @@ __kernel void cinplace_T_even_kernel( __global magmaFloatComplex *matrix, int of
     }
     else
     {
-        __global magmaFloatComplex *B = matrix + iby + inx + (ibx + iny)*lda;
+        __global double *B = matrix + iby + inx + (ibx + iny)*lda;
 
         COPY_1D_TO_2D( B, lda, b, inx, iny);
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -89,13 +89,13 @@ __kernel void cinplace_T_even_kernel( __global magmaFloatComplex *matrix, int of
     }
 }
 
-__kernel void cinplace_T_odd_kernel( __global magmaFloatComplex *matrix, int offset, int lda, int half )
+__kernel void dtranspose_inplace_odd_kernel( __global double *matrix, int offset, int lda, int half )
 {
-    //__local magmaFloatComplex a[NB][NB+1];
-    //__local magmaFloatComplex b[NB][NB+1];
+    //__local double a[NB][NB+1];
+    //__local double b[NB][NB+1];
     
-    __local magmaFloatComplex a[CSIZE_2SHARED][CSIZE_2SHARED+1];
-    __local magmaFloatComplex b[CSIZE_2SHARED][CSIZE_2SHARED+1];
+    __local double a[DSIZE_2SHARED][DSIZE_2SHARED+1];
+    __local double b[DSIZE_2SHARED][DSIZE_2SHARED+1];
     
     int inx = get_local_id(0);
     int iny = get_local_id(1);
@@ -107,12 +107,12 @@ __kernel void cinplace_T_odd_kernel( __global magmaFloatComplex *matrix, int off
     //ibx *= NB;
     //iby *= NB;
     
-    ibx *= CSIZE_2SHARED;
-    iby *= CSIZE_2SHARED;
+    ibx *= DSIZE_2SHARED;
+    iby *= DSIZE_2SHARED;
     
     matrix += offset;
     
-    __global magmaFloatComplex *A = matrix + ibx + inx + (iby + iny)*lda;
+    __global double *A = matrix + ibx + inx + (iby + iny)*lda;
     
     COPY_1D_TO_2D( A, lda, a, inx, iny);
     
@@ -123,7 +123,7 @@ __kernel void cinplace_T_odd_kernel( __global magmaFloatComplex *matrix, int off
     }
     else
     {
-        __global magmaFloatComplex *B = matrix + iby + inx + (ibx + iny)*lda;
+        __global double *B = matrix + iby + inx + (ibx + iny)*lda;
         
         COPY_1D_TO_2D( B, lda, b, inx, iny);
         barrier(CLK_LOCAL_MEM_FENCE);

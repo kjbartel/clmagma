@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
-       @generated s Mon Nov 25 17:56:10 2013
+       @generated from testing_zposv.cpp normal z -> s, Fri Jan 10 15:51:20 2014
 */
 // includes, system
 #include <stdio.h>
@@ -73,11 +73,11 @@ int main( int argc, char** argv)
             lda = ldb = N;
             gflops = ( FLOPS_SPOTRF( N ) + FLOPS_SPOTRS( N, opts.nrhs ) ) / 1e9;
             
-            TESTING_MALLOC(      h_A, float, lda*N         );
-            TESTING_MALLOC_HOST( h_R, float, lda*N         );
-            TESTING_MALLOC(      h_B, float, ldb*opts.nrhs );
-            TESTING_MALLOC(      h_X, float, ldb*opts.nrhs );
-            TESTING_MALLOC(      work, float,         N             );
+            TESTING_MALLOC_CPU( h_A, float, lda*N         );
+            TESTING_MALLOC_PIN( h_R, float, lda*N         );
+            TESTING_MALLOC_CPU( h_B, float, ldb*opts.nrhs );
+            TESTING_MALLOC_CPU( h_X, float, ldb*opts.nrhs );
+            TESTING_MALLOC_CPU( work, float,            N             );
             
             /* ====================================================================
                Initialize the matrix
@@ -95,9 +95,9 @@ int main( int argc, char** argv)
             /* ====================================================================
                Performs operation using MAGMA
                =================================================================== */
-            gpu_time = get_time();
+            gpu_time = magma_wtime();
             magma_sposv( opts.uplo, N, opts.nrhs, h_R, lda, h_X, ldb, &info, queue );
-            gpu_time = get_time() - gpu_time;
+            gpu_time = magma_wtime() - gpu_time;
             gpu_perf = gflops / gpu_time;
             if (info != 0)
                 printf("magma_spotrf returned error %d: %s.\n",
@@ -122,10 +122,10 @@ int main( int argc, char** argv)
                Performs operation using LAPACK
                =================================================================== */
             if ( opts.lapack ) {
-                cpu_time = get_time();
+                cpu_time = magma_wtime();
                 lapackf77_sposv( lapack_uplo_const(opts.uplo), &N, &opts.nrhs, 
                                  h_A, &lda, h_B, &ldb, &info );
-                cpu_time = get_time() - cpu_time;
+                cpu_time = magma_wtime() - cpu_time;
                 cpu_perf = gflops / cpu_time;
                 if (info != 0)
                     printf("lapackf77_sposv returned error %d: %s.\n",
@@ -141,11 +141,11 @@ int main( int argc, char** argv)
                         error, (error < tol ? "" : "  failed"));
             }
             
-            TESTING_FREE( h_A );
-            TESTING_FREE_HOST( h_R );
-            TESTING_FREE( h_B );
-            TESTING_FREE( h_X );
-            TESTING_FREE( work );
+            TESTING_FREE_CPU( h_A );
+            TESTING_FREE_PIN( h_R );
+            TESTING_FREE_CPU( h_B );
+            TESTING_FREE_CPU( h_X );
+            TESTING_FREE_CPU( work );
         }
         if ( opts.niter > 1 ) {
             printf( "\n" );

@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0-beta2) --
+    -- clMAGMA (version 1.1.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date November 2013
+       @date January 2014
 
        @precisions normal z -> s d c
 
@@ -46,7 +46,7 @@ typedef double2 magmaDoubleComplex;
 */
 
 
-__kernel void zinplace_T_even_kernel( __global magmaDoubleComplex *matrix, int offset, int lda, int half )
+__kernel void ztranspose_inplace_even_kernel( __global magmaDoubleComplex *matrix, int offset, int lda, int half )
 {
     //__local magmaDoubleComplex a[NB][NB+1];
     //__local magmaDoubleComplex b[NB][NB+1];
@@ -89,7 +89,7 @@ __kernel void zinplace_T_even_kernel( __global magmaDoubleComplex *matrix, int o
     }
 }
 
-__kernel void zinplace_T_odd_kernel( __global magmaDoubleComplex *matrix, int offset, int lda, int half )
+__kernel void ztranspose_inplace_odd_kernel( __global magmaDoubleComplex *matrix, int offset, int lda, int half )
 {
     //__local magmaDoubleComplex a[NB][NB+1];
     //__local magmaDoubleComplex b[NB][NB+1];

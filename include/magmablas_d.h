@@ -1,12 +1,12 @@
 /*
- *   -- clMAGMA (version 1.1.0-beta2) --
+ *   -- clMAGMA (version 1.1.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date November 2013
+ *      @date January 2014
  *
  * @author Mark Gates
- * @generated d Mon Nov 25 17:55:49 2013
+ * @generated from magmablas_z.h normal z -> d, Fri Jan 10 15:51:16 2014
  */
 
 #ifndef MAGMA_BLAS_D_H
@@ -120,7 +120,7 @@ void magmablas_dgetmatrix_1D_bcyclic(
 // ========================================
 // matrix transpose and swapping functions
 magma_err_t
-magma_dinplace_transpose(
+magma_dtranspose_inplace(
     magmaDouble_ptr dA, size_t dA_offset, int lda, int n,
     magma_queue_t queue );
 

@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0-beta2) --
+ *  -- clMAGMA (version 1.1.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date November 2013
+ *     @date January 2014
  *
- * @generated c Mon Nov 25 17:56:10 2013
+ * @generated from testing_zpotrf_msub.cpp normal z -> c, Fri Jan 10 15:51:19 2014
  *
  **/
 
@@ -20,6 +20,11 @@
 #include "magma.h"
 #include "magma_lapack.h"
 #include "testings.h"
+
+//#define USE_PINNED_CLMEMORY
+#ifdef USE_PINNED_CLMEMORY
+extern cl_context gContext;
+#endif
 
 #define h_A(i,j) h_A[ i + j*lda ]
 void init_matrix( int N, magmaFloatComplex *h_A, magma_int_t lda )
@@ -41,7 +46,7 @@ void init_matrix( int N, magmaFloatComplex *h_A, magma_int_t lda )
 int main( int argc, char** argv)
 {
     real_Double_t gflops, gpu_perf, cpu_perf, gpu_time, cpu_time;
-    magmaFloatComplex *h_R, *h_P;
+    magmaFloatComplex *h_R = NULL, *h_P = NULL;
     magmaFloatComplex_ptr d_lA[MagmaMaxSubs * MagmaMaxGPUs];
     magma_int_t N = 0, n2, lda, ldda;
     magma_int_t size[10] =
@@ -77,7 +82,7 @@ int main( int argc, char** argv)
     }
 
     /* Initialize */
-    magma_queue_t  queues[MagmaMaxGPUs * 2];
+    magma_queue_t  queues[2*MagmaMaxGPUs];
     magma_device_t devices[ MagmaMaxGPUs ];
     int num = 0;
     magma_err_t err;
@@ -100,7 +105,7 @@ int main( int argc, char** argv)
         }
     }
 
-    printf("\nUsing GPUs: %d\n", num_gpus0);
+    printf("\nUsing %d GPUs:\n", num_gpus0);
     printf("  testing_cpotrf_msub -N %d -NGPU %d -NSUB %d -UPLO %c %s\n\n", size[0], num_gpus0,num_subs0,
            (uplo == MagmaLower ? 'L' : 'U'),(check == 1 ? "-check" : " "));
 
@@ -124,8 +129,19 @@ int main( int argc, char** argv)
         tot_subs = num_subs * num_gpus;
         
         /* Allocate host memory for the matrix */
-        TESTING_MALLOC_HOST( h_P, magmaFloatComplex, lda*nb);
-        TESTING_MALLOC_HOST( h_R, magmaFloatComplex, n2);
+        #ifdef USE_PINNED_CLMEMORY
+        cl_mem buffer1 = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, n2*sizeof(magmaFloatComplex), NULL, NULL);
+        cl_mem buffer2 = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, lda*nb*sizeof(magmaFloatComplex), NULL, NULL);
+        for (k=0; k<num_gpus; k++) {
+            h_R = (magmaFloatComplex*)clEnqueueMapBuffer(queues[2*k], buffer1, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 
+                                                          n2*sizeof(magmaFloatComplex), 0, NULL, NULL, NULL);
+            h_P = (magmaFloatComplex*)clEnqueueMapBuffer(queues[2*k], buffer2, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 
+                                                          lda*nb*sizeof(magmaFloatComplex), 0, NULL, NULL, NULL);
+        }
+        #else
+        TESTING_MALLOC_PIN( h_P, magmaFloatComplex, lda*nb );
+        TESTING_MALLOC_PIN( h_R, magmaFloatComplex, n2     );
+        #endif
         /* Initialize the matrix */
         init_matrix( N, h_R, lda );
 
@@ -222,9 +238,9 @@ int main( int argc, char** argv)
             }*/
         }
     
-        gpu_time = get_time();
+        gpu_time = magma_wtime();
         magma_cpotrf_msub( num_subs, num_gpus, uplo, N, d_lA, 0, ldda, &info, queues );
-        gpu_time = get_time() - gpu_time;
+        gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         if (info != 0)
             printf( "magma_cpotrf had error %d.\n", info );
@@ -277,16 +293,16 @@ int main( int argc, char** argv)
         if (check == 1) {
             float work[1], matnorm, diffnorm;
             magmaFloatComplex *h_A;
-            TESTING_MALLOC_HOST( h_A, magmaFloatComplex, n2);
+            TESTING_MALLOC_PIN( h_A, magmaFloatComplex, n2 );
             init_matrix( N, h_A, lda );
 
-            cpu_time = get_time();
+            cpu_time = magma_wtime();
             if (uplo == MagmaLower) {
                 lapackf77_cpotrf( MagmaLowerStr, &N, h_A, &lda, &info );
             } else {
                 lapackf77_cpotrf( MagmaUpperStr, &N, h_A, &lda, &info );
             }
-            cpu_time = get_time() - cpu_time;
+            cpu_time = magma_wtime() - cpu_time;
             cpu_perf = gflops / cpu_time;
             if (info != 0)
                 printf( "lapackf77_cpotrf had error %d.\n", info );
@@ -301,16 +317,25 @@ int main( int argc, char** argv)
             printf( "%5d     %6.2f (%6.2f)     %6.2f (%6.2f)         %e\n",
                     N, cpu_perf, cpu_time, gpu_perf, gpu_time, diffnorm / matnorm );
         
-            TESTING_FREE_HOST( h_A );
+            TESTING_FREE_PIN( h_A );
         } else {
             printf( "%5d      - -     (- -)     %6.2f (%6.2f)          - -\n",
                     N, gpu_perf, gpu_time );
         }
         // free memory
-        TESTING_FREE_HOST( h_P );
-        TESTING_FREE_HOST( h_R );
+        #ifdef USE_PINNED_CLMEMORY
+        for (k=0; k<num_gpus; k++) {
+            clEnqueueUnmapMemObject(queues[2*k], buffer1, h_R, 0, NULL, NULL);
+            clEnqueueUnmapMemObject(queues[2*k], buffer2, h_P, 0, NULL, NULL);
+        }
+        clReleaseMemObject(buffer1);
+        clReleaseMemObject(buffer2);
+        #else
+        TESTING_FREE_PIN( h_P );
+        TESTING_FREE_PIN( h_R );
+        #endif
         for (j=0; j<tot_subs; j++) {
-            TESTING_FREE_DEV(d_lA[j]);
+            TESTING_FREE_DEV( d_lA[j] );
         }
         if (flag != 0)
             break;
