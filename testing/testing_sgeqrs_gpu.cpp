@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0) --
+ *  -- clMAGMA (version 1.3.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date January 2014
+ *     @date November 2014
  *
- * @generated from testing_zgeqrs_gpu.cpp normal z -> s, Fri Jan 10 15:51:20 2014
+ * @generated from testing_zgeqrs_gpu.cpp normal z -> s, Sat Nov 15 00:21:40 2014
  *
  **/
 
@@ -40,17 +40,17 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queue;
     magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
     magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
+    err = magma_getdevices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
-        fprintf( stderr, "magma_get_devices failed: %d\n", err );
+        fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
         exit(-1);
     }
     err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
-        fprintf( stderr, "magma_queue_create failed: %d\n", err );
+        fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
         exit(-1);
     }
   
@@ -122,7 +122,7 @@ int main( int argc, char** argv)
     lapackf77_sgeqrf(&M, &N, h_A, &M, tau, tmp, &lhwork, &info);
     l1 = (magma_int_t)MAGMA_S_REAL( tmp[0] );
     lhwork = -1;
-    lapackf77_sormqr( MagmaLeftStr, MagmaTransStr,
+    lapackf77_sormqr( MagmaLeftStr, MagmaConjTransStr,
                       &M, &nrhs, &min_mn, h_A, &lda, tau,
                       h_X, &ldb, tmp, &lhwork, &info);
     l2 = (magma_int_t)MAGMA_S_REAL( tmp[0] );
@@ -157,17 +157,17 @@ int main( int argc, char** argv)
            Performs operation using MAGMA
            =================================================================== */
         /* Warm up to measure the performance */
-        magma_ssetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
-        magma_ssetmatrix( M, nrhs, h_B, 0, ldb, d_B, 0, lddb, queue );
+        magma_ssetmatrix( M, N,    h_A, lda, d_A, 0, ldda, queue );
+        magma_ssetmatrix( M, nrhs, h_B, ldb, d_B, 0, lddb, queue );
         magma_sgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda,
-                         d_B, 0, lddb, hwork, lworkgpu, &info, queue);
+                         d_B, 0, lddb, hwork, lworkgpu, queue, &info);
         
-        magma_ssetmatrix( M, N,    h_A, 0, lda, d_A, 0, ldda, queue );
-        magma_ssetmatrix( M, nrhs, h_B, 0, ldb, d_B, 0, lddb, queue );
+        magma_ssetmatrix( M, N,    h_A, lda, d_A, 0, ldda, queue );
+        magma_ssetmatrix( M, nrhs, h_B, ldb, d_B, 0, lddb, queue );
         
         gpu_time = magma_wtime();
         magma_sgels_gpu( MagmaNoTrans, M, N, nrhs, d_A, 0, ldda,
-                         d_B, 0, lddb, hwork, lworkgpu, &info, queue);
+                         d_B, 0, lddb, hwork, lworkgpu, queue, &info);
         gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
             printf("Argument %d of magma_sgels had an illegal value.\n", -info);
@@ -175,7 +175,7 @@ int main( int argc, char** argv)
         gpu_perf = gflops / gpu_time;
 
         // Get the solution in h_X
-        magma_sgetmatrix( N, nrhs, d_B, 0, lddb, h_X, 0, ldb, queue );
+        magma_sgetmatrix( N, nrhs, d_B, 0, lddb, h_X, ldb, queue );
 
         // compute the residual
         blasf77_sgemm( MagmaNoTransStr, MagmaNoTransStr, &M, &nrhs, &N,

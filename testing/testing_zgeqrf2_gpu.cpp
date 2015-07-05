@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> s d c
 
@@ -80,23 +80,23 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queue1, queue2;
     magma_device_t devices[MagmaMaxGPUs];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
 
     magma_init();
-    err = magma_get_devices( devices, MagmaMaxGPUs, &num );
+    err = magma_getdevices( devices, MagmaMaxGPUs, &num );
     if ( err != 0 or num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
+      fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
       exit(-1);
     }
     err = magma_queue_create( devices[0], &queue1 );
     if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
+      fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
       exit(-1);
     }
     err = magma_queue_create( devices[0], &queue2 );
     if ( err != 0 ) {
-        fprintf( stderr, "magma_queue_create failed: %d\n", err );
+        fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
         exit(-1);
     }
 
@@ -149,12 +149,12 @@ int main( int argc, char** argv)
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
-        magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue1 );
-        magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
+        magma_zsetmatrix( M, N, h_R, lda, d_A, 0, ldda, queue1 );
+        magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, queues, &info);
 
-        magma_zsetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue1 );
+        magma_zsetmatrix( M, N, h_R, lda, d_A, 0, ldda, queue1 );
         gpu_time = magma_wtime();
-        magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, &info, queues);
+        magma_zgeqrf2_2q_gpu( M, N, d_A, 0, ldda, tau, queues, &info);
         gpu_time = magma_wtime() - gpu_time;
         if (info < 0)
           printf("Argument %d of magma_zgeqrf2 had an illegal value.\n", -info);
@@ -164,7 +164,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the result compared to LAPACK
            =================================================================== */
-        magma_zgetmatrix( M, N, d_A, 0, ldda, h_R, 0, M, queue1 );
+        magma_zgetmatrix( M, N, d_A, 0, ldda, h_R, M, queue1 );
         
         matnorm = lapackf77_zlange("f", &M, &N, h_A, &M, work);
         blasf77_zaxpy(&n2, &mzone, h_A, &ione, h_R, &ione);

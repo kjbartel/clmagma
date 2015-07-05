@@ -1,15 +1,13 @@
 /*
-     -- clMAGMA (version 1.1.0) --
+     -- clMAGMA (version 1.3.0) --
         Univ. of Tennessee, Knoxville
         Univ. of California, Berkeley
         Univ. of Colorado, Denver
-        @date January 2014
+        @date November 2014
 
-        @generated from zgebrd.cpp normal z -> s, Fri Jan 10 15:51:18 2014
+        @generated from zgebrd.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 // produces pointer and offset as two args to magmaBLAS routines
@@ -18,23 +16,25 @@
 // produces pointer as single arg to BLAS routines
 #define A(i,j)  &a[ (i) + (j)*lda ]
 
-magma_err_t
-magma_sgebrd(magma_int_t m, magma_int_t n,
-             float *a, magma_int_t lda, float *d, float *e,
-             float *tauq, float *taup,
-             float *work, magma_int_t lwork,
-             magma_int_t *info, magma_queue_t queue)
+extern "C" magma_int_t
+magma_sgebrd(
+    magma_int_t m, magma_int_t n,
+    float *a, magma_int_t lda, float *d, float *e,
+    float *tauq, float *taup,
+    float *work, magma_int_t lwork,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
     SGEBRD reduces a general real M-by-N matrix A to upper or lower
-    bidiagonal form B by an orthogonal transformation: Q**T * A * P = B.
+    bidiagonal form B by an orthogonal transformation: Q**H * A * P = B.
 
     If m >= n, B is upper bidiagonal; if m < n, B is lower bidiagonal.
 
@@ -160,6 +160,7 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
     work[0] = MAGMA_S_MAKE( lwkopt, 0. );
     lquery = (lwork == -1);
     
+    /* Check arguments */
     *info = 0;
     if (m < 0) {
         *info = -1;
@@ -185,11 +186,10 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
     }
 
     size_t da_offset = 0;
-    if (MAGMA_SUCCESS != magma_smalloc( &da, (n*ldda + (m + n)*nb ) )) {
+    if (MAGMA_SUCCESS != magma_smalloc( &da, n*ldda + (m + n)*nb )) {
         *info = MAGMA_ERR_DEVICE_ALLOC;
         return *info;
     }
-    
     //dwork = da + (n)*ldda;
     dwork = da;
     size_t dwork_offset = da_offset+(n)*ldda;
@@ -201,11 +201,11 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
     nx = 128;
 
     /* Copy the matrix to the GPU */
-    if (minmn-nx>=1)
-      magma_ssetmatrix( m, n, a, 0, lda, da, da_offset, ldda, queue );
-
+    if (minmn - nx >= 1) {
+        magma_ssetmatrix( m, n, a, lda, da, da_offset, ldda, queue );
+    }
+    
     for (i=0; i< (minmn - nx); i += nb) {
-
         /*  Reduce rows and columns i:i+nb-1 to bidiagonal form and return
             the matrices X and Y which are needed to update the unreduced
             part of the matrix */
@@ -214,17 +214,17 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
 
         /*   Get the current panel (no need for the 1st iteration) */
         if ( i > 0 ) {
-            magma_sgetmatrix( nrow, nb, dA(i, i), ldda, A( i, i), 0, lda, queue );
+            magma_sgetmatrix( nrow, nb, dA(i, i), ldda, A( i, i), lda, queue );
             magma_sgetmatrix( nb, ncol - nb,
                               dA(i, i+nb), ldda,
-                              A( i, i+nb), 0, lda, queue );
+                              A( i, i+nb), lda, queue );
         }
 
         magma_slabrd_gpu(nrow, ncol, nb,
                          A(i, i),          lda,    dA(i, i),          ldda,
                          d+i, e+i, tauq+i, taup+i,
-                         work,             ldwrkx, dwork, dwork_offset, ldwrkx,  // x, dx
-                         work+(ldwrkx*nb), ldwrky, dwork, dwork_offset+(ldwrkx*nb), ldwrky, // y, dy
+                         work,             ldwrkx, dwork, dwork_offset,             ldwrkx,  // x, dx
+                         work+(ldwrkx*nb), ldwrky, dwork, dwork_offset+(ldwrkx*nb), ldwrky,  // y, dy
                          queue );
 
         /*  Update the trailing submatrix A(i+nb:m,i+nb:n), using an update
@@ -233,15 +233,15 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
         ncol = n - i - nb;
 
         // Send Y back to the GPU
-        magma_ssetmatrix( nrow, nb, work+nb, 0, ldwrkx, dwork, dwork_offset+nb, ldwrkx, queue );
+        magma_ssetmatrix( nrow, nb, work+nb, ldwrkx, dwork, dwork_offset+nb, ldwrkx, queue );
         magma_ssetmatrix( ncol, nb,
-                          work  +               (ldwrkx+1)*nb, 0, ldwrky,
+                          work  +               (ldwrkx+1)*nb, ldwrky,
                           dwork, dwork_offset + (ldwrkx+1)*nb, ldwrky, queue );
 
-        magma_sgemm( MagmaNoTrans, MagmaTrans,
+        magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                      nrow, ncol, nb,
                      c_neg_one, dA(i+nb, i   ),      ldda,
-                     dwork, dwork_offset+(ldwrkx+1)*nb, ldwrky,
+                                dwork, dwork_offset+(ldwrkx+1)*nb, ldwrky,
                      c_one,     dA(i+nb, i+nb), ldda, queue );
 
         magma_sgemm( MagmaNoTrans, MagmaNoTrans,
@@ -270,9 +270,10 @@ magma_sgebrd(magma_int_t m, magma_int_t n,
     nrow = m - i;
     ncol = n - i;
 
-    if ( 0 < (minmn-nx) )
-      magma_sgetmatrix( nrow, ncol, dA(i, i), ldda, A( i, i), 0, lda, queue );
-
+    if ( 0 < minmn - nx ) {
+        magma_sgetmatrix( nrow, ncol, dA(i, i), ldda, A( i, i), lda, queue );
+    }
+    
     lapackf77_sgebrd( &nrow, &ncol,
                       A(i, i), &lda, d+i, e+i,
                       tauq+i, taup+i, work, &lwork, &iinfo);

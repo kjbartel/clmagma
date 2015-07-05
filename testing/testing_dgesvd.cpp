@@ -1,11 +1,12 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from testing_zgesvd.cpp normal z -> d, Fri Jan 10 15:51:20 2014
+       @generated from testing_zgesvd.cpp normal z -> d, Sat Nov 15 00:21:40 2014
+       @author Mark Gates
 
 */
 
@@ -16,235 +17,146 @@
 #include <math.h>
 
 // includes, project
-#include "flops.h"
 #include "magma.h"
 #include "magma_lapack.h"
 #include "testings.h"
-#define PRECISION_d
+
+#define REAL
 
 /* ////////////////////////////////////////////////////////////////////////////
-   -- Testing dgesvd
+   -- Testing dgesvd (SVD with QR iteration)
+      Please keep code in testing_dgesdd.cpp and testing_dgesvd.cpp similar.
 */
 int main( int argc, char** argv)
 {
+    TESTING_INIT();
+
     real_Double_t   gpu_time, cpu_time;
     double *h_A, *h_R, *U, *VT, *h_work;
+    double dummy[1];
     double *S1, *S2;
-#if defined(PRECISION_z) || defined(PRECISION_c)
+    #ifdef COMPLEX
     double *rwork;
-#endif
-
-    /* Matrix size */
-    magma_int_t M=0, N=0, n2, min_mn;
-    const int MAXTESTS = 10;
-    magma_int_t msize[MAXTESTS] = { 1024, 2048, 3072, 4032, 5184, 6016, 7040, 8064, 9088, 10112 };
-    magma_int_t nsize[MAXTESTS] = { 1024, 2048, 3072, 4032, 5184, 6016, 7040, 8064, 9088, 10112 };
-
-    magma_int_t info;
+    #endif
+    magma_int_t M, N, N_U, M_VT, lda, ldu, ldv, n2, min_mn, info, nb, lwork;
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
+    magma_vec_t jobu, jobvt;
+    magma_int_t status = 0;
     
-    const char* jobu = "S";
-    const char* jobv = "S";
-
-    int checkres = getenv("MAGMA_TESTINGS_CHECK") != NULL;
-    int lapack   = getenv("MAGMA_RUN_LAPACK")     != NULL;
-    int test_all = false;
-    int workspace = 1;
+    magma_opts opts;
+    parse_opts( argc, argv, &opts );
     
-    // process command line arguments
-    printf( "\nUsage: %s -N <m,n> -U[ASON] -V[ASON] -all -c -l -w[123]\n"
-            "  -N can be repeated up to %d times. If only m is given, then m=n.\n"
-            "  -c or setting $MAGMA_TESTINGS_CHECK checks result.\n"
-            "  -l or setting $MAGMA_RUN_LAPACK runs LAPACK and checks singular values.\n"
-            "  -U* and -V* set jobu and jobv.\n"
-            "  -all tests all 15 combinations of jobu and jobv.\n"
-            "  -w* sets workspace size, from default min (1) to max (3).\n\n",
-            argv[0], MAXTESTS );
+    double tol = opts.tolerance * lapackf77_dlamch("E");
     
-    int ntest = 0;
-    for( int i = 1; i < argc; ++i ) {
-        if ( strcmp("-N", argv[i]) == 0 && i+1 < argc ) {
-            if (ntest > MAXTESTS){
-                printf("error: -N repeated more than maximum %d tests\n", MAXTESTS );
-                exit(1);
-            }
-            int m, n;
-            info = sscanf( argv[++i], "%d,%d", &m, &n );
-            if ( info == 2 && m > 0 && n > 0 ) {
-                msize[ ntest ] = m;
-                nsize[ ntest ] = n;
-            }
-            else if ( info == 1 && m > 0 ) {
-                msize[ ntest ] = m;
-                nsize[ ntest ] = m;  // implicitly
-            }
-            else {
-                printf( "error: -N %s is invalid; ensure m > 0, n > 0.\n", argv[i] );
-                exit(1);
-            }
-            M = max( M, msize[ ntest ] );
-            N = max( N, nsize[ ntest ] );
-            ntest++;
-        }
-        else if ( strcmp("-M", argv[i]) == 0 ) {
-            printf( "-M has been replaced in favor of -N m,n to allow -N to be repeated.\n\n" );
-            exit(1);
-        }
-        else if ( strcmp("-UA", argv[i]) == 0 )
-            jobu = "A";
-        else if ( strcmp("-US", argv[i]) == 0 )
-            jobu = "S";
-        else if ( strcmp("-UO", argv[i]) == 0 )
-            jobu = "O";
-        else if ( strcmp("-UN", argv[i]) == 0 )
-            jobu = "N";
-        
-        else if ( strcmp("-VA", argv[i]) == 0 )
-            jobv = "A";
-        else if ( strcmp("-VS", argv[i]) == 0 )
-            jobv = "S";
-        else if ( strcmp("-VO", argv[i]) == 0 )
-            jobv = "O";
-        else if ( strcmp("-VN", argv[i]) == 0 )
-            jobv = "N";
-        
-        else if ( strcmp("-all", argv[i]) == 0 )
-            test_all = true;
-        else if ( strcmp("-c", argv[i]) == 0 )
-            checkres = true;
-        else if ( strcmp("-l", argv[i]) == 0 )
-            lapack = true;
-        else if ( strcmp("-w1", argv[i]) == 0 )
-            workspace = 1;
-        else if ( strcmp("-w2", argv[i]) == 0 )
-            workspace = 2;
-        else if ( strcmp("-w3", argv[i]) == 0 )
-            workspace = 3;
-        else {
-            printf( "invalid argument: %s\n", argv[i] );
-            exit(1);
-        }
-    }
-    if ( ntest == 0 ) {
-        ntest = MAXTESTS;
-        M = msize[ntest-1];
-        N = nsize[ntest-1];
-    }
-
-    n2  = M * N;
-    min_mn = min(M, N);
-
-    /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-
-    magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
-    }
-    err = magma_queue_create( device[0], &queue );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
+    jobu  = opts.jobu;
+    jobvt = opts.jobvt;
     
-    /* Allocate host memory for the matrix */
-    TESTING_MALLOC_CPU( h_A, double, n2  );
-    TESTING_MALLOC_CPU( VT,  double, N*N );
-    TESTING_MALLOC_CPU( U,   double, M*M );
-    TESTING_MALLOC_CPU( S1,  double, min_mn );
-    TESTING_MALLOC_CPU( S2,  double, min_mn );
-
-#if defined(PRECISION_z) || defined(PRECISION_c)
-    TESTING_MALLOC_CPU( rwork, double, 5*min_mn );
-#endif
-    TESTING_MALLOC_PIN( h_R, double, n2 );
-
-    magma_int_t nb = magma_get_dgesvd_nb(N);
-    magma_int_t lwork;
-
-    switch( workspace ) {
-        default:
-#if defined(PRECISION_z) || defined(PRECISION_c)
-        case 1: lwork = (M+N)*nb + 2*min_mn;                   break;  // minimum
-        case 2: lwork = (M+N)*nb + 2*min_mn +   min_mn*min_mn; break;  // optimal for some paths
-        case 3: lwork = (M+N)*nb + 2*min_mn + 2*min_mn*min_mn; break;  // optimal for all paths
-#else
-        case 1: lwork = (M+N)*nb + 3*min_mn;                   break;  // minimum
-        case 2: lwork = (M+N)*nb + 3*min_mn +   min_mn*min_mn; break;  // optimal for some paths
-        case 3: lwork = (M+N)*nb + 3*min_mn + 2*min_mn*min_mn; break;  // optimal for all paths
-#endif
-    }
-
-    TESTING_MALLOC_PIN( h_work, double, lwork );
+    magma_vec_t jobs[] = { MagmaNoVec, MagmaSomeVec, MagmaOverwriteVec, MagmaAllVec };
     
-    const char* jobs[] = { "None", "Some", "Over", "All" };
-
-    printf("-1.00 indicates non-applicable test that was skipped. See code for norm formulas.\n");
-    printf("jobu jobv     M     N  CPU time (sec)  GPU time (sec)  |S1-S2|/.  |A-USV'|/. |I-UU'|/M  |I-VV'|/N  S (0=okay)\n");
-    printf("===============================================================================================================\n");
-    for( int i = 0; i < ntest; ++i ) {
+    if ( opts.check && ! opts.all && (jobu == MagmaNoVec || jobvt == MagmaNoVec)) {
+        printf( "NOTE: some checks require that singular vectors are computed;\n"
+                "      set both jobu (option -U[NASO]) and jobvt (option -V[NASO]) to be S, O, or A.\n\n" );
+    }
+    printf("jobu jobv     M     N  CPU time (sec)  GPU time (sec)  |S1-S2|/.  |A-USV'|/. |I-UU'|/M  |I-VV'|/N  S sorted\n");
+    printf("===========================================================================================================\n");
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
         for( int ijobu = 0; ijobu < 4; ++ijobu ) {
         for( int ijobv = 0; ijobv < 4; ++ijobv ) {
-            if ( test_all ) {
-                jobu = jobs[ ijobu ];
-                jobv = jobs[ ijobv ];
-                if ( jobu[0] == 'O' && jobv[0] == 'O' ) {
-                    // illegal combination; skip
-                    continue;
-                }
+        for( int iter = 0; iter < opts.niter; ++iter ) {
+            if ( opts.all ) {
+                jobu  = jobs[ ijobu ];
+                jobvt = jobs[ ijobv ];
             }
             else if ( ijobu > 0 || ijobv > 0 ) {
-                // if not testing all, run only once, with ijobu = ijobv = 0
+                // if not testing all, run only once, when ijobu = ijobv = 0,
+                // but jobu and jobv come from opts (above loops).
+                continue;
+            }
+            if ( jobu == MagmaOverwriteVec && jobvt == MagmaOverwriteVec ) {
+                // illegal combination; skip
                 continue;
             }
             
-            M = msize[i];
-            N = nsize[i];
-            n2 = M*N;
+            M = opts.msize[itest];
+            N = opts.nsize[itest];
             min_mn = min(M, N);
-    
+            N_U  = (jobu  == MagmaAllVec ? M : min_mn);
+            M_VT = (jobvt == MagmaAllVec ? N : min_mn);
+            lda = M;
+            ldu = M;
+            ldv = M_VT;
+            n2 = lda*N;
+            nb = magma_get_dgesvd_nb(N);
+            
+            // query or use formula for workspace size 
+            switch( opts.svd_work ) {
+                case 0: {  // query for workspace size
+                    lwork = -1;
+                    magma_dgesvd( jobu, jobvt, M, N,
+                                  h_R, lda, S1, U, ldu, VT, ldv, dummy, lwork,
+                                  #ifdef COMPLEX
+                                  rwork,
+                                  #endif
+                                  opts.queue, &info );
+                    lwork = (int) MAGMA_D_REAL( dummy[0] );
+                    break;
+                }
+                
+                // these are not tight bounds:
+                // if (m >> n), it may need only (2*N)*nb instead of (M+N)*nb.
+                // if (n >> m), it may need only (2*M)*nb instead of (M+N)*nb.
+                #ifdef COMPLEX
+                case 1: lwork = (M+N)*nb + 2*min_mn;                   break;  // minimum
+                case 2: lwork = (M+N)*nb + 2*min_mn +   min_mn*min_mn; break;  // optimal for some paths
+                case 3: lwork = (M+N)*nb + 2*min_mn + 2*min_mn*min_mn; break;  // optimal for all paths
+                #else
+                case 1: lwork = (M+N)*nb + 3*min_mn;                   break;  // minimum
+                case 2: lwork = (M+N)*nb + 3*min_mn +   min_mn*min_mn; break;  // optimal for some paths
+                case 3: lwork = (M+N)*nb + 3*min_mn + 2*min_mn*min_mn; break;  // optimal for all paths
+                #endif
+                
+                default: {
+                    fprintf( stderr, "Error: unknown option svd_work %d\n", (int) opts.svd_work );
+                    exit(1);
+                    break;
+                }
+            }
+            
+            TESTING_MALLOC_CPU( h_A,   double, lda*N );
+            TESTING_MALLOC_CPU( VT,    double, ldv*N );   // N x N (jobvt=A) or min(M,N) x N
+            TESTING_MALLOC_CPU( U,     double, ldu*N_U ); // M x M (jobu=A)  or M x min(M,N)
+            TESTING_MALLOC_CPU( S1,    double, min_mn );
+            TESTING_MALLOC_CPU( S2,    double, min_mn );
+            TESTING_MALLOC_PIN( h_R,    double, lda*N );
+            TESTING_MALLOC_PIN( h_work, double, lwork );
+            
+            #ifdef COMPLEX
+            TESTING_MALLOC_CPU( rwork, double, 5*min_mn );
+            #endif
+            
             /* Initialize the matrix */
             lapackf77_dlarnv( &ione, ISEED, &n2, h_A );
-            lapackf77_dlacpy( MagmaUpperLowerStr, &M, &N, h_A, &M, h_R, &M );
-    
+            lapackf77_dlacpy( MagmaUpperLowerStr, &M, &N, h_A, &lda, h_R, &lda );
+            
             /* ====================================================================
                Performs operation using MAGMA
                =================================================================== */
-            #if defined(PRECISION_z) || defined(PRECISION_c)
-            magma_dgesvd( jobu[0], jobv[0], M, N,
-                          h_R, M, S1, U, M,
-                          VT, N, h_work, lwork, rwork, &info, queue );
-            #else
-            magma_dgesvd( jobu[0], jobv[0], M, N,
-                          h_R, M, S1, U, M,
-                          VT, N, h_work, lwork, &info, queue );
-            #endif
-            for(int j=0;j<n2;j++)
-                h_R[j] = h_A[j];
             gpu_time = magma_wtime();
-            #if defined(PRECISION_z) || defined(PRECISION_c)
-            magma_dgesvd( jobu[0], jobv[0], M, N,
-                          h_R, M, S1, U, M,
-                          VT, N, h_work, lwork, rwork, &info, queue );
-            #else
-            magma_dgesvd( jobu[0], jobv[0], M, N,
-                          h_R, M, S1, U, M,
-                          VT, N, h_work, lwork, &info, queue );
-            #endif
+            magma_dgesvd( jobu, jobvt, M, N,
+                          h_R, lda, S1, U, ldu, VT, ldv, h_work, lwork,
+                          #ifdef COMPLEX
+                          rwork,
+                          #endif
+                          opts.queue, &info );
             gpu_time = magma_wtime() - gpu_time;
-
             if (info != 0)
-                printf("magma_dgesvd returned error %d.\n", (int) info);
+                printf("magma_dgesvd returned error %d: %s.\n",
+                       (int) info, magma_strerror( info ));
             
             double eps = lapackf77_dlamch( "E" );
-            double result[4] = { -1/eps, -1/eps, -1/eps, -1/eps };
-            if ( checkres ) {
+            double result[5] = { -1/eps, -1/eps, -1/eps, -1/eps, -1/eps };
+            if ( opts.check ) {
                 /* =====================================================================
                    Check the results following the LAPACK's [zcds]drvbd routine.
                    A is factored as A = U diag(S) VT and the following 4 tests computed:
@@ -255,54 +167,66 @@ int main( int argc, char** argv)
                           (Return 0 if true, 1/ULP if false.)
                    =================================================================== */
                 magma_int_t izero = 0;
-                double *E;
-                double *h_work_err;
-                magma_int_t lwork_err = max(5*min_mn, (3*min_mn + max(M,N)))*128;
-                TESTING_MALLOC_CPU( h_work_err, double, lwork_err );
                 
-                // get size and location of U and V^T depending on jobu and jobv
+                // get size and location of U and V^T depending on jobu and jobvt
                 // U2=NULL and VT2=NULL if they were not computed (e.g., jobu=N)
-                magma_int_t M2  = (jobu[0] == 'A' ? M : min_mn);
-                magma_int_t N2  = (jobv[0] == 'A' ? N : min_mn);
-                magma_int_t ldu = M;
-                magma_int_t ldv = (jobv[0] == 'O' ? M : N);
                 double *U2  = NULL;
                 double *VT2 = NULL;
-                if ( jobu[0] == 'S' || jobu[0] == 'A' ) {
+                if ( jobu == MagmaSomeVec || jobu == MagmaAllVec ) {
                     U2 = U;
-                } else if ( jobu[0] == 'O' ) {
-                    U2 = h_R;
                 }
-                if ( jobv[0] == 'S' || jobv[0] == 'A' ) {
+                else if ( jobu == MagmaOverwriteVec ) {
+                    U2 = h_R;
+                    ldu = lda;
+                }
+                if ( jobvt == MagmaSomeVec || jobvt == MagmaAllVec ) {
                     VT2 = VT;
-                } else if ( jobv[0] == 'O' ) {
+                }
+                else if ( jobvt == MagmaOverwriteVec ) {
                     VT2 = h_R;
+                    ldv = lda;
                 }
                 
-                #if defined(PRECISION_z) || defined(PRECISION_c)
-                if ( U2 != NULL && VT2 != NULL ) {
-                    lapackf77_dbdt01(&M, &N, &izero, h_A, &M,
-                                     U2, &ldu, S1, E, VT2, &ldv, h_work_err, rwork, &result[0]);
-                }
+                // dbdt01 needs M+N
+                // dort01 prefers N*(N+1) to check U; M*(M+1) to check V
+                magma_int_t lwork_err = M+N;
                 if ( U2 != NULL ) {
-                    lapackf77_dort01("Columns", &M, &M2, U2,  &ldu, h_work_err, &lwork_err, rwork, &result[1]);
+                    lwork_err = max( lwork_err, N_U*(N_U+1) );
                 }
                 if ( VT2 != NULL ) {
-                    lapackf77_dort01(   "Rows", &N2, &N, VT2, &ldv, h_work_err, &lwork_err, rwork, &result[2]);
+                    lwork_err = max( lwork_err, M_VT*(M_VT+1) );
                 }
-                #else
+                double *h_work_err;
+                TESTING_MALLOC_CPU( h_work_err, double, lwork_err );
+                
+                // dbdt01 and dort01 need max(M,N), depending
+                double *rwork_err;
+                TESTING_MALLOC_CPU( rwork_err, double, max(M,N) );                
+                
                 if ( U2 != NULL && VT2 != NULL ) {
-                    lapackf77_dbdt01(&M, &N, &izero, h_A, &M,
-                                     U2, &ldu, S1, E, VT2, &ldv, h_work_err, &result[0]);
+                    // since KD=0 (3rd arg), E is not referenced so pass NULL (9th arg)
+                    lapackf77_dbdt01(&M, &N, &izero, h_A, &lda,
+                                     U2, &ldu, S1, NULL, VT2, &ldv,
+                                     h_work_err,
+                                     #ifdef COMPLEX
+                                     rwork_err,
+                                     #endif
+                                     &result[0]);
                 }
                 if ( U2 != NULL ) {
-                    lapackf77_dort01("Columns", &M, &M2, U2,  &ldu, h_work_err, &lwork_err, &result[1]);
+                    lapackf77_dort01("Columns", &M,  &N_U, U2,  &ldu, h_work_err, &lwork_err,
+                                     #ifdef COMPLEX
+                                     rwork_err,
+                                     #endif
+                                     &result[1]);
                 }
                 if ( VT2 != NULL ) {
-                    // this step may be really slow for large N
-                    lapackf77_dort01(   "Rows", &N2, &N, VT2, &ldv, h_work_err, &lwork_err, &result[2]);
+                    lapackf77_dort01("Rows",    &M_VT, &N, VT2, &ldv, h_work_err, &lwork_err,
+                                     #ifdef COMPLEX
+                                     rwork_err,
+                                     #endif
+                                     &result[2]);
                 }
-                #endif
                 
                 result[3] = 0.;
                 for(int j=0; j < min_mn-1; j++){
@@ -319,70 +243,73 @@ int main( int argc, char** argv)
                 result[2] *= eps;
                 
                 TESTING_FREE_CPU( h_work_err );
+                TESTING_FREE_CPU( rwork_err );
             }
-    
+            
             /* =====================================================================
                Performs operation using LAPACK
                =================================================================== */
-            if ( lapack ) {
+            if ( opts.lapack ) {
                 cpu_time = magma_wtime();
-                #if defined(PRECISION_z) || defined(PRECISION_c)
-                lapackf77_dgesvd( jobu, jobv, &M, &N,
-                                  h_A, &M, S2, U, &M,
-                                  VT, &N, h_work, &lwork, rwork, &info);
-                #else
-                lapackf77_dgesvd( jobu, jobv, &M, &N,
-                                  h_A, &M, S2, U, &M,
-                                  VT, &N, h_work, &lwork, &info);
-                #endif
+                lapackf77_dgesvd( lapack_vec_const(jobu), lapack_vec_const(jobvt), &M, &N,
+                                  h_A, &lda, S2, U, &ldu, VT, &ldv, h_work, &lwork,
+                                  #ifdef COMPLEX
+                                  rwork,
+                                  #endif
+                                  &info);
                 cpu_time = magma_wtime() - cpu_time;
                 if (info != 0)
-                    printf("lapackf77_dgesvd returned error %d.\n", (int) info);
+                    printf("lapackf77_dgesvd returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
                 
                 /* =====================================================================
                    Check the result compared to LAPACK
                    =================================================================== */
-                double work[1], error = 1., mone = -1;
+                double work[1], c_neg_one = -1;
                 magma_int_t one = 1;
-        
-                error = lapackf77_dlange("f", &min_mn, &one, S1, &min_mn, work);
-                blasf77_daxpy(&min_mn, &mone, S1, &one, S2, &one);
-                error = lapackf77_dlange("f", &min_mn, &one, S2, &min_mn, work) / error;
+                
+                blasf77_daxpy(&min_mn, &c_neg_one, S1, &one, S2, &one);
+                result[4]  = lapackf77_dlange("f", &min_mn, &one, S2, &min_mn, work);
+                result[4] /= lapackf77_dlange("f", &min_mn, &one, S1, &min_mn, work);
                 
                 printf("   %c    %c %5d %5d  %7.2f         %7.2f         %8.2e",
-                       jobu[0], jobv[0], (int) M, (int) N, cpu_time, gpu_time, error );
+                       lapack_vec_const(jobu)[0], lapack_vec_const(jobvt)[0],
+                       (int) M, (int) N, cpu_time, gpu_time, result[4] );
             }
             else {
-                printf("   %c    %c %5d %5d    ---           %7.2f         ---",
-                       jobu[0], jobv[0], (int) M, (int) N, gpu_time );
+                printf("   %c    %c %5d %5d    ---           %7.2f           ---   ",
+                       lapack_vec_const(jobu)[0], lapack_vec_const(jobvt)[0],
+                       (int) M, (int) N, gpu_time );
             }
-            if ( checkres ) {
-                printf("  %#9.3g  %#9.3g  %#9.3g   %1.0f\n",
-                       result[0], result[1], result[2], result[3] );
+            if ( opts.check ) {
+                if ( result[0] < 0. ) { printf("     ---   "); } else { printf("  %#9.3g", result[0]); }
+                if ( result[1] < 0. ) { printf("     ---   "); } else { printf("  %#9.3g", result[1]); }
+                if ( result[2] < 0. ) { printf("     ---   "); } else { printf("  %#9.3g", result[2]); }
+                int success = (result[0] < tol) && (result[1] < tol) && (result[2] < tol) && (result[3] == 0.) && (result[4] < tol);
+                printf("   %3s   %s\n", (result[3] == 0. ? "yes" : "no"), (success ? "ok" : "failed"));
+                status += ! success;
             }
             else {
                 printf("\n");
             }
-        }}
-        if ( test_all ) {
+            
+            TESTING_FREE_CPU( h_A );
+            TESTING_FREE_CPU( VT  );
+            TESTING_FREE_CPU( U   );
+            TESTING_FREE_CPU( S1  );
+            TESTING_FREE_CPU( S2  );
+            #ifdef COMPLEX
+            TESTING_FREE_CPU( rwork );
+            #endif
+            TESTING_FREE_PIN( h_R    );
+            TESTING_FREE_PIN( h_work );
+            fflush( stdout );
+        }}}
+        if ( opts.all || opts.niter > 1 ) {
             printf("\n");
         }
     }
 
-    /* Memory clean up */
-    TESTING_FREE_CPU( h_A );
-    TESTING_FREE_CPU( VT  );
-    TESTING_FREE_CPU( S1  );
-    TESTING_FREE_CPU( S2  );
-#if defined(PRECISION_z) || defined(PRECISION_c)
-    TESTING_FREE_CPU( rwork );
-#endif
-    TESTING_FREE_CPU( U );
-    TESTING_FREE_PIN( h_work );
-    TESTING_FREE_PIN( h_R );
-
-    /* Shutdown */
-    magma_queue_destroy( queue );
-    magma_finalize();
-    return 0;
+    TESTING_FINALIZE();
+    return status;
 }

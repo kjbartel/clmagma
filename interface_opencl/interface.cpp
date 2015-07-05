@@ -1,191 +1,184 @@
 /*
- *   -- clMAGMA (version 1.1.0) --
+ *   -- clMAGMA (version 1.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date January 2014
+ *      @date November 2014
  *
  * @author Mark Gates
  */
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
-#include "magma.h"
-#include "CL_MAGMA_RT.h"
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
-#ifdef HAVE_clAmdBlas
+#if defined(MAGMA_WITH_MKL)
+#include <mkl_service.h>
+#endif
+
+#if defined(MAGMA_WITH_ACML)
+// header conflicts with magma's lapack prototypes, so declare function directly
+// #include <acml.h>
+extern "C"
+void acmlversion(int *major, int *minor, int *patch);
+#endif
+
+#include "clmagma_runtime.h"
+#include "common_magma.h"
+#include "error.h"
+
+#ifdef HAVE_clBLAS
 
 // ========================================
 // globals
-cl_platform_id gPlatform;
 cl_context     gContext;
+magma_event_t  *g_event;
 
-magma_event_t  *gevent;
+const char* clmagma_kernels = "clmagma_kernels.co";
 
-
-// Run time global variable used for LU
-CL_MAGMA_RT *rt;
 
 // ========================================
 // initialization
-magma_err_t
+// --------------------
+extern "C" magma_int_t
 magma_init()
 {
-    cl_int err;
-    err = clGetPlatformIDs( 1, &gPlatform, NULL );
-    assert( err == 0 );
+    g_runtime.init();
+    g_runtime.load_kernels( 1, &clmagma_kernels );
+    gContext = g_runtime.get_context();
     
-    cl_device_id devices[ MagmaMaxGPUs ];
-    cl_uint num;
-    err = clGetDeviceIDs( gPlatform, CL_DEVICE_TYPE_GPU, MagmaMaxGPUs, devices, &num );
-    assert( err == 0 );
+    cl_int err = clblasSetup();
+    check_error( err );
     
-    cl_context_properties properties[3] =
-        { CL_CONTEXT_PLATFORM, (cl_context_properties) gPlatform, 0 };
-    gContext = clCreateContext( properties, num, devices, NULL, NULL, &err );
-    assert( err == 0 );
-    
-    err = clAmdBlasSetup();
-    assert( err == 0 );
-
-    // Initialize kernels related to LU
-    rt = CL_MAGMA_RT::Instance();
-    rt->Init(gPlatform, gContext);
-    
-    gevent = NULL;
+    g_event = NULL;
 
     return err;
 }
 
 // --------------------
-magma_err_t
+//extern "C" magma_int_t
+//magma_init_opencl( cl_platform_id platform, cl_context context, bool setup_clBlas )
+//{
+//    g_runtime.init( platform, context );
+//    g_runtime.load_kernels( 1, &clmagma_kernels );
+//    gPlatform = platform;
+//    gContext  = Context;
+//
+//    cl_int err = 0;
+//    if ( setup_clBlas ) {
+//        err = clblasSetup();
+//    }
+//
+//    g_event = NULL;
+//
+//    return err;
+//}
+
+// --------------------
+extern "C" magma_int_t
 magma_finalize()
 {
-    cl_int err;
-    clAmdBlasTeardown();
-    err = clReleaseContext( gContext );
-
-    // quit the RT
-    rt->Quit();
-
-    return err;
+    clblasTeardown();
+    g_runtime.quit();
+    return MAGMA_SUCCESS;
 }
+
+// --------------------
+//extern "C" magma_int_t
+//magma_finalize_opencl( bool finalize_clBlas )
+//{
+//    if ( finalize_clBlas ) {
+//        clblasTeardown();
+//    }
+//    g_runtime->quit();
+//
+//    return MAGMA_SUCCESS;
+//}
 
 // --------------------
 // Print the available GPU devices. Used in testing.
-void magma_print_devices()
+extern "C" void
+magma_print_environment()
 {
-    cl_uint ndevices;
+    magma_int_t major, minor, micro;
+    magma_version( &major, &minor, &micro );
+    printf( "%% clMAGMA %d.%d.%d %s\n",
+            (int) major, (int) minor, (int) micro, MAGMA_VERSION_STAGE );
 
-    clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &ndevices);
-    cl_device_id* Devices = (cl_device_id *)malloc(ndevices * sizeof(cl_device_id));
-    clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, ndevices, Devices, NULL);
+    // CUDA, OpenCL, OpenMP, MKL, ACML versions all printed on same line
+    char device_name[1024], driver[1024];
+    clGetPlatformInfo( g_runtime.get_platform(), CL_PLATFORM_VERSION, sizeof(device_name), device_name, NULL );
+    printf( "%% OpenCL platform %s.", device_name );
+    
+#if defined(_OPENMP)
+    int omp_threads = 0;
+    #pragma omp parallel
+    {
+        omp_threads = omp_get_num_threads();
+    }
+    printf( " OpenMP threads %d.", omp_threads );
+#else
+    printf( " MAGMA not compiled with OpenMP." );
+#endif
 
-    for(unsigned int i = 0; i < ndevices; i++)
-      {
-        char deviceName[1024], driver[1024];
-        cl_ulong mem_size, alloc_size;
-        memset(deviceName, '\0', 1024);
+#if defined(MAGMA_WITH_MKL)
+    MKLVersion mkl_version;
+    mkl_get_version( &mkl_version );
+    printf( " MKL %d.%d.%d, MKL threads %d.",
+            mkl_version.MajorVersion,
+            mkl_version.MinorVersion,
+            mkl_version.UpdateVersion,
+            mkl_get_max_threads() );
+#endif
+    
+#if defined(MAGMA_WITH_ACML)
+    int acml_major, acml_minor, acml_patch;
+    acmlversion( &acml_major, &acml_minor, &acml_patch );
+    printf( " ACML %d.%d.%d.", acml_major, acml_minor, acml_patch );
+#endif
 
-        clGetDeviceInfo(Devices[i], CL_DEVICE_NAME, sizeof(deviceName), deviceName, NULL);
-        clGetDeviceInfo(Devices[i], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &mem_size, NULL);
-        clGetDeviceInfo(Devices[i], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &alloc_size, NULL);
-        clGetDeviceInfo(Devices[i], CL_DRIVER_VERSION, sizeof(driver), driver, NULL);
-        printf ("Device: %s (memory  %3.1f GB, max allocation  %3.1f GB, driver  %s)\n",
-                deviceName, mem_size/1.e9, alloc_size/1.e9, driver);
-      }
-    free( Devices );
+    printf( "\n" );
+    
+    // print devices
+    int ndevices = g_runtime.get_num_devices();
+    cl_device_id* devices = g_runtime.get_devices();
+    cl_ulong mem_size, alloc_size;
+    for( int dev=0; dev < ndevices; ++dev ) {
+        clGetDeviceInfo( devices[dev], CL_DEVICE_NAME,               sizeof(device_name), device_name, NULL );
+        clGetDeviceInfo( devices[dev], CL_DEVICE_GLOBAL_MEM_SIZE,    sizeof(mem_size),    &mem_size,   NULL );
+        clGetDeviceInfo( devices[dev], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(alloc_size),  &alloc_size, NULL );
+        clGetDeviceInfo( devices[dev], CL_DRIVER_VERSION,            sizeof(driver),      driver,      NULL );
+        printf( "%% Device: %s, %.1f MiB memory, max allocation %.1f MiB, driver  %s\n",
+                device_name, mem_size/(1024.*1024.), alloc_size/(1024.*1024.), driver );
+    }
 }
 
 
 // ========================================
-// memory allocation
-magma_err_t
-magma_malloc( magma_ptr* ptrPtr, size_t size )
-{
-    cl_int err;
-    *ptrPtr = clCreateBuffer( gContext, CL_MEM_READ_WRITE, size, NULL, &err );
-    return err;
-}
-
-// --------------------
-magma_err_t
-magma_free( magma_ptr ptr )
-{
-    cl_int err = clReleaseMemObject( ptr );
-    return err;
-}
-
-// --------------------
-// Allocate size bytes on CPU, returning pointer in ptrPtr.
-// The purpose of using this instead of malloc() is to properly align arrays
-// for vector (SSE) instructions. The default implementation uses
-// posix_memalign (on Linux, MacOS, etc.) or _aligned_malloc (on Windows)
-// to align memory to a 32 byte boundary.
-// Use magma_free_cpu() to free this memory.
-extern "C"
-magma_err_t magma_malloc_cpu( void** ptrPtr, size_t size )
-{
-#if 1
-    #if defined( _WIN32 ) || defined( _WIN64 )
-    *ptrPtr = _aligned_malloc( size, 32 );
-    if ( *ptrPtr == NULL ) {
-        return MAGMA_ERR_HOST_ALLOC;
-    }
-    #else
-    int err = posix_memalign( ptrPtr, 32, size );
-    if ( err != 0 ) {
-        *ptrPtr = NULL;
-        return MAGMA_ERR_HOST_ALLOC;
-    }
-    #endif
-#else
-    *ptrPtr = malloc( size );
-    if ( *ptrPtr == NULL ) {
-        return MAGMA_ERR_HOST_ALLOC;
-    }
-#endif
-    return MAGMA_SUCCESS;
-}
-
-// --------------------
-// Free CPU pinned memory previously allocated by magma_malloc_pinned.
-// The default implementation uses free(), which works for both malloc and posix_memalign.
-// For Windows, _aligned_free() is used.
-extern "C"
-magma_err_t magma_free_cpu( void* ptr )
-{
-#if defined( _WIN32 ) || defined( _WIN64 )
-    _aligned_free( ptr );
-#else
-    free( ptr );
-#endif
-    return MAGMA_SUCCESS;
-}
-
-
-// ========================================
-// device & queue support
-magma_err_t
-magma_get_devices(
+// device support
+extern "C" magma_int_t
+magma_getdevices(
     magma_device_t* devices,
     magma_int_t     size,
     magma_int_t*    numPtr )
 {
+    // TODO just copy from g_runtime.get_devices()
     cl_int err;
     //err = clGetDeviceIDs( gPlatform, CL_DEVICE_TYPE_GPU, 1, size, devices, num );
     size_t n;
     err = clGetContextInfo(
-        gContext, CL_CONTEXT_DEVICES,
+        g_runtime.get_context(), CL_CONTEXT_DEVICES,
         size*sizeof(magma_device_t), devices, &n );
     *numPtr = n / sizeof(magma_device_t);
+    check_error( err );
     return err;
 }
 
 // --------------------
-magma_int_t 
+extern "C" magma_int_t
 magma_num_gpus( void )
 {
     const char *ngpu_str = getenv("MAGMA_NUM_GPUS");
@@ -194,117 +187,177 @@ magma_num_gpus( void )
         char* endptr;
         ngpu = strtol( ngpu_str, &endptr, 10 );
 
-        cl_uint ndevices;    
-        clGetDeviceIDs(gPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &ndevices);
+        cl_uint ndevices = g_runtime.get_num_devices();
 
         if ( ngpu < 1 || *endptr != '\0' ) {
-          ngpu = 1;
-          fprintf( stderr, "$MAGMA_NUM_GPUS=%s is an invalid number; using %d GPU.\n",
-                   ngpu_str, ngpu );
+            ngpu = 1;
+            fprintf( stderr, "$MAGMA_NUM_GPUS='%s' is an invalid number; using %d GPU.\n",
+                     ngpu_str, (int) ngpu );
         }
         else if ( ngpu > MagmaMaxGPUs || ngpu > ndevices ) {
-          ngpu = ((ndevices < MagmaMaxGPUs)? ndevices : MagmaMaxGPUs);
-          fprintf( stderr, "$MAGMA_NUM_GPUS=%s exceeds MagmaMaxGPUs=%d or available GPUs=%d; using %d GPUs.\n",
-                   ngpu_str, MagmaMaxGPUs, ndevices, ngpu );
+            ngpu = min( ndevices, MagmaMaxGPUs );
+            fprintf( stderr, "$MAGMA_NUM_GPUS='%s' exceeds MagmaMaxGPUs=%d or available GPUs=%d; using %d GPUs.\n",
+                     ngpu_str, MagmaMaxGPUs, ndevices, (int) ngpu );
         }
         assert( 1 <= ngpu && ngpu <= ndevices );
     }
     return (magma_int_t)ngpu;
 }
 
-// --------------------                                                                                                      
-magma_int_t 
+// --------------------
+extern "C" magma_int_t
 magma_queue_meminfo( magma_queue_t queue )
 {
     cl_device_id dev;
     clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(cl_device_id), &dev, NULL);
   
     cl_ulong mem_size;
-    clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &mem_size, NULL);   
-    mem_size /= sizeof(magmaDoubleComplex); 
+    clGetDeviceInfo(dev, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &mem_size, NULL);
+    mem_size /= sizeof(magmaDoubleComplex);
 
     return mem_size;
 }
 
+
+// ========================================
+// queue support
+
 // --------------------
-magma_err_t
+extern "C" magma_int_t
 magma_queue_create( magma_device_t device, magma_queue_t* queuePtr )
 {
     assert( queuePtr != NULL );
     cl_int err;
     #ifdef TRACING
-    *queuePtr = clCreateCommandQueue( gContext, device, CL_QUEUE_PROFILING_ENABLE, &err );
+    *queuePtr = clCreateCommandQueue( g_runtime.get_context(), device, CL_QUEUE_PROFILING_ENABLE, &err );
     #else
-    *queuePtr = clCreateCommandQueue( gContext, device, 0, &err );
+    *queuePtr = clCreateCommandQueue( g_runtime.get_context(), device, 0, &err );
     #endif
+    check_error( err );
     return err;
 }
 
 // --------------------
-magma_err_t
+extern "C" magma_int_t
 magma_queue_destroy( magma_queue_t  queue )
 {
     cl_int err = clReleaseCommandQueue( queue );
+    check_error( err );
     return err;
 }
 
 // --------------------
-magma_err_t
+extern "C" magma_int_t
 magma_queue_sync( magma_queue_t queue )
 {
     cl_int err = clFinish( queue );
     clFlush( queue );
+    check_error( err );
     return err;
 }
 
 
 // ========================================
 // event support
-magma_err_t
-magma_setevent( magma_event_t* event )
-{
-  #ifdef TRACING
-    gevent = event;
-  #else
-    printf("%s not implemented\n", __func__ );
-  #endif
-
-  return 0;
-}
-
-magma_err_t
+// --------------------
+extern "C" magma_int_t
 magma_event_create( magma_event_t* event )
 {
     printf( "%s not implemented\n", __func__ );
     return 0;
 }
 
-magma_err_t
+// --------------------
+extern "C" magma_int_t
 magma_event_destroy( magma_event_t event )
 {
     printf( "%s not implemented\n", __func__ );
     return 0;
 }
 
-magma_err_t
+// --------------------
+extern "C" magma_int_t
 magma_event_record( magma_event_t event, magma_queue_t queue )
 {
     printf( "%s not implemented\n", __func__ );
     return 0;
 }
 
-magma_err_t
+// --------------------
+extern "C" magma_int_t
 magma_event_query( magma_event_t event )
 {
     printf( "%s not implemented\n", __func__ );
     return 0;
 }
 
-magma_err_t
+// --------------------
+// blocks CPU until event occurs
+extern "C" magma_int_t
 magma_event_sync( magma_event_t event )
 {
     cl_int err = clWaitForEvents(1, &event);
+    check_error( err );
     return err;
 }
 
-#endif // HAVE_clAmdBlas
+// --------------------
+// blocks queue (but not CPU) until event occurs
+// In OpenCL, the event should be passed directly to the kernel, instead of a separate function call.
+// Make an empty kernel? Seems a waste.
+extern "C" void
+magma_queue_wait_event( magma_queue_t queue, magma_event_t event )
+{
+    printf( "%s not implemented\n", __func__ );
+}
+
+// --------------------
+// Sets global event used for tracing.
+// TODO put this into tracing code, not in interface.cpp?
+extern "C" magma_int_t
+magma_setevent( magma_event_t* event )
+{
+    #ifdef TRACING
+    g_event = event;
+    #else
+    printf("%s not implemented\n", __func__ );
+    #endif
+
+    return 0;
+}
+
+
+// ========================================
+// complex support
+
+// --------------------
+extern "C" double
+magma_cabs(magmaDoubleComplex z)
+{
+    double __x = z.x;
+    double __y = z.y;
+
+    double __s = max(abs(__x), abs(__y));
+    if(__s == 0.0)
+        return __s;
+    __x /= __s;
+    __y /= __s;
+    return __s * sqrt(__x * __x + __y * __y);
+}
+
+// --------------------
+extern "C" float
+magma_cabsf(magmaFloatComplex z)
+{
+    float __x = z.x;
+    float __y = z.y;
+
+    float __s = max(abs(__x), abs(__y));
+    if(__s == 0.0)
+        return __s;
+    __x /= __s;
+    __y /= __s;
+    return __s * sqrt(__x * __x + __y * __y);
+}
+
+#endif // HAVE_clBLAS

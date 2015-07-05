@@ -1,39 +1,37 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
                                                                                                               
-       @generated from zpotrs_gpu.cpp normal z -> d, Fri Jan 10 15:51:17 2014
+       @generated from zpotrs_gpu.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 
-extern "C" magma_err_t
-magma_dpotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
-                 magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb,
-                 magma_err_t *info, magma_queue_t queue )
+extern "C" magma_int_t
+magma_dpotrs_gpu(
+    magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+    magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
  
     Purpose
     =======
-
     DPOTRS solves a system of linear equations A*X = B with a symmetric
     positive definite matrix A using the Cholesky factorization
-    A = U**T*U or A = L*L**T computed by DPOTRF.
+    A = U**H*U or A = L*L**H computed by DPOTRF.
 
     Arguments
     =========
- 
     UPLO    (input) CHARACTER*1
             = 'U':  Upper triangle of A is stored;
             = 'L':  Lower triangle of A is stored.
@@ -47,7 +45,7 @@ magma_dpotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     dA      (input) DOUBLE_PRECISION array on the GPU, dimension (LDDA,N)
             The triangular factor U or L from the Cholesky factorization
-            A = U**T*U or A = L*L**T, as computed by DPOTRF.
+            A = U**H*U or A = L*L**H, as computed by DPOTRF.
 
     LDDA    (input) INTEGER
             The leading dimension of the array A.  LDDA >= max(1,N).
@@ -89,22 +87,22 @@ magma_dpotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     if( uplo== MagmaUpper){
         if ( nrhs == 1) {
-            chk(magma_dtrsv(MagmaUpper, MagmaTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue));
-            chk(magma_dtrsv(MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue));
+            magma_dtrsv(MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue);
+            magma_dtrsv(MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue);
         } else {
-            chk(magma_dtrsm(MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
-            chk(magma_dtrsm(MagmaLeft, MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            magma_dtrsm(MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
+            magma_dtrsm(MagmaLeft, MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
         }
     }
     else{
         if ( nrhs == 1) {
-            chk(magma_dtrsv(MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
-            chk(magma_dtrsv(MagmaLower, MagmaTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
+            magma_dtrsv(MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue );
+            magma_dtrsv(MagmaLower, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue );
         } else {
-            chk(magma_dtrsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
-            chk(magma_dtrsm(MagmaLeft, MagmaLower, MagmaTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            magma_dtrsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
+            magma_dtrsm(MagmaLeft, MagmaLower, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
         }
     }
-    chk( magma_queue_sync( queue ));
+    magma_queue_sync( queue );
     return *info;
 }

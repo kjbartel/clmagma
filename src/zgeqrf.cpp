@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @author Stan Tomov
        @precisions normal z -> s d c
@@ -11,18 +11,19 @@
 */
 #include "common_magma.h"
 
-extern "C" magma_err_t
-magma_zgeqrf(magma_int_t m, magma_int_t n,
-             magmaDoubleComplex *A,    magma_int_t lda, magmaDoubleComplex *tau,
-             magmaDoubleComplex *work, magma_int_t lwork,
-             magma_int_t *info,
-             magma_queue_t* queue )
+extern "C" magma_int_t
+magma_zgeqrf(
+    magma_int_t m, magma_int_t n,
+    magmaDoubleComplex *A,    magma_int_t lda, magmaDoubleComplex *tau,
+    magmaDoubleComplex *work, magma_int_t lwork,
+    magma_queue_t* queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -148,7 +149,7 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
     }
 
     // allocate space for dA, dwork, and dT
-    if (MAGMA_SUCCESS != magma_zmalloc( &dA, (n*ldda + nb*lddwork + nb*nb) )) {
+    if (MAGMA_SUCCESS != magma_zmalloc( &dA, n*ldda + nb*lddwork + nb*nb )) {
         /* Switch to the "out-of-core" (out of GPU-memory) version */
         printf("non-GPU-resident version not implemented\n");
         return MAGMA_ERR_NOT_IMPLEMENTED;
@@ -167,7 +168,7 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
         /* Use blocked code initially.
            Asynchronously send the matrix to the GPU except the first panel. */
         magma_zsetmatrix_async( m, n-nb,
-                                A(0,nb), 0, lda,
+                                A(0,nb), lda,
                                 dA(0,nb), ldda, queue[0], NULL );
 
         old_i = 0;
@@ -176,10 +177,10 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
             ib = min(k-i, nb);
             if (i>0) {
                 /* download i-th panel */
-                magma_queue_sync( queue[1] ); 
+                magma_queue_sync( queue[1] );
                 magma_zgetmatrix_async( m-i, ib,
                                         dA(i,i), ldda,
-                                        A(i,i), 0, lda, queue[0], NULL );
+                                        A(i,i), lda, queue[0], NULL );
 
                 /* Apply H' to A(i:m,i+2*ib:n) from the left */
                 magma_zlarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
@@ -189,7 +190,7 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
 
                 magma_zgetmatrix_async( i, ib,
                                         dA(0,i), ldda,
-                                        A(0,i), 0, lda, queue[1], NULL );
+                                        A(0,i), lda, queue[1], NULL );
                 magma_queue_sync( queue[0] );
             }
 
@@ -204,15 +205,14 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
             zpanel_to_q(MagmaUpper, ib, A(i,i), lda, work+ib*ib);
 
             /* download the i-th V matrix */
-            magma_zsetmatrix_async( rows, ib, A(i,i), 0, lda, dA(i,i), ldda, queue[0], NULL );
+            magma_zsetmatrix_async( rows, ib, A(i,i), lda, dA(i,i), ldda, queue[0], NULL );
 
             /* download the T matrix */
             magma_queue_sync( queue[1] );
-            magma_zsetmatrix_async( ib, ib, work, 0, ib, dT, dT_offset, nb, queue[0], NULL );
+            magma_zsetmatrix_async( ib, ib, work, ib, dT, dT_offset, nb, queue[0], NULL );
             magma_queue_sync( queue[0] );
 
             if (i + ib < n) {
-
                 if (i+ib < k-nb) {
                     /* Apply H' to A(i:m,i+ib:i+2*ib) from the left (look-ahead) */
                     magma_zlarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
@@ -243,7 +243,7 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
     if (i < k) {
         ib = n-i;
         if (i != 0) {
-           magma_zgetmatrix( m, ib, dA(0,i), ldda, A(0,i), 0, lda, queue[1] );
+           magma_zgetmatrix( m, ib, dA(0,i), ldda, A(0,i), lda, queue[1] );
         }
         magma_int_t rows = m-i;
         lapackf77_zgeqrf(&rows, &ib, A(i,i), &lda, tau+i, work, &lwork, info);
@@ -255,4 +255,3 @@ magma_zgeqrf(magma_int_t m, magma_int_t n,
     
     return *info;
 } /* magma_zgeqrf */
-

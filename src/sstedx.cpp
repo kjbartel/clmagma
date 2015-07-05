@@ -1,38 +1,32 @@
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
     @author Raffaele Solca
 
-    @generated from dstedx.cpp normal d -> s, Fri Jan 10 15:51:18 2014
+    @generated from dstedx.cpp normal d -> s, Sat Nov 15 00:21:37 2014
 */
-#include <stdio.h>
 #include "common_magma.h"
-
 
 #define Z(ix, iy) (z + (ix) + ldz * (iy))
 
-extern "C"{
-    magma_int_t get_sstedx_smlsize()
-    {
-        return 25;
-    }
-}
 
 extern "C" magma_int_t
-magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
-             magma_int_t il, magma_int_t iu, float* d, float* e, float* z, magma_int_t ldz,
-             float* work, magma_int_t lwork, magma_int_t* iwork, magma_int_t liwork,
-             magmaFloat_ptr dwork, magma_int_t* info, magma_queue_t queue)
+magma_sstedx(
+    magma_range_t range, magma_int_t n, float vl, float vu,
+    magma_int_t il, magma_int_t iu, float* d, float* e, float* z, magma_int_t ldz,
+    float* work, magma_int_t lwork, magma_int_t* iwork, magma_int_t liwork,
+    magmaFloat_ptr dwork,
+    magma_queue_t queue,
+    magma_int_t* info)
 {
-/*
-    -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
        .. Scalar Arguments ..
       CHARACTER          RANGE
@@ -47,7 +41,6 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     Purpose
     =======
-
     SSTEDX computes some eigenvalues and, optionally, eigenvectors of a
     symmetric tridiagonal matrix using the divide and conquer method.
 
@@ -60,7 +53,6 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     Arguments
     =========
-
     RANGE   (input) CHARACTER*1
             = 'A': all eigenvalues will be found.
             = 'V': all eigenvalues in the half-open interval (VL,VU]
@@ -104,7 +96,7 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     LWORK   (input) INTEGER
             The dimension of the array WORK.
-            If N > 1 then LWORK must be at least ( 1 + 4*N + N**2 ).
+            If N > 1 then LWORK >= ( 1 + 4*N + N**2 ).
             Note that  if N is less than or
             equal to the minimum divide size, usually 25, then LWORK need
             only be max(1,2*(N-1)).
@@ -119,7 +111,7 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     LIWORK  (input) INTEGER
             The dimension of the array IWORK.
-            LIWORK must be at least ( 3 + 5*N ).
+            LIWORK >= ( 3 + 5*N ).
             Note that if N is less than or
             equal to the minimum divide size, usually 25, then LIWORK
             need only be 1.
@@ -140,15 +132,12 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     Further Details
     ===============
-
     Based on contributions by
        Jeff Rutter, Computer Science Division, University of California
        at Berkeley, USA
     Modified by Francoise Tisseur, University of Tennessee.
 
-    =====================================================================
-*/
-    magma_vec_t range_ = range;
+    ===================================================================== */
 
     float d_zero = 0.;
     float d_one  = 1.;
@@ -164,10 +153,10 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
 
     // Test the input parameters.
 
-    alleig = lapackf77_lsame(lapack_const(range_), "A");
-    valeig = lapackf77_lsame(lapack_const(range_), "V");
-    indeig = lapackf77_lsame(lapack_const(range_), "I");
-    lquery = lwork == -1 || liwork == -1;
+    alleig = (range == MagmaRangeAll);
+    valeig = (range == MagmaRangeV);
+    indeig = (range == MagmaRangeI);
+    lquery = (lwork == -1 || liwork == -1);
 
     *info = 0;
 
@@ -194,7 +183,7 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
     if (*info == 0) {
         // Compute the workspace requirements
 
-        smlsiz = get_sstedx_smlsize();
+        smlsiz = magma_get_smlsize_divideconquer();
         if( n <= 1 ){
             lwmin = 1;
             liwmin = 1;
@@ -233,16 +222,12 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
     // solve the problem with another solver.
 
     if (n < smlsiz){
-        char char_I[]= {'I', 0};
-        lapackf77_ssteqr(char_I, &n, d, e, z, &ldz, work, info);
+        lapackf77_ssteqr("I", &n, d, e, z, &ldz, work, info);
     } else {
-        char char_F[]= {'F', 0};
-        lapackf77_slaset(char_F, &n, &n, &d_zero, &d_one, z, &ldz);
+        lapackf77_slaset("F", &n, &n, &d_zero, &d_one, z, &ldz);
 
         //Scale.
-        char char_M[]= {'M', 0};
-
-        orgnrm = lapackf77_slanst(char_M, &n, d, e);
+        orgnrm = lapackf77_slanst("M", &n, d, e);
 
         if (orgnrm == 0){
             work[0]  = lwmin;
@@ -276,27 +261,22 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
                     continue;
                 }
                 if (m > smlsiz){
-
                     // Scale
-                    char char_G[] = {'G', 0};
-                    orgnrm = lapackf77_slanst(char_M, &m, &d[start], &e[start]);
-                    lapackf77_slascl(char_G, &izero, &izero, &orgnrm, &d_one, &m, &ione, &d[start], &m, info);
+                    orgnrm = lapackf77_slanst("M", &m, &d[start], &e[start]);
+                    lapackf77_slascl("G", &izero, &izero, &orgnrm, &d_one, &m, &ione, &d[start], &m, info);
                     magma_int_t mm = m-1;
-                    lapackf77_slascl(char_G, &izero, &izero, &orgnrm, &d_one, &mm, &ione, &e[start], &mm, info);
+                    lapackf77_slascl("G", &izero, &izero, &orgnrm, &d_one, &mm, &ione, &e[start], &mm, info);
 
-                    magma_slaex0( m, &d[start], &e[start], Z(start, start), ldz, work, iwork, dwork, MagmaAllVec, vl, vu, il, iu, info, queue);
+                    magma_slaex0( m, &d[start], &e[start], Z(start, start), ldz, work, iwork, dwork, MagmaRangeAll, vl, vu, il, iu, queue, info);
 
                     if( *info != 0) {
                         return MAGMA_SUCCESS;
                     }
 
                     // Scale Back
-                    lapackf77_slascl(char_G, &izero, &izero, &d_one, &orgnrm, &m, &ione, &d[start], &m, info);
-
+                    lapackf77_slascl("G", &izero, &izero, &d_one, &orgnrm, &m, &ione, &d[start], &m, info);
                 } else {
-
-                    char char_I[]= {'I', 0};
-                    lapackf77_ssteqr( char_I, &m, &d[start], &e[start], Z(start, start), &ldz, work, info);
+                    lapackf77_ssteqr( "I", &m, &d[start], &e[start], Z(start, start), &ldz, work, info);
                     if (*info != 0){
                         *info = (start+1) *(n+1) + end;
                     }
@@ -311,7 +291,6 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
             // (and the associated eigenvectors) into ascending order.
 
             if (m < n){
-
                 // Use Selection Sort to minimize swaps of eigenvectors
                 for (i = 1; i < n; ++i){
                     k = i-1;
@@ -329,24 +308,20 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
                     }
                 }
             }
-
         } else {
-
             // Scale
-            char char_G[] = {'G', 0};
-            lapackf77_slascl(char_G, &izero, &izero, &orgnrm, &d_one, &n, &ione, d, &n, info);
+            lapackf77_slascl("G", &izero, &izero, &orgnrm, &d_one, &n, &ione, d, &n, info);
             magma_int_t nm = n-1;
-            lapackf77_slascl(char_G, &izero, &izero, &orgnrm, &d_one, &nm, &ione, e, &nm, info);
+            lapackf77_slascl("G", &izero, &izero, &orgnrm, &d_one, &nm, &ione, e, &nm, info);
 
-            magma_slaex0( n, d, e, z, ldz, work, iwork, dwork, range, vl, vu, il, iu, info, queue);
+            magma_slaex0( n, d, e, z, ldz, work, iwork, dwork, range, vl, vu, il, iu, queue, info);
 
             if( *info != 0) {
                 return MAGMA_SUCCESS;
             }
 
             // Scale Back
-            lapackf77_slascl(char_G, &izero, &izero, &d_one, &orgnrm, &n, &ione, d, &n, info);
-
+            lapackf77_slascl("G", &izero, &izero, &d_one, &orgnrm, &n, &ione, d, &n, info);
         }
     }
 
@@ -354,5 +329,4 @@ magma_sstedx(magma_vec_t range, magma_int_t n, float vl, float vu,
     iwork[0] = liwmin;
 
     return MAGMA_SUCCESS;
-
 } /* sstedx */

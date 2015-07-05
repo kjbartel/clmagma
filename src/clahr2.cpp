@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zlahr2.cpp normal z -> c, Fri Jan 10 15:51:18 2014
+       @generated from zlahr2.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 
 */
 
@@ -19,19 +19,22 @@
 #endif
 // === End defining what BLAS to use =======================================
 
-extern "C" magma_err_t
-magma_clahr2(magma_int_t n, magma_int_t k, magma_int_t nb,
-             magmaFloatComplex_ptr da, size_t da_offset, magmaFloatComplex_ptr dv, size_t dv_offset,
-             magmaFloatComplex *a, magma_int_t lda,
-             magmaFloatComplex *tau, magmaFloatComplex *t, magma_int_t ldt,
-             magmaFloatComplex *y, magma_int_t ldy,
-             magma_queue_t queue)
+extern "C" magma_int_t
+magma_clahr2(
+    magma_int_t n, magma_int_t k, magma_int_t nb,
+    magmaFloatComplex_ptr da, size_t da_offset, magma_int_t ldda,
+    magmaFloatComplex_ptr dv, size_t dv_offset, magma_int_t lddv,
+    magmaFloatComplex *a, magma_int_t lda,
+    magmaFloatComplex *tau,
+    magmaFloatComplex *t, magma_int_t ldt,
+    magmaFloatComplex *y, magma_int_t ldy,
+    magma_queue_t queue)
 {
 /*  -- clMAGMA auxiliary routine (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -136,7 +139,6 @@ magma_clahr2(magma_int_t n, magma_int_t k, magma_int_t nb,
     magmaFloatComplex c_one     = MAGMA_C_ONE;
     magmaFloatComplex c_neg_one = MAGMA_C_NEG_ONE;
 
-    magma_int_t ldda = lda;
     magma_int_t c__1 = 1;
     
     magma_int_t a_dim1, a_offset, t_dim1, t_offset, y_dim1, y_offset, i__2, i__3;
@@ -229,11 +231,11 @@ magma_clahr2(magma_int_t n, magma_int_t k, magma_int_t nb,
         /* Compute  Y(K+1:N,I) */
         i__2 = n - k;
         i__3 = n - k - i__ + 1;
-        magma_csetvector( i__3, &a[k + i__ + i__*a_dim1], 0, 1, dv, dv_offset+(i__-1)*(ldda+1),      1, queue );
+        magma_csetvector( i__3, &a[k + i__ + i__*a_dim1], 1, dv, dv_offset+(i__-1)*(lddv+1),      1, queue );
 
         magma_cgemv(MagmaNoTrans, i__2+1, i__3, c_one,
                     da, da_offset + (-1 + k + i__ * ldda), ldda,
-                    dv, dv_offset + (i__-1)*(ldda+1), c__1, c_zero,
+                    dv, dv_offset + (i__-1)*(lddv+1), c__1, c_zero,
                     da, da_offset + (-1 + k + (i__-1)*ldda), c__1, queue);
         
         i__2 = n - k - i__ + 1;
@@ -249,7 +251,7 @@ magma_clahr2(magma_int_t n, magma_int_t k, magma_int_t nb,
         blasf77_ctrmv("U","N","N", &i__2, &t[t_offset], &ldt, &t[i__*t_dim1+1], &c__1);
         t[i__ + i__ * t_dim1] = tau[i__];
 
-        magma_cgetvector( n - k + 1, da, da_offset+(-1+ k+(i__-1)*ldda), 1, y+ k + i__*y_dim1, 0, 1, queue );
+        magma_cgetvector( n - k + 1, da, da_offset+(-1+ k+(i__-1)*ldda), 1, y+ k + i__*y_dim1, 1, queue );
     }
     a[k + nb + nb * a_dim1] = ei;
 

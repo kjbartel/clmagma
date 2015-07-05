@@ -1,32 +1,32 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> s d c
 
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 extern "C" magma_int_t
-magma_zunmqr_gpu(magma_side_t side, magma_trans_t trans,
-                 magma_int_t m, magma_int_t n, magma_int_t k,
-                 magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magmaDoubleComplex *tau,
-                 magmaDoubleComplex_ptr dC, size_t dC_offset, magma_int_t lddc,
-                 magmaDoubleComplex *hwork, magma_int_t lwork,
-                 magmaDoubleComplex_ptr dT, size_t dT_offset, magma_int_t nb,
-                 magma_int_t *info, magma_queue_t queue)
+magma_zunmqr_gpu(
+    magma_side_t side, magma_trans_t trans,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magmaDoubleComplex *tau,
+    magmaDoubleComplex_ptr dC, size_t dC_offset, magma_int_t lddc,
+    magmaDoubleComplex *hwork, magma_int_t lwork,
+    magmaDoubleComplex_ptr dT, size_t dT_offset, magma_int_t nb,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -120,19 +120,16 @@ magma_zunmqr_gpu(magma_side_t side, magma_trans_t trans,
 
     magmaDoubleComplex c_one = MAGMA_Z_ONE;
 
-    magma_side_t side_ = side;
-    magma_trans_t trans_ = trans;
-
     magmaDoubleComplex_ptr dwork;
     magma_int_t i, lddwork;
 
     magma_int_t i1, i2, i3, ib, ic, jc, mi, ni, nq, nw, ret;
-    long int left, notran, lquery;
-    static magma_int_t lwkopt;
+    int left, notran, lquery;
+    magma_int_t lwkopt;
 
     *info = 0;
-    left   = lapackf77_lsame(lapack_const(side_), lapack_const(MagmaLeft));
-    notran = lapackf77_lsame(lapack_const(trans_), lapack_const(MagmaNoTrans));
+    left   = (side == MagmaLeft);
+    notran = (trans == MagmaNoTrans);
     lquery = (lwork == -1);
 
     if (!left || notran)
@@ -146,9 +143,9 @@ magma_zunmqr_gpu(magma_side_t side, magma_trans_t trans,
         nq = n;
         nw = m;
     }
-    if ( (!left) && (!lapackf77_lsame(lapack_const(side_), lapack_const(MagmaRight))) ) {
+    if ( (!left) && (side != MagmaRight) ) {
         *info = -1;
-    } else if ( (!notran) && (!lapackf77_lsame(lapack_const(trans_), lapack_const(MagmaConjTrans))) ) {
+    } else if ( (!notran) && (trans != MagmaConjTrans) ) {
         *info = -2;
     } else if (m < 0) {
         *info = -3;
@@ -241,8 +238,8 @@ magma_zunmqr_gpu(magma_side_t side, magma_trans_t trans,
             jc = i;
         }
 
-        magma_zgetmatrix(mi, ib, a_ref(i, i), ldda, hwork, 0, mi, queue);
-        magma_zgetmatrix(mi, ni, c_ref(ic, jc), lddc, hwork+mi*ib, 0, mi, queue);
+        magma_zgetmatrix(mi, ib, a_ref(i, i), ldda, hwork, mi, queue);
+        magma_zgetmatrix(mi, ni, c_ref(ic, jc), lddc, hwork+mi*ib, mi, queue);
 
         magma_int_t lhwork = lwork - mi*(ib + ni);
         lapackf77_zunmqr( MagmaLeftStr, MagmaConjTransStr,
@@ -252,7 +249,7 @@ magma_zunmqr_gpu(magma_side_t side, magma_trans_t trans,
                           hwork+mi*(ib+ni), &lhwork, info);
 
         // send the updated part of c back to the GPU
-        magma_zsetmatrix(mi, ni, hwork+mi*ib, 0, mi, c_ref(ic, jc), lddc, queue);
+        magma_zsetmatrix(mi, ni, hwork+mi*ib, mi, c_ref(ic, jc), lddc, queue);
     }
 
     return *info;

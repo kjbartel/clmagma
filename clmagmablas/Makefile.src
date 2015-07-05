@@ -1,0 +1,129 @@
+# Automatically generated from Makefile ZHDR and ZSRC
+CHDR = \
+	clacpy.h \
+	clanhe.h \
+	claset.h \
+	claswp.h \
+	cswap.h \
+	ctranspose.h \
+	ctranspose_inplace.h
+
+DHDR = \
+	slag2d.h \
+	dsaxpycp.h \
+	dlacpy.h \
+	dlag2s.h \
+	dlansy.h \
+	dlaset.h \
+	dlaswp.h \
+	dlat2s.h \
+	dswap.h \
+	dtranspose.h \
+	dtranspose_inplace.h
+
+SHDR = \
+	slacpy.h \
+	slansy.h \
+	slaset.h \
+	slaswp.h \
+	sswap.h \
+	stranspose.h \
+	stranspose_inplace.h
+
+CSRC = \
+	clacpy.cl \
+	clacpy.cpp \
+	clanhe.cl \
+	clanhe.cpp \
+	claset.cl \
+	claset.cpp \
+	claswp.cl \
+	claswp.cpp \
+	cswap.cl \
+	cswap.cpp \
+	ctranspose.cl \
+	ctranspose.cpp \
+	ctranspose_inplace.cl \
+	ctranspose_inplace.cpp \
+	scnrm2.cl \
+	scnrm2.cpp \
+	cbcyclic.cpp \
+	cgemm_reduce.cl \
+	cgemm_reduce.cpp \
+	clacpy_cnjg.cl \
+	clacpy_cnjg.cpp \
+	clarfbx.cl \
+	clarfbx.cpp \
+	clarfgx-v2.cl \
+	clarfgx-v2.cpp \
+	clarfx.cl \
+	clascl_2x2.cl \
+	clascl_2x2.cpp
+
+DSRC = \
+	slag2d.cl \
+	slag2d.cpp \
+	dsaxpycp.cl \
+	dsaxpycp.cpp \
+	dlacpy.cl \
+	dlacpy.cpp \
+	dlag2s.cl \
+	dlag2s.cpp \
+	dlansy.cl \
+	dlansy.cpp \
+	dlaset.cl \
+	dlaset.cpp \
+	dlaswp.cl \
+	dlaswp.cpp \
+	dlat2s.cl \
+	dlat2s.cpp \
+	dswap.cl \
+	dswap.cpp \
+	dtranspose.cl \
+	dtranspose.cpp \
+	dtranspose_inplace.cl \
+	dtranspose_inplace.cpp \
+	dnrm2.cl \
+	dnrm2.cpp \
+	dbcyclic.cpp \
+	dgemm_reduce.cl \
+	dgemm_reduce.cpp \
+	dlacpy_cnjg.cl \
+	dlacpy_cnjg.cpp \
+	dlarfbx.cl \
+	dlarfbx.cpp \
+	dlarfgx-v2.cl \
+	dlarfgx-v2.cpp \
+	dlarfx.cl \
+	dlascl_2x2.cl \
+	dlascl_2x2.cpp
+
+SSRC = \
+	slacpy.cl \
+	slacpy.cpp \
+	slansy.cl \
+	slansy.cpp \
+	slaset.cl \
+	slaset.cpp \
+	slaswp.cl \
+	slaswp.cpp \
+	sswap.cl \
+	sswap.cpp \
+	stranspose.cl \
+	stranspose.cpp \
+	stranspose_inplace.cl \
+	stranspose_inplace.cpp \
+	snrm2.cl \
+	snrm2.cpp \
+	sbcyclic.cpp \
+	sgemm_reduce.cl \
+	sgemm_reduce.cpp \
+	slacpy_cnjg.cl \
+	slacpy_cnjg.cpp \
+	slarfbx.cl \
+	slarfbx.cpp \
+	slarfgx-v2.cl \
+	slarfgx-v2.cpp \
+	slarfx.cl \
+	slascl_2x2.cl \
+	slascl_2x2.cpp

@@ -321,7 +321,7 @@ void magmaf_cgeev(
 
 #define magmaf_cgesvd FORTRAN_NAME( magmaf_cgesvd, MAGMAF_CGESVD )
 void magmaf_cgesvd(
-    char *jobu, char *jobvt, magma_int_t *m, magma_int_t *n,
+    magma_vec_t *jobu, magma_vec_t *jobvt, magma_int_t *m, magma_int_t *n,
     magmaFloatComplex *a, magma_int_t *lda,
     float *s,
     magmaFloatComplex *u, magma_int_t *ldu,
@@ -363,7 +363,7 @@ void magmaf_cheevd(
 
 #define magmaf_cstedx FORTRAN_NAME( magmaf_cstedx, MAGMAF_CSTEDX )
 void magmaf_cstedx(
-    magma_vec_t *range, magma_int_t *n, float *vl, float *vu, magma_int_t *il, magma_int_t *iu,
+    magma_range_t *range, magma_int_t *n, float *vl, float *vu, magma_int_t *il, magma_int_t *iu,
     float*d,
     float*e,
     magmaFloatComplex*z, magma_int_t *ldz,
@@ -399,7 +399,7 @@ void magmaf_cgehrd(
 
 #define magmaf_chetrd FORTRAN_NAME( magmaf_chetrd, MAGMAF_CHETRD )
 void magmaf_chetrd(
-    char *uplo, magma_int_t *n,
+    magma_uplo_t *uplo, magma_int_t *n,
     magmaFloatComplex *a, magma_int_t *lda,
     float *d,
     float *e,

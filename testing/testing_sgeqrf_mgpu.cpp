@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from testing_zgeqrf_mgpu.cpp normal z -> s, Fri Jan 10 15:51:20 2014
+       @generated from testing_zgeqrf_mgpu.cpp normal z -> s, Sat Nov 15 00:21:40 2014
 
 */
 
@@ -98,23 +98,23 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queues[MagmaMaxGPUs * 2];
     magma_device_t devices[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
     magma_init();
-    err = magma_get_devices( devices, MagmaMaxGPUs, &num );
+    err = magma_getdevices( devices, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
-        fprintf( stderr, "magma_get_devices failed: %d\n", err );
+        fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
         exit(-1);
     }
     for(i=0;i<num_gpus;i++){
         err = magma_queue_create( devices[i], &queues[2*i] );
         if ( err != 0 ) {
-            fprintf( stderr, "magma_queue_create failed: %d\n", err );
+            fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
             exit(-1);
         }
         err = magma_queue_create( devices[i], &queues[2*i+1] );
         if ( err != 0 ) {
-            fprintf( stderr, "magma_queue_create failed: %d\n", err );
+            fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
             exit(-1);
         }
     }
@@ -178,12 +178,12 @@ int main( int argc, char** argv)
         }
         
         // warm-up
-        magmablas_ssetmatrix_1D_bcyclic(M, N, h_R, lda, d_lA, ldda, num_gpus, nb, trans_queues);
-        magma_sgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, &info, queues);
+        magma_ssetmatrix_1D_col_bcyclic(M, N, h_R, lda, d_lA, ldda, num_gpus, nb, trans_queues);
+        magma_sgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, queues, &info);
 
-        magmablas_ssetmatrix_1D_bcyclic(M, N, h_R, lda, d_lA, ldda, num_gpus, nb, trans_queues);
+        magma_ssetmatrix_1D_col_bcyclic(M, N, h_R, lda, d_lA, ldda, num_gpus, nb, trans_queues);
         gpu_time = magma_wtime();
-        magma_sgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, &info, queues);
+        magma_sgeqrf2_mgpu( num_gpus, M, N, d_lA, ldda, tau, queues, &info);
         gpu_time = magma_wtime() - gpu_time;
 
         if (info < 0)
@@ -194,7 +194,7 @@ int main( int argc, char** argv)
         /* =====================================================================
            Check the result compared to LAPACK
            =================================================================== */
-        magmablas_sgetmatrix_1D_bcyclic(M, N, d_lA, ldda, h_R, lda, num_gpus, nb, trans_queues);
+        magma_sgetmatrix_1D_col_bcyclic(M, N, d_lA, ldda, h_R, lda, num_gpus, nb, trans_queues);
         
         matnorm = lapackf77_slange("f", &M, &N, h_A, &M, work);
         blasf77_saxpy(&n2, &c_neg_one, h_A, &ione, h_R, &ione);

@@ -1,25 +1,25 @@
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
     @author Raffaele Solca
 
-    @generated from dlaex3.cpp normal d -> s, Fri Jan 10 15:51:18 2014
+    @generated from dlaex3.cpp normal d -> s, Sat Nov 15 00:21:37 2014
 */
 
 #ifdef _OPENMP
-#include<omp.h>
+#include <omp.h>
 #endif
 
-#include <stdio.h>
 #include "common_magma.h"
-#include <cblas.h>
+#include "magma_timer.h"
 
 #define Q(ix, iy) (q + (ix) + ldq * (iy))
 
-extern "C"{
+extern "C" {
+
     int magma_get_slaed3_k() { return 512;}
     
     void magma_svrange(magma_int_t k, float *d, magma_int_t *il, magma_int_t *iu, float vl, float vu)
@@ -34,7 +34,7 @@ extern "C"{
                 break;
             }
             else if (d[i] < vl)
-                ++il;
+            ++*il;
         }
         return;
     }
@@ -57,22 +57,24 @@ extern "C"{
             }
         return;
     }
-}
+
+}  // end extern "C"
+
 
 extern "C" magma_int_t
-magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
-             float* q, magma_int_t ldq, float rho,
-             float* dlamda, float* q2, magma_int_t* indx,
-             magma_int_t* ctot, float* w, float* s, magma_int_t* indxq,
-             magmaFloat_ptr dwork,
-             magma_vec_t range, float vl, float vu, magma_int_t il, magma_int_t iu,
-             magma_int_t* info, magma_queue_t queue )
+magma_slaex3(
+    magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
+    float* q, magma_int_t ldq, float rho,
+    float* dlamda, float* q2, magma_int_t* indx,
+    magma_int_t* ctot, float* w, float* s, magma_int_t* indxq,
+    magmaFloat_ptr dwork,
+    magma_range_t range, float vl, float vu, magma_int_t il, magma_int_t iu,
+    magma_queue_t queue,
+    magma_int_t* info )
 {
-
-    /*
+/*
      Purpose
      =======
-
      SLAEX3 finds the roots of the secular equation, as defined by the
      values in D, W, and RHO, between 1 and K.  It makes the
      appropriate calls to SLAED4 and then updates the eigenvectors by
@@ -94,95 +96,91 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
 
      Arguments
      =========
-
      K       (input) INTEGER
-     The number of terms in the rational function to be solved by
-     SLAED4.  K >= 0.
+             The number of terms in the rational function to be solved by
+             SLAED4.  K >= 0.
 
      N       (input) INTEGER
-     The number of rows and columns in the Q matrix.
-     N >= K (deflation may result in N>K).
+             The number of rows and columns in the Q matrix.
+             N >= K (deflation may result in N>K).
 
      N1      (input) INTEGER
-     The location of the last eigenvalue in the leading submatrix.
-     min(1,N) <= N1 <= N/2.
+             The location of the last eigenvalue in the leading submatrix.
+             min(1,N) <= N1 <= N/2.
 
      D       (output) REAL array, dimension (N)
-     D(I) contains the updated eigenvalues for
-     1 <= I <= K.
+             D(I) contains the updated eigenvalues for
+             1 <= I <= K.
 
      Q       (output) REAL array, dimension (LDQ,N)
-     Initially the first K columns are used as workspace.
-     On output the columns ??? to ??? contain
-     the updated eigenvectors.
+             Initially the first K columns are used as workspace.
+             On output the columns ??? to ??? contain
+             the updated eigenvectors.
 
      LDQ     (input) INTEGER
-     The leading dimension of the array Q.  LDQ >= max(1,N).
+             The leading dimension of the array Q.  LDQ >= max(1,N).
 
      RHO     (input) REAL
-     The value of the parameter in the rank one update equation.
-     RHO >= 0 required.
+             The value of the parameter in the rank one update equation.
+             RHO >= 0 required.
 
      DLAMDA  (input/output) REAL array, dimension (K)
-     The first K elements of this array contain the old roots
-     of the deflated updating problem.  These are the poles
-     of the secular equation. May be changed on output by
-     having lowest order bit set to zero on Cray X-MP, Cray Y-MP,
-     Cray-2, or Cray C-90, as described above.
+             The first K elements of this array contain the old roots
+             of the deflated updating problem.  These are the poles
+             of the secular equation. May be changed on output by
+             having lowest order bit set to zero on Cray X-MP, Cray Y-MP,
+             Cray-2, or Cray C-90, as described above.
 
      Q2      (input) REAL array, dimension (LDQ2, N)
-     The first K columns of this matrix contain the non-deflated
-     eigenvectors for the split problem.
+             The first K columns of this matrix contain the non-deflated
+             eigenvectors for the split problem.
 
      INDX    (input) INTEGER array, dimension (N)
-     The permutation used to arrange the columns of the deflated
-     Q matrix into three groups (see SLAED2).
-     The rows of the eigenvectors found by SLAED4 must be likewise
-     permuted before the matrix multiply can take place.
+             The permutation used to arrange the columns of the deflated
+             Q matrix into three groups (see SLAED2).
+             The rows of the eigenvectors found by SLAED4 must be likewise
+             permuted before the matrix multiply can take place.
 
      CTOT    (input) INTEGER array, dimension (4)
-     A count of the total number of the various types of columns
-     in Q, as described in INDX.  The fourth column type is any
-     column which has been deflated.
+             A count of the total number of the various types of columns
+             in Q, as described in INDX.  The fourth column type is any
+             column which has been deflated.
 
      W       (input/output) REAL array, dimension (K)
-     The first K elements of this array contain the components
-     of the deflation-adjusted updating vector. Destroyed on
-     output.
+             The first K elements of this array contain the components
+             of the deflation-adjusted updating vector. Destroyed on
+             output.
 
      S       (workspace) REAL array, dimension (N1 + 1)*K
-     Will contain the eigenvectors of the repaired matrix which
-     will be multiplied by the previously accumulated eigenvectors
-     to update the system.
+             Will contain the eigenvectors of the repaired matrix which
+             will be multiplied by the previously accumulated eigenvectors
+             to update the system.
 
      INDXQ  (output) INTEGER array, dimension (N)
-     On exit, the permutation which will reintegrate the
-     subproblems back into sorted order,
-     i.e. D( INDXQ( I = 1, N ) ) will be in ascending order.
+             On exit, the permutation which will reintegrate the
+             subproblems back into sorted order,
+             i.e. D( INDXQ( I = 1, N ) ) will be in ascending order.
 
      DWORK  (device workspace) REAL array, dimension (3*N*N/2+3*N)
 
      INFO    (output) INTEGER
-     = 0:  successful exit.
-     < 0:  if INFO = -i, the i-th argument had an illegal value.
-     > 0:  if INFO = 1, an eigenvalue did not converge
+             = 0:  successful exit.
+             < 0:  if INFO = -i, the i-th argument had an illegal value.
+             > 0:  if INFO = 1, an eigenvalue did not converge
 
      Further Details
      ===============
-
      Based on contributions by
      Jeff Rutter, Computer Science Division, University of California
      at Berkeley, USA
      Modified by Francoise Tisseur, University of Tennessee.
 
-     =====================================================================
-     */
+     ===================================================================== */
 
     float d_one  = 1.;
     float d_zero = 0.;
     magma_int_t ione = 1;
     magma_int_t ineg_one = -1;
-    magma_vec_t range_ = range;
 
     magma_int_t iil, iiu, rk;
 
@@ -197,9 +195,9 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
     float temp;
     magma_int_t alleig, valeig, indeig;
 
-    alleig = lapackf77_lsame(lapack_const(range_), "A");
-    valeig = lapackf77_lsame(lapack_const(range_), "V");
-    indeig = lapackf77_lsame(lapack_const(range_), "I");
+    alleig = (range == MagmaRangeAll);
+    valeig = (range == MagmaRangeV);
+    indeig = (range == MagmaRangeI);
 
     *info = 0;
 
@@ -259,19 +257,14 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
     iq2 = n1 * n12;
     lq2 = iq2 + n2 * n23;
 
-    magma_ssetvector_async( lq2, q2, 0, 1, dq2, 0, 1, queue, NULL );
-
-//#define ENABLE_TIMER
+    magma_ssetvector_async( lq2, q2, 1, dq2, 0, 1, queue, NULL );
 
 #ifdef _OPENMP
     /////////////////////////////////////////////////////////////////////////////////
     //openmp implementation
     /////////////////////////////////////////////////////////////////////////////////
-#ifdef ENABLE_TIMER
-    magma_timestr_t start, end;
-
-    start = get_current_time();
-#endif
+    magma_timer_t time;
+    timer_start( time );
 
 #pragma omp parallel private(i, j, tmp, temp)
     {
@@ -300,7 +293,6 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
 #pragma omp barrier
 
         if(*info == 0){
-
 #pragma omp single
             {
                 //Prepare the INDXQ sorting permutation.
@@ -332,10 +324,8 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
                         *Q(1,j) = w[i];
                     }
                 }
-
             }
             else if(k != 1){
-
                 // Compute updated W.
                 blasf77_scopy( &ik, &w[ib], &ione, &s[ib], &ione);
 
@@ -375,7 +365,7 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
                 for(j = ib; j < ie; ++j){
                     for(i = 0; i < k; ++i)
                         s[id*k + i] = w[i] / *Q(i,j);
-                    temp = cblas_snrm2( k, s+id*k, 1);
+                    temp = magma_cblas_snrm2( k, s+id*k, 1);
                     for(i = 0; i < k; ++i){
                         magma_int_t iii = indx[i] - 1;
                         *Q(i,j) = s[id*k + iii] / temp;
@@ -387,21 +377,15 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
     if (*info != 0)
         return MAGMA_SUCCESS; //??????
 
-#ifdef ENABLE_TIMER
-    end = get_current_time();
-
-    printf("eigenvalues/vector D+zzT = %6.2f\n", GetTimerValue(start,end)/1000.);
-#endif
+    timer_stop( time );
+    timer_printf( "eigenvalues/vector D+zzT = %6.2f\n", time );
 
 #else
     /////////////////////////////////////////////////////////////////////////////////
     // Non openmp implementation
     /////////////////////////////////////////////////////////////////////////////////
-#ifdef ENABLE_TIMER
-    magma_timestr_t start, end;
-
-    start = get_current_time();
-#endif
+    magma_timer_t time;
+    timer_start( time );
 
     for(i = 0; i < k; ++i)
         dlamda[i]=lapackf77_slamc3(&dlamda[i], &dlamda[i]) - dlamda[i];
@@ -433,7 +417,6 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
     rk = iiu - iil + 1;
 
     if (k == 2){
-
         for(j = 0; j < k; ++j){
             w[0] = *Q(0,j);
             w[1] = *Q(1,j);
@@ -443,10 +426,8 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
             i = indx[1] - 1;
             *Q(1,j) = w[i];
         }
-
     }
     else if(k != 1){
-
         // Compute updated W.
         blasf77_scopy( &k, w, &ione, s, &ione);
 
@@ -468,7 +449,7 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
         for(j = iil-1; j < iiu; ++j){
             for(i = 0; i < k; ++i)
                 s[i] = w[i] / *Q(i,j);
-            temp = cblas_snrm2( k, s, 1);
+            temp = magma_cblas_snrm2( k, s, 1);
             for(i = 0; i < k; ++i){
                 magma_int_t iii = indx[i] - 1;
                 *Q(i,j) = s[iii] / temp;
@@ -476,18 +457,13 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
         }
     }
 
-#ifdef ENABLE_TIMER
-    end = get_current_time();
-
-    printf("eigenvalues/vector D+zzT = %6.2f\n", GetTimerValue(start,end)/1000.);
-#endif
+    timer_stop( time );
+    timer_printf( "eigenvalues/vector D+zzT = %6.2f\n", time );
 
 #endif //_OPENMP
     // Compute the updated eigenvectors.
 
-#ifdef ENABLE_TIMER
-    start = get_current_time();
-#endif
+    timer_start( time );
     magma_queue_sync( NULL );
 
     if (rk != 0){
@@ -497,9 +473,9 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
                 blasf77_sgemm("N", "N", &n2, &rk, &n23, &d_one, &q2[iq2], &n2,
                               s, &n23, &d_zero, Q(n1,iil-1), &ldq );
             } else {
-                magma_ssetmatrix( n23, rk, Q(ctot[0],iil-1), 0, ldq, ds, ds_offset, n23, queue );
+                magma_ssetmatrix( n23, rk, Q(ctot[0],iil-1), ldq, ds, ds_offset, n23, queue );
                 magma_sgemm(MagmaNoTrans, MagmaNoTrans, n2, rk, n23, d_one, dq2, iq2, n2, ds, ds_offset, n23, d_zero, dq, dq_offset, lddq, queue);
-                magma_sgetmatrix( n2, rk, dq, dq_offset, lddq, Q(n1,iil-1), 0, ldq, queue );
+                magma_sgetmatrix( n2, rk, dq, dq_offset, lddq, Q(n1,iil-1), ldq, queue );
             }
         } else
             lapackf77_slaset("A", &n2, &rk, &d_zero, &d_zero, Q(n1,iil-1), &ldq);
@@ -510,18 +486,15 @@ magma_slaex3(magma_int_t k, magma_int_t n, magma_int_t n1, float* d,
                 blasf77_sgemm("N", "N", &n1, &rk, &n12, &d_one, q2, &n1,
                               s, &n12, &d_zero, Q(0,iil-1), &ldq);
             } else {
-                magma_ssetmatrix( n12, rk, Q(0,iil-1), 0, ldq, ds, ds_offset, n12, queue );
+                magma_ssetmatrix( n12, rk, Q(0,iil-1), ldq, ds, ds_offset, n12, queue );
                 magma_sgemm(MagmaNoTrans, MagmaNoTrans, n1, rk, n12, d_one, dq2, 0, n1, ds, ds_offset, n12, d_zero, dq, dq_offset, lddq, queue);
-                magma_sgetmatrix( n1, rk, dq, dq_offset, lddq, Q(0,iil-1), 0, ldq, queue );
+                magma_sgetmatrix( n1, rk, dq, dq_offset, lddq, Q(0,iil-1), ldq, queue );
             }
         } else
             lapackf77_slaset("A", &n1, &rk, &d_zero, &d_zero, Q(0,iil-1), &ldq);
     }
-#ifdef ENABLE_TIMER
-    end = get_current_time();
-
-    printf("gemms = %6.2f\n", GetTimerValue(start,end)/1000.);
-#endif
+    timer_stop( time );
+    timer_printf( "gemms = %6.2f\n", time );
 
     return MAGMA_SUCCESS;
 } /*magma_slaed3*/

@@ -1,29 +1,31 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @author Stan Tomov
-       @generated from zpotrf.cpp normal z -> s, Fri Jan 10 15:51:17 2014
+       @generated from zpotrf.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 */
 #include "common_magma.h"
 
 
 #define A(i, j)  (a   +(j)*lda  + (i))
-#define dA(i, j) work, ((j)*ldda + (i))
+#define dA(i, j) dwork, ((j)*ldda + (i))
 
 extern "C" magma_int_t
-magma_spotrf(magma_uplo_t uplo, magma_int_t n,
-             float *a, magma_int_t lda, magma_int_t *info,
-             magma_queue_t* queue )
+magma_spotrf(
+    magma_uplo_t uplo, magma_int_t n,
+    float *a, magma_int_t lda,
+    magma_queue_t* queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -33,8 +35,8 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
     routine.
 
     The factorization has the form
-       A = U**T * U,  if UPLO = 'U', or
-       A = L  * L**T, if UPLO = 'L',
+        A = U**H * U,  if UPLO = 'U', or
+        A = L  * L**H, if UPLO = 'L',
     where U is an upper triangular matrix and L is lower triangular.
 
     This is the block version of the algorithm, calling Level 3 BLAS.
@@ -60,7 +62,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
             triangular part of A is not referenced.
 
             On exit, if INFO = 0, the factor U or L from the Cholesky
-            factorization A = U**T * U or A = L * L**T.
+            factorization A = U**H * U or A = L * L**H.
 
             Higher performance is achieved if A is in pinned memory, e.g.
             allocated using magma_malloc_pinned.
@@ -81,7 +83,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
     magma_int_t ldda, nb, j, jb;
     float c_one     = MAGMA_S_ONE;
     float c_neg_one = MAGMA_S_NEG_ONE;
-    magmaFloat_ptr  work;
+    magmaFloat_ptr  dwork;
     float             d_one     =  1.0;
     float             d_neg_one = -1.0;
 
@@ -112,7 +114,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
 
     ldda = ((n+31)/32)*32;
     
-    if (MAGMA_SUCCESS != magma_smalloc( &work, (n)*ldda )) {
+    if (MAGMA_SUCCESS != magma_smalloc( &dwork, (n)*ldda )) {
         /* alloc failed so call the non-GPU-resident version */
         printf("non-GPU-resident version not implemented\n"); 
         return MAGMA_ERR_NOT_IMPLEMENTED;
@@ -131,19 +133,19 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                 /* Update and factorize the current diagonal block and test
                    for non-positive-definiteness. Computing MIN */
                 jb = min(nb, (n-j));
-                magma_ssetmatrix_async( jb, (n-j), A(j, j), 0, lda, dA(j, j), ldda, queue[1], NULL);
+                magma_ssetmatrix_async( jb, (n-j), A(j, j), lda, dA(j, j), ldda, queue[1], NULL);
                 
-                magma_ssyrk(MagmaUpper, MagmaTrans, jb, j,
+                magma_ssyrk(MagmaUpper, MagmaConjTrans, jb, j,
                             d_neg_one, dA(0, j), ldda,
                             d_one,     dA(j, j), ldda, queue[1]);
                 magma_queue_sync( queue[1] );
 
                 magma_sgetmatrix_async( jb, jb,
                                         dA(j, j), ldda,
-                                        A(j, j), 0, lda, queue[0], NULL );
+                                        A(j, j), lda, queue[0], NULL );
                 
                 if ( (j+jb) < n) {
-                    magma_sgemm(MagmaTrans, MagmaNoTrans,
+                    magma_sgemm(MagmaConjTrans, MagmaNoTrans,
                                 jb, (n-j-jb), j,
                                 c_neg_one, dA(0, j   ), ldda,
                                            dA(0, j+jb), ldda,
@@ -153,7 +155,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                 magma_queue_sync( queue[0] );
                 magma_sgetmatrix_async( j, jb,
                                         dA(0, j), ldda,
-                                        A (0, j), 0, lda, queue[0], NULL );
+                                        A (0, j), lda, queue[0], NULL );
 
                 lapackf77_spotrf(MagmaUpperStr, &jb, A(j, j), &lda, info);
                 if (*info != 0) {
@@ -161,12 +163,12 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                     break;
                 }
                 magma_ssetmatrix_async( jb, jb,
-                                        A(j, j), 0, lda,
+                                        A(j, j), lda,
                                         dA(j, j), ldda, queue[0], NULL );
                 magma_queue_sync( queue[0] );
 
                 if ( (j+jb) < n ) {
-                    magma_strsm(MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit,
+                    magma_strsm(MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit,
                                 jb, (n-j-jb),
                                 c_one, dA(j, j   ), ldda,
                                 dA(j, j+jb), ldda, queue[1] );
@@ -180,7 +182,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                 //  Update and factorize the current diagonal block and test
                 //  for non-positive-definiteness. Computing MIN
                 jb = min(nb, (n-j));
-                magma_ssetmatrix_async( (n-j), jb, A(j, j), 0, lda, dA(j, j), ldda, queue[1], NULL);
+                magma_ssetmatrix_async( (n-j), jb, A(j, j), lda, dA(j, j), ldda, queue[1], NULL);
 
                 magma_ssyrk(MagmaLower, MagmaNoTrans, jb, j,
                             d_neg_one, dA(j, 0), ldda,
@@ -189,10 +191,10 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
 
                 magma_sgetmatrix_async( jb, jb,
                                         dA(j,j), ldda,
-                                        A(j,j), 0, lda, queue[0], NULL );
+                                        A(j,j), lda, queue[0], NULL );
 
                 if ( (j+jb) < n) {
-                    magma_sgemm( MagmaNoTrans, MagmaTrans,
+                    magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                                  (n-j-jb), jb, j,
                                  c_neg_one, dA(j+jb, 0), ldda,
                                             dA(j,    0), ldda,
@@ -202,7 +204,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                 magma_queue_sync( queue[0] );
                 magma_sgetmatrix_async( jb, j,
                                         dA(j, 0), ldda,
-                                        A(j, 0), 0, lda, queue[1], NULL );
+                                        A(j, 0), lda, queue[1], NULL );
 
                 lapackf77_spotrf(MagmaLowerStr, &jb, A(j, j), &lda, info);
                 if (*info != 0){
@@ -210,12 +212,12 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
                     break;
                 } 
                 magma_ssetmatrix_async( jb, jb,
-                                        A(j, j), 0, lda,
+                                        A(j, j), lda,
                                         dA(j, j), ldda, queue[0], NULL );
                 magma_queue_sync( queue[0] );
 
                 if ( (j+jb) < n) {
-                    magma_strsm(MagmaRight, MagmaLower, MagmaTrans, MagmaNonUnit,
+                    magma_strsm(MagmaRight, MagmaLower, MagmaConjTrans, MagmaNonUnit,
                                 (n-j-jb), jb,
                                 c_one, dA(j,    j), ldda,
                                 dA(j+jb, j), ldda, queue[1]);
@@ -224,8 +226,7 @@ magma_spotrf(magma_uplo_t uplo, magma_int_t n,
         }
     }
     
-    magma_free( work );
+    magma_free( dwork );
     
     return *info;
 } /* magma_spotrf */
-

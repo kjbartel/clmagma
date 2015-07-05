@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> c d s
 */
@@ -24,6 +24,8 @@
 */
 int main( int argc, char** argv)
 {
+    TESTING_INIT();
+
     real_Double_t   gflops, gpu_perf, gpu_time, cpu_perf, cpu_time;
     magmaDoubleComplex *h_A, *h_R;
     magma_int_t N, n2, lda, info;
@@ -33,49 +35,24 @@ int main( int argc, char** argv)
     double      work[1], error;
     magma_int_t status = 0;
 
-    /* Initialize */
-    magma_queue_t  queue[2];
-    magma_device_t devices[MagmaMaxGPUs];
-    int num = 0;
-    magma_err_t err;
-    magma_init();
-
     magma_opts opts;
     parse_opts( argc, argv, &opts );
     opts.lapack |= opts.check;  // check (-c) implies lapack (-l)
-
+    
     double tol = opts.tolerance * lapackf77_dlamch("E");
-
-    err = magma_get_devices( devices, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
-    }
-
-    // Create two queues on device opts.device
-    err = magma_queue_create( devices[opts.device], &queue[0] );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-    err = magma_queue_create( devices[opts.device], &queue[1] );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-
-    printf("ngpu %d, uplo %s\n", (int) opts.ngpu, lapack_uplo_const(opts.uplo) );
+    
+    printf("ngpu = %d, uplo = %s\n", (int) opts.ngpu, lapack_uplo_const(opts.uplo) );
     printf("    N   CPU GFlop/s (sec)   GPU GFlop/s (sec)   ||R_magma - R_lapack||_F / ||R_lapack||_F\n");
     printf("========================================================\n");
-    for( int i = 0; i < opts.ntest; ++i ) {
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
         for( int iter = 0; iter < opts.niter; ++iter ) {
-            N     = opts.nsize[i];
+            N     = opts.nsize[itest];
             lda   = N;
             n2    = lda*N;
             gflops = FLOPS_ZPOTRF( N ) / 1e9;
             
             TESTING_MALLOC_CPU( h_A, magmaDoubleComplex, n2 );
-            TESTING_MALLOC_CPU( h_R, magmaDoubleComplex, n2 );
+            TESTING_MALLOC_PIN( h_R, magmaDoubleComplex, n2 );
             
             /* Initialize the matrix */
             lapackf77_zlarnv( &ione, ISEED, &n2, h_A );
@@ -86,7 +63,7 @@ int main( int argc, char** argv)
                Performs operation using MAGMA
                =================================================================== */
             gpu_time = magma_wtime();
-            magma_zpotrf( opts.uplo, N, h_R, lda, &info, queue );
+            magma_zpotrf( opts.uplo, N, h_R, lda, opts.queues2, &info );
             gpu_time = magma_wtime() - gpu_time;
             gpu_perf = gflops / gpu_time;
             if (info != 0)
@@ -112,23 +89,24 @@ int main( int argc, char** argv)
                 blasf77_zaxpy(&n2, &c_neg_one, h_A, &ione, h_R, &ione);
                 error = lapackf77_zlange("f", &N, &N, h_R, &lda, work) / error;
                 
-                printf("%5d   %7.2f (%7.2f)   %7.2f (%7.2f)   %8.2e%s\n",
+                printf("%5d   %7.2f (%7.2f)   %7.2f (%7.2f)   %8.2e   %s\n",
                        (int) N, cpu_perf, cpu_time, gpu_perf, gpu_time,
-                       error, (error < tol ? "" : "  failed") );
-                status |= ! (error < tol);
+                       error, (error < tol ? "ok" : "failed") );
+                status += ! (error < tol);
             }
             else {
                 printf("%5d     ---   (  ---  )   %7.2f (%7.2f)     ---  \n",
                        (int) N, gpu_perf, gpu_time );
             }
             TESTING_FREE_CPU( h_A );
-            TESTING_FREE_CPU( h_R );
+            TESTING_FREE_PIN( h_R );
+            fflush( stdout );
+        }
+        if ( opts.niter > 1 ) {
+            printf( "\n" );
         }
     }
 
-    magma_queue_destroy( queue[0] );
-    magma_queue_destroy( queue[1] );
-    magma_finalize();
-
+    TESTING_FINALIZE();
     return status;
 }

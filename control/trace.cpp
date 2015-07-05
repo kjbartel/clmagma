@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <sys/time.h>    // gettimeofday
 #include <assert.h>
 #include <errno.h>
 #include <string.h>      // strerror_r
@@ -16,7 +15,6 @@
 // set TRACE_METHOD = 2 to record start time as
 // later of CPU time and previous event's end time.
 // set TRACE_METHOD = 1 to record start time using CUDA event.
-
 //#define TRACE_METHOD 2
 
 extern cl_context gContext;
@@ -51,15 +49,14 @@ struct event_log glog;
 
 
 // ----------------------------------------
-void 
-trace_init( int ncore, int ngpu, int nqueue, magma_queue_t* queues )
+void trace_init( int ncore, int ngpu, int nqueue, magma_queue_t* queues )
 {
-    if (ncore > MAX_CORES) {
+    if ( ncore > MAX_CORES ) {
         fprintf( stderr, "Error in trace_init: ncore %d > MAX_CORES %d\n",
                  ncore, MAX_CORES );
         exit(1);
     }
-    if (ngpu*nqueue > MAX_GPU_QUEUES) {
+    if ( ngpu*nqueue > MAX_GPU_QUEUES ) {
         fprintf( stderr, "Error in trace_init: (ngpu=%d)*(nqueue=%d) > MAX_GPU_QUEUES=%d\n",
                  ngpu, nqueue, MAX_GPU_QUEUES );
         exit(1);
@@ -70,43 +67,43 @@ trace_init( int ncore, int ngpu, int nqueue, magma_queue_t* queues )
     glog.nqueue = nqueue;
     
     // initialize ID = 0
-    for (int core = 0; core < ncore; ++core) {
+    for( int core = 0; core < ncore; ++core ) {
         glog.cpu_id[core] = 0;
     }
-    for (int dev = 0; dev < ngpu; ++dev) {
-        for (int s = 0; s < nqueue; ++s) {
+    for( int dev = 0; dev < ngpu; ++dev ) {
+        for( int s = 0; s < nqueue; ++s ) {
             int t = dev*glog.nqueue + s;
             glog.gpu_id[t] = 0;
             glog.queues[t] = queues[t];
         }
-        /* In OpenCL, queues are assocaited on different devices
+        #ifdef HAVE_CUBLAS
         cudaSetDevice( dev );
         cudaDeviceSynchronize();
-        */
+        #endif
     }
     // now that all GPUs are sync'd, record start time
     // using clEnqueueCopyBuffer as a GPU dummy point
     cl_mem dA[MagmaMaxGPUs];
     cl_mem dB[MagmaMaxGPUs];
-    for (int dev = 0; dev < ngpu; ++dev) {
+    for( int dev = 0; dev < ngpu; ++dev ) {
         dA[dev] = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, NULL);
         dB[dev] = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(int), NULL, NULL);
-        for (int s = 0; s < nqueue; ++s) {
+        for( int s = 0; s < nqueue; ++s ) {
             int t = dev*glog.nqueue + s;
             clEnqueueCopyBuffer(glog.queues[t], dA[dev], dB[dev], 0, 0, sizeof(int), 0, NULL, &(glog.gpu_first[t]));
         }
     }
 
     // sync again
-    for (int dev = 0; dev < ngpu; ++dev) {
-        for (int s = 0; s < nqueue; ++s) {
+    for( int dev = 0; dev < ngpu; ++dev ) {
+        for( int s = 0; s < nqueue; ++s ) {
             int t = dev*glog.nqueue + s;
             clFinish(glog.queues[t]);
         }
     }
     glog.cpu_first = magma_wtime();
 
-    for (int dev = 0; dev < ngpu; ++dev) {
+    for( int dev = 0; dev < ngpu; ++dev ) {
         clReleaseMemObject(dA[dev]);
         clReleaseMemObject(dB[dev]);
     }
@@ -114,8 +111,7 @@ trace_init( int ncore, int ngpu, int nqueue, magma_queue_t* queues )
 
 
 // ----------------------------------------
-void 
-trace_cpu_start( int core, const char* tag, const char* lbl )
+void trace_cpu_start( int core, const char* tag, const char* lbl )
 {
     int id = glog.cpu_id[core];
     glog.cpu_start[core][id] = magma_wtime();
@@ -125,17 +121,18 @@ trace_cpu_start( int core, const char* tag, const char* lbl )
 
 
 // ----------------------------------------
-void 
-trace_cpu_end( int core )
+void trace_cpu_end( int core )
 {
     int id = glog.cpu_id[core];
     glog.cpu_end[core][id] = magma_wtime();
-    if (id+1 < MAX_EVENTS) {
+    if ( id+1 < MAX_EVENTS ) {
         glog.cpu_id[core] = id+1;
-    } else {
-        printf( " > not enough CPU events.\n" );
+    }
+    else {
+        fprintf( stderr, "Error in %s: not enough CPU events.\n", __func__ );
     }
 }
+
 
 // ----------------------------------------
 // pass returned event into kernels to profile
@@ -146,28 +143,28 @@ trace_next_gpu_event( int dev, int s )
     int id = glog.gpu_id[t];
     glog.gpu_end[t][id] = NULL;
     magma_event_t* re_ptr = &(glog.gpu_end[t][id]);
-    if (id+1 < MAX_EVENTS) {
+    if ( id+1 < MAX_EVENTS ) {
         glog.gpu_id[t] = id+1;
-    } else {
-        printf( " > not enough GPU-(%d,%d) events.\n",dev,s );
+    }
+    else {
+        fprintf( stderr, "Error in %s: not enough GPU events (dev %d, queue %d).\n", __func__, dev, s );
     }
     return re_ptr;
 }
 
+
 // ----------------------------------------
-void 
-trace_gpu_start( int dev, int s, const char* tag, const char* lbl )
+void trace_gpu_start( int dev, int s, const char* tag, const char* lbl )
 {
     int t = dev*glog.nqueue + s;
     int id = glog.gpu_id[t];
 #if TRACE_METHOD == 2
     glog.gpu_start[t][id] = magma_wtime();
 #else
-    //glog.gpu_start[t][id] = NULL;
-    /*
+    #ifdef HAVE_CUBLAS
     cudaEventCreate( &glog.gpu_start[t][id] );
     cudaEventRecord(  glog.gpu_start[t][id], glog.streams[t] );
-    */
+    #endif
 #endif
     magma_strlcpy( glog.gpu_tag  [t][id], tag, MAX_LABEL_LEN );
     magma_strlcpy( glog.gpu_label[t][id], lbl, MAX_LABEL_LEN );
@@ -184,11 +181,10 @@ trace_gpu_event( int dev, int s, const char* tag, const char* lbl )
 #if TRACE_METHOD == 2
     glog.gpu_start[t][id] = magma_wtime();
 #else
-    //glog.gpu_start[t][id] = NULL;
-    /*
+    #ifdef HAVE_CUBLAS
     cudaEventCreate( &glog.gpu_start[t][id] );
     cudaEventRecord(  glog.gpu_start[t][id], glog.streams[t] );
-    */
+    #endif
 #endif
     magma_strlcpy( glog.gpu_tag  [t][id], tag, MAX_LABEL_LEN );
     magma_strlcpy( glog.gpu_label[t][id], lbl, MAX_LABEL_LEN );
@@ -196,21 +192,24 @@ trace_gpu_event( int dev, int s, const char* tag, const char* lbl )
     return trace_next_gpu_event( dev, s );
 }
 
+
 // ----------------------------------------
-void 
-trace_finalize( const char* filename, const char* cssfile )
+void trace_finalize( const char* filename, const char* cssfile )
 {
-    double xscale = 1e3;
+    // these are all in SVG "pixels"
+    double xscale = 200.; // pixels per second
     double height = 20.;  // of each row
-    double margin =  5.;  // page margin
-    double space  =  1.;  // between rows
+    double margin =  5.;  // page margin and between some elements
+    double space  =  2.;  // between rows
     double pad    =  5.;  // around text
     double label  = 75.;  // width of "CPU:", "GPU:" labels
     double left   = 2*margin + label;
-
+    double xtick  = 0.5;  // interval of xticks (in seconds)
     char buf[ 1024 ];
     magma_event_t prof_event;
-
+    
+    double time = magma_wtime() - glog.cpu_first;
+    
     FILE* trace_file = fopen( filename, "w" );
     if ( trace_file == NULL ) {
         strerror_r( errno, buf, sizeof(buf) );
@@ -219,8 +218,10 @@ trace_finalize( const char* filename, const char* cssfile )
     }
     fprintf( stderr, "writing trace to '%s'\n", filename );
     
-    int h = (int)( (glog.ncore + glog.ngpu*glog.nqueue)*(height + space) - space + height + 2*margin );
-    int w = (int)( (magma_wtime() - glog.cpu_first) * xscale + left + margin );
+    // row for each CPU and GPU/queue (with space between), time scale, legend
+    // 4 margins: at top, above time scale, above legend, at bottom
+    int h = (int)( (glog.ncore + glog.ngpu*glog.nqueue)*(height + space) - space + 2*height + 4*margin );
+    int w = (int)( left + time*xscale + margin );
     fprintf( trace_file,
              "<?xml version=\"1.0\" standalone=\"no\"?>\n"
              "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n"
@@ -252,8 +253,10 @@ trace_finalize( const char* filename, const char* cssfile )
     const char* format =
         "<rect x=\"%8.3f\" y=\"%4.0f\" width=\"%8.3f\" height=\"%2.0f\" class=\"%-8s\" inkscape:label=\"%s\"/>\n";
     
-    // output CPU events
+    // accumulate unique legend entries
     std::set< std::string > legend;
+    
+    // output CPU events
     double top = margin;
     for( int core = 0; core < glog.ncore; ++core ) {
         if ( glog.cpu_id[core] > MAX_EVENTS ) {
@@ -272,26 +275,26 @@ trace_finalize( const char* filename, const char* cssfile )
             double start  = glog.cpu_start[core][i] - glog.cpu_first;
             double end    = glog.cpu_end  [core][i] - glog.cpu_first;
             fprintf( trace_file, format,
-                     left + start * xscale,
-                     margin + core * (height + space),
-                     (end - start) * xscale,
+                     left + start*xscale,
+                     top,
+                     (end - start)*xscale,
                      height,
                      glog.cpu_tag[core][i],
                      glog.cpu_label[core][i] );
             legend.insert( glog.cpu_tag[core][i] );
         }
-        fprintf( trace_file, "</g>\n\n" );
         top += (height + space);
+        fprintf( trace_file, "</g>\n\n" );
     }
     
     // output GPU events
     cl_ulong start_time, end_time, first_time;
     double exec_time;
     size_t return_bytes;
-    for (int dev = 0; dev < glog.ngpu; ++dev) {
-        for (int s = 0; s < glog.nqueue; ++s) {
+    for( int dev = 0; dev < glog.ngpu; ++dev ) {
+        for( int s = 0; s < glog.nqueue; ++s ) {
             int t = dev*glog.nqueue + s;
-            if (glog.gpu_id[t] >= MAX_EVENTS-1) {
+            if ( glog.gpu_id[t] >= MAX_EVENTS-1 ) {
                 glog.gpu_id[t] += 1;  // count last event
                 fprintf( stderr, "WARNING: trace on gpu %d/queue %d reached limit of %d events; output will be truncated.\n",
                          dev, s, glog.gpu_id[t] );
@@ -307,7 +310,7 @@ trace_finalize( const char* filename, const char* cssfile )
             clGetEventProfilingInfo(prof_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &first_time, &return_bytes);
           
             double start, end;
-            for (int i = 0; i < glog.gpu_id[t]; ++i) {
+            for( int i = 0; i < glog.gpu_id[t]; ++i ) {
                 prof_event = glog.gpu_end[t][i];
                 clGetEventProfilingInfo(prof_event, CL_PROFILING_COMMAND_START,
                                         sizeof(cl_ulong), &start_time, &return_bytes);
@@ -320,20 +323,38 @@ trace_finalize( const char* filename, const char* cssfile )
                 exec_time = (double)(end_time - first_time);
                 end = exec_time * 1e-9;
 
-                //fprtinf start to end
                 fprintf( trace_file, format,
-                         left + start * xscale,
-                         margin + (dev*glog.nqueue + s + glog.ncore) * (height + space),
-                         (end - start) * xscale,
+                         left + start*xscale,
+                         top,
+                         (end - start)*xscale,
                          height,
                          glog.gpu_tag[t][i],
                          glog.gpu_label[t][i] );
                 legend.insert( glog.gpu_tag[t][i] );
             }
-            fprintf( trace_file, "</g>\n\n" );
             top += (height + space);
+            fprintf( trace_file, "</g>\n\n" );
         }
     }
+    
+    // output time scale
+    top += (-space + margin);
+    fprintf( trace_file, "<g inkscape:groupmode=\"layer\" inkscape:label=\"scale\">\n" );
+    fprintf( trace_file, "<text x=\"%8.1f\" y=\"%4.0f\" width=\"%2.0f\" height=\"%2.0f\">Time (sec):</text>\n",
+             margin, top + height - pad, label, height );
+    for( double s=0; s < time; s += xtick ) {
+        fprintf( trace_file,
+            "<line x1=\"%8.1f\" y1=\"0\" x2=\"%8.1f\" y2=\"%4.0f\"/>"
+            "<text x=\"%8.1f\" y=\"%4.0f\">%4.1f</text>\n",
+            left + s*xscale,
+            left + s*xscale,
+            top,
+            left + s*xscale,
+            top + height - pad,
+            s );
+    }
+    fprintf( trace_file, "</g>\n\n" );
+    top += (height + margin);
     
     // output legend
     fprintf( trace_file, "<g inkscape:groupmode=\"layer\" inkscape:label=\"legend\">\n" );
@@ -349,7 +370,7 @@ trace_finalize( const char* filename, const char* cssfile )
         x += label + margin;
     }
     fprintf( trace_file, "</g>\n\n" );
-
+    
     fprintf( trace_file, "</svg>\n" );
     
     fclose( trace_file );

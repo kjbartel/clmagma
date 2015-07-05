@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-    @generated from testing_dsyevd.cpp normal d -> s, Fri Jan 10 15:51:20 2014
+    @generated from testing_dsyevd.cpp normal d -> s, Sat Nov 15 00:21:40 2014
 
 */
 
@@ -20,223 +20,182 @@
 #include "magma_lapack.h"
 #include "testings.h"
 
-#define absv(v1) ((v1)>0? (v1): -(v1))
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing ssyevd
 */
 int main( int argc, char** argv)
 {
-    real_Double_t      gpu_time, cpu_time;
+    TESTING_INIT();
+
+    real_Double_t   gpu_time, cpu_time;
     float *h_A, *h_R, *h_work;
     float *w1, *w2;
     magma_int_t *iwork;
-
-    /* Matrix size */
-    magma_int_t N=0, n2;
-    magma_int_t size[8] = {1024,2048,3072,4032,5184,6016,7040,8064};
-
-    magma_int_t i, info;
-    magma_int_t ione     = 1, izero = 0;
+    magma_int_t N, n2, info, lwork, liwork, lda, aux_iwork[1];
+    magma_int_t izero    = 0;
+    magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
+    float result[3], eps, aux_work[1];
+    eps = lapackf77_slamch( "E" );
+    magma_int_t status = 0;
 
-    magma_uplo_t uplo = MagmaLower;
-    magma_vec_t jobz = MagmaVec;
+    magma_opts opts;
+    parse_opts( argc, argv, &opts );
 
-    magma_int_t checkres;
-    float result[3], eps = lapackf77_slamch( "E" );
-
-    if (argc != 1){
-        for(i = 1; i<argc; i++){
-            if (strcmp("-N", argv[i])==0) {
-                N = atoi(argv[++i]);
-            }
-            else if ( strcmp("-JV", argv[i]) == 0 ) {
-                jobz = MagmaVec;
-            }
-            else if ( strcmp("-JN", argv[i]) == 0 ) {
-                jobz = MagmaNoVec;
-            }
-        }
-        if (N>0)
-            printf("  testing_ssyevd -N %d [-JV] [-JN]\n\n", (int) N);
-        else {
-            printf("\nUsage: \n");
-            printf("  testing_ssyevd -N %d [-JV] [-JN]\n\n", (int) N);
-            exit(1);
-        }
-    }
-    else {
-        printf("\nUsage: \n");
-        printf("  testing_ssyevd -N %d [-JV] [-JN]\n\n", 1024);
-        N = size[7];
-    }
-
-    checkres = getenv("MAGMA_TESTINGS_CHECK") != NULL;
-    if ( checkres && jobz == MagmaNoVec ) {
-        printf( "Cannot check results when vectors are not computed (jobz='N')\n" );
-        checkres = false;
-    }
-
-    /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-
-    magma_init();
-
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
-    }
-    err = magma_queue_create( device[0], &queue );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-
-    /* Query for workspace sizes */
-    float      aux_work[1];
-    magma_int_t aux_iwork[1];
-    magma_ssyevd( jobz, uplo,
-                  N, h_R, N, w1,
-                  aux_work,  -1,
-                  aux_iwork, -1,
-                  &info, queue );
-    magma_int_t lwork, liwork;
-    lwork  = (magma_int_t) aux_work[0];
-    liwork = aux_iwork[0];
-
-    /* Allocate host memory for the matrix */
-    TESTING_MALLOC_CPU( h_A,    float, N*N );
-    TESTING_MALLOC_CPU( w1,     float, N   );
-    TESTING_MALLOC_CPU( w2,     float, N   );
-    TESTING_MALLOC_PIN( h_R,    float, N*N );
-    TESTING_MALLOC_PIN( h_work, float,      lwork  );
-    TESTING_MALLOC_CPU( iwork,  magma_int_t, liwork );
+    float tol    = opts.tolerance * lapackf77_slamch("E");
+    float tolulp = opts.tolerance * lapackf77_slamch("P");
     
-    printf("  N     CPU Time(s)    GPU Time(s) \n");
-    printf("===================================\n");
-    for(i=0; i<8; i++){
-        if (argc==1){
-            N = size[i];
-        }
-        n2 = N*N;
-
-        /* Initialize the matrix */
-        lapackf77_slarnv( &ione, ISEED, &n2, h_A );
-        lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &N, h_R, &N );
-
-        /* warm up run */
-        magma_ssyevd(jobz, uplo,
-                     N, h_R, N, w1,
-                     h_work, lwork,
-                     iwork, liwork,
-                     &info, queue);
-        
-        lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &N, h_R, &N );
-
-        /* query for optimal workspace sizes */
-        magma_ssyevd(jobz, uplo,
-                     N, h_R, N, w1,
-                     h_work, -1,
-                     iwork,  -1,
-                     &info, queue);
-        int lwork_save  = lwork;
-        int liwork_save = liwork;
-        lwork  = min( lwork,  (magma_int_t) h_work[0] );
-        liwork = min( liwork, iwork[0] );
-        //printf( "lwork %d, query %d, used %d; liwork %d, query %d, used %d\n",
-        //        lwork_save,  (magma_int_t) h_work[0], lwork,
-        //        liwork_save, iwork[0], liwork );
-
-        /* ====================================================================
-           Performs operation using MAGMA
-           =================================================================== */
-        gpu_time = magma_wtime();
-        magma_ssyevd(jobz, uplo,
-                     N, h_R, N, w1,
-                     h_work, lwork,
-                     iwork, liwork,
-                     &info, queue);
-        gpu_time = magma_wtime() - gpu_time;
-
-        lwork  = lwork_save;
-        liwork = liwork_save;
-
-        if ( checkres ) {
-          /* =====================================================================
-             Check the results following the LAPACK's [zcds]drvst routine.
-             A is factored as A = U S U' and the following 3 tests computed:
-             (1)    | A - U S U' | / ( |A| N )
-             (2)    | I - U'U | / ( N )
-             (3)    | S(with U) - S(w/o U) | / | S |
-             =================================================================== */
-          float *tau, temp1, temp2;
-
-          lapackf77_ssyt21(&ione, lapack_const(uplo), &N, &izero,
-                           h_A, &N,
-                           w1, h_work,
-                           h_R, &N,
-                           h_R, &N,
-                           tau, h_work, &result[0]);
-
-          lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &N, h_R, &N );
-          magma_ssyevd(MagmaNoVec, uplo,
-                       N, h_R, N, w2,
-                       h_work, lwork,
-                       iwork, liwork,
-                       &info, queue);
-          
-          temp1 = temp2 = 0;
-          for(int j=0; j<N; j++){
-            temp1 = max(temp1, absv(w1[j]));
-            temp1 = max(temp1, absv(w2[j]));
-            temp2 = max(temp2, absv(w1[j]-w2[j]));
-          }
-          result[2] = temp2 / temp1;
-        }
-
-        /* =====================================================================
-           Performs operation using LAPACK
-           =================================================================== */
-        cpu_time = magma_wtime();
-        lapackf77_ssyevd(lapack_const(jobz), lapack_const(uplo),
-                         &N, h_A, &N, w2,
-                         h_work, &lwork,
-                         iwork, &liwork,
-                         &info);
-        cpu_time = magma_wtime() - cpu_time;
-        if (info < 0)
-            printf("Argument %d of ssyevd had an illegal value.\n", (int) -info);
-
-        /* =====================================================================
-           Print execution time
-           =================================================================== */
-        printf("%5d     %6.2f         %6.2f\n",
-               (int) N, cpu_time, gpu_time);
-        if ( checkres ){
-          printf("Testing the factorization A = U S U' for correctness:\n");
-          printf("(1)    | A - U S U' | / (|A| N) = %e\n", result[0]*eps);
-          printf("(2)    | I -   U'U  | /  N      = %e\n", result[1]*eps);
-          printf("(3)    | S(w/ U)-S(w/o U)|/ |S| = %e\n\n", result[2]);
-        }
-        
-        if (argc != 1)
-            break;
+    if ( opts.check && opts.jobz == MagmaNoVec ) {
+        fprintf( stderr, "checking results requires vectors; setting jobz=V (option -JV)\n" );
+        opts.jobz = MagmaVec;
     }
- 
-    /* Memory clean up */
-    TESTING_FREE_CPU( h_A   );
-    TESTING_FREE_CPU( w1    );
-    TESTING_FREE_CPU( w2    );
-    TESTING_FREE_CPU( iwork );
-    TESTING_FREE_PIN( h_work );
-    TESTING_FREE_PIN( h_R    );
+    
+    printf("using: jobz = %s, uplo = %s\n",
+           lapack_vec_const(opts.jobz), lapack_uplo_const(opts.uplo));
 
-    /* Shutdown */
-    magma_queue_destroy( queue );
-    magma_finalize();
+    printf("    N   CPU Time (sec)   GPU Time (sec)\n");
+    printf("=======================================\n");
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
+        for( int iter = 0; iter < opts.niter; ++iter ) {
+            N = opts.nsize[itest];
+            n2  = N*N;
+            lda = N;
+            
+            // query for workspace sizes
+            magma_ssyevd( opts.jobz, opts.uplo,
+                          N, NULL, lda, NULL,
+                          aux_work,  -1,
+                          aux_iwork, -1,
+                          opts.queue, &info );
+            lwork  = (magma_int_t) aux_work[0];
+            liwork = aux_iwork[0];
+            
+            /* Allocate host memory for the matrix */
+            TESTING_MALLOC_CPU( h_A,    float, N*lda );
+            TESTING_MALLOC_CPU( w1,     float, N     );
+            TESTING_MALLOC_CPU( w2,     float, N     );
+            TESTING_MALLOC_CPU( iwork,  magma_int_t, liwork );
+            
+            TESTING_MALLOC_PIN( h_R,    float, N*lda  );
+            TESTING_MALLOC_PIN( h_work, float, lwork  );
+            
+            /* Initialize the matrix */
+            lapackf77_slarnv( &ione, ISEED, &n2, h_A );
+            lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+            
+            /* warm up run */
+            if ( opts.warmup ) {
+                magma_ssyevd( opts.jobz, opts.uplo,
+                              N, h_R, lda, w1,
+                              h_work, lwork,
+                              iwork, liwork,
+                              opts.queue, &info );
+                if (info != 0)
+                    printf("magma_ssyevd returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+            }
+            
+            /* ====================================================================
+               Performs operation using MAGMA
+               =================================================================== */
+            gpu_time = magma_wtime();
+            magma_ssyevd( opts.jobz, opts.uplo,
+                          N, h_R, lda, w1,
+                          h_work, lwork,
+                          iwork, liwork,
+                          opts.queue, &info );
+            gpu_time = magma_wtime() - gpu_time;
+            if (info != 0)
+                printf("magma_ssyevd returned error %d: %s.\n",
+                       (int) info, magma_strerror( info ));
+            
+            if ( opts.check ) {
+                /* =====================================================================
+                   Check the results following the LAPACK's [zcds]drvst routine.
+                   A is factored as A = U S U' and the following 3 tests computed:
+                   (1)    | A - U S U' | / ( |A| N )
+                   (2)    | I - U'U | / ( N )
+                   (3)    | S(with U) - S(w/o U) | / | S |
+                   =================================================================== */
+                float temp1, temp2;
+                
+                // tau=NULL is unused since itype=1
+                lapackf77_ssyt21( &ione, lapack_uplo_const(opts.uplo), &N, &izero,
+                                  h_A, &lda,
+                                  w1, h_work,
+                                  h_R, &lda,
+                                  h_R, &lda,
+                                  NULL, h_work, &result[0] );
+                
+                lapackf77_slacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+                magma_ssyevd( MagmaNoVec, opts.uplo,
+                              N, h_R, lda, w2,
+                              h_work, lwork,
+                              iwork, liwork,
+                              opts.queue, &info );
+                if (info != 0)
+                    printf("magma_ssyevd returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                temp1 = temp2 = 0;
+                for( int j=0; j<N; j++ ) {
+                    temp1 = max(temp1, fabsf(w1[j]));
+                    temp1 = max(temp1, fabsf(w2[j]));
+                    temp2 = max(temp2, fabsf(w1[j]-w2[j]));
+                }
+                result[2] = temp2 / (((float)N)*temp1);
+            }
+            
+            /* =====================================================================
+               Performs operation using LAPACK
+               =================================================================== */
+            if ( opts.lapack ) {
+                cpu_time = magma_wtime();
+                lapackf77_ssyevd( lapack_vec_const(opts.jobz), lapack_uplo_const(opts.uplo),
+                                  &N, h_A, &lda, w2,
+                                  h_work, &lwork,
+                                  iwork, &liwork,
+                                  &info );
+                cpu_time = magma_wtime() - cpu_time;
+                if (info != 0)
+                    printf("lapackf77_ssyevd returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                printf("%5d   %7.2f          %7.2f\n",
+                       (int) N, cpu_time, gpu_time);
+            }
+            else {
+                printf("%5d     ---            %7.2f\n",
+                       (int) N, gpu_time);
+            }
+            
+            /* =====================================================================
+               Print execution time
+               =================================================================== */
+            if ( opts.check ) {
+                printf("Testing the factorization A = U S U' for correctness:\n");
+                printf("(1)    | A - U S U' | / (|A| N)     = %8.2e   %s\n",   result[0]*eps, (result[0]*eps < tol ? "ok" : "failed") );
+                printf("(2)    | I -   U'U  | /  N          = %8.2e   %s\n",   result[1]*eps, (result[1]*eps < tol ? "ok" : "failed") );
+                printf("(3)    | S(w/ U) - S(w/o U) | / |S| = %8.2e   %s\n\n", result[2]    , (result[2]  < tolulp ? "ok" : "failed") );
+                status += ! (result[0]*eps < tol && result[1]*eps < tol && result[2] < tolulp);
+            }
+            
+            TESTING_FREE_CPU( h_A   );
+            TESTING_FREE_CPU( w1    );
+            TESTING_FREE_CPU( w2    );
+            TESTING_FREE_CPU( iwork );
+            
+            TESTING_FREE_PIN( h_R    );
+            TESTING_FREE_PIN( h_work );
+            fflush( stdout );
+        }
+        if ( opts.niter > 1 ) {
+            printf( "\n" );
+        }
+    }
+    
+    TESTING_FINALIZE();
+    return status;
 }

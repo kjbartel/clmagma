@@ -321,7 +321,7 @@ void magmaf_sgeev(
 
 #define magmaf_sgesvd FORTRAN_NAME( magmaf_sgesvd, MAGMAF_SGESVD )
 void magmaf_sgesvd(
-    char *jobu, char *jobvt, magma_int_t *m, magma_int_t *n,
+    magma_vec_t *jobu, magma_vec_t *jobvt, magma_int_t *m, magma_int_t *n,
     float *a, magma_int_t *lda,
     float *s,
     float *u, magma_int_t *ldu,
@@ -359,7 +359,7 @@ void magmaf_ssyevd(
 
 #define magmaf_sstedx FORTRAN_NAME( magmaf_sstedx, MAGMAF_SSTEDX )
 void magmaf_sstedx(
-    magma_vec_t *range, magma_int_t *n, float *vl, float *vu, magma_int_t *il, magma_int_t *iu,
+    magma_range_t *range, magma_int_t *n, float *vl, float *vu, magma_int_t *il, magma_int_t *iu,
     float*d,
     float*e,
     float*z, magma_int_t *ldz,
@@ -395,7 +395,7 @@ void magmaf_sgehrd(
 
 #define magmaf_ssytrd FORTRAN_NAME( magmaf_ssytrd, MAGMAF_SSYTRD )
 void magmaf_ssytrd(
-    char *uplo, magma_int_t *n,
+    magma_uplo_t *uplo, magma_int_t *n,
     float *a, magma_int_t *lda,
     float *d,
     float *e,

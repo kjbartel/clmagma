@@ -1,33 +1,31 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
                                                                                                               
-       @generated from zgesv_gpu.cpp normal z -> d, Fri Jan 10 15:51:17 2014
+       @generated from zgesv_gpu.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-
-extern "C" magma_err_t
-magma_dgesv_gpu( magma_int_t n, magma_int_t nrhs,
-                 magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magma_int_t *ipiv,
-                 magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb,
-                 magma_err_t *info, magma_queue_t queue )
+extern "C" magma_int_t
+magma_dgesv_gpu(
+    magma_int_t n, magma_int_t nrhs,
+    magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magma_int_t *ipiv,
+    magmaDouble_ptr dB, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
-
     Solves a system of linear equations
        A * X = B
     where A is a general N-by-N matrix and X and B are N-by-NRHS matrices.
@@ -40,7 +38,6 @@ magma_dgesv_gpu( magma_int_t n, magma_int_t nrhs,
 
     Arguments
     =========
-
     N       (input) INTEGER
             The order of the matrix A.  N >= 0.
 
@@ -72,8 +69,6 @@ magma_dgesv_gpu( magma_int_t n, magma_int_t nrhs,
             < 0:  if INFO = -i, the i-th argument had an illegal value
     =====================================================================    */
 
-    magma_err_t ret;
-
     *info = 0;
     if (n < 0) {
         *info = -1;
@@ -94,12 +89,10 @@ magma_dgesv_gpu( magma_int_t n, magma_int_t nrhs,
         return *info;
     }
 
-    ret = magma_dgetrf_gpu( n, n, dA, dA_offset, ldda, ipiv, info, queue);
-    if ( (ret != MAGMA_SUCCESS) || (*info != 0) ) {
-        return ret;
+    magma_dgetrf_gpu( n, n, dA, dA_offset, ldda, ipiv, queue, info);
+    if ( *info == 0 ) {
+        magma_dgetrs_gpu( MagmaNoTrans, n, nrhs, dA, dA_offset, ldda, ipiv, dB, dB_offset, lddb, queue, info );
     }
-
-    ret = magma_dgetrs_gpu( MagmaNoTrans, n, nrhs, dA, dA_offset, ldda, ipiv, dB, dB_offset, lddb, info, queue );
     
-    return ret;
+    return *info;
 }

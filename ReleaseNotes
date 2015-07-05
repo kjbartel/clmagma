@@ -16,6 +16,21 @@ Routines are included for the following algorithms:
 Most routines have all four precisions:
 single (s), double (d), single-complex (c), double-complex (z).
 
+ 1.3.0 - 11-15-2014
+    * This is first release since we moved clMAGMA on bitbucket
+      https://bitbucket.org/icl/clmagma
+    * Performance improvements
+    * Add mixed-precision iterative refinement solver for SPD matrices. 
+      This includes routines {zc|ds}posv_gpu.cpp and dependencies
+    * Add clmagmablas routines using CUDA-to-OpenCL auto-converter
+      {z|c|d|s}lan{he|sy}, {zc|ds}axpycp, {z|d}lat2{c|s}, {z|d}lag2{c|s}, 
+      {c|s}lag2{z|d}, {z|c|d|s}laswp, {z|c|d|s}swap, {z|c|d|s}lacpy,
+      and {z|c|d|s}transpose.
+    * Add Bunch-Kaufmann factorization for symmetric indefinite matrices
+      {z|c|d|s}{he|sy}trf 
+    * Remodel the clMAGMA runtime system
+    * Support added for Windows and Mac OS
+
  1.1.0 - 11-18-2013
     * Performance improvements
     * Add LU, QR, and Cholesky factorizations and solvers with CPU interfaces

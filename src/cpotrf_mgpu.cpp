@@ -1,38 +1,40 @@
 /*
-    -- MAGMA (version 1.1.0) --
+    -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zpotrf_mgpu.cpp normal z -> c, Fri Jan 10 15:51:17 2014
+       @generated from zpotrf_mgpu.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 /* use two queues; one for comm, and one for comp */
-extern "C" magma_err_t
-magma_cpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
-                   magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
-                   magmaFloatComplex_ptr *d_lA, size_t dA_offset, magma_int_t ldda, 
-                   magmaFloatComplex_ptr *d_lP, magma_int_t lddp,
-                   magmaFloatComplex  *a,    magma_int_t lda, magma_int_t h,
-                   magma_int_t *info, magma_queue_t *queues );
+extern "C" magma_int_t
+magma_cpotrf2_mgpu(
+    magma_int_t num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
+    magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
+    magmaFloatComplex_ptr *d_lA, size_t dA_offset, magma_int_t ldda, 
+    magmaFloatComplex_ptr *d_lP, magma_int_t lddp,
+    magmaFloatComplex  *a,    magma_int_t lda, magma_int_t h,
+    magma_queue_t *queues,
+    magma_int_t *info );
 
 
-extern "C" magma_err_t
-magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n, 
-                  magmaFloatComplex_ptr *d_lA, size_t dA_offset, 
-                  magma_int_t ldda, magma_int_t *info, 
-                  magma_queue_t *queues)
+extern "C" magma_int_t
+magma_cpotrf_mgpu(
+    magma_int_t num_gpus, magma_uplo_t uplo, magma_int_t n, 
+    magmaFloatComplex_ptr *d_lA, size_t dA_offset, 
+    magma_int_t ldda,
+    magma_queue_t *queues,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose   
     =======   
@@ -70,7 +72,7 @@ magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n,
     LDDA     (input) INTEGER   
             The leading dimension of the array dA.  LDDA >= max(1,N).
             To benefit from coalescent memory accesses LDDA must be
-            dividable by 16.
+            divisible by 16.
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -79,7 +81,6 @@ magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n,
                   positive definite, and the factorization could not be   
                   completed.   
     =====================================================================   */
-
 
     magma_int_t     j, jb, nb, nb0, nb2, d, id, j_local, j_local2, lddp, h;
     magmaFloatComplex c_one     = MAGMA_C_ONE;
@@ -107,7 +108,7 @@ magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n,
         return *info;
     }
 
-    magma_err_t err;
+    magma_int_t err;
     
     if (num_gpus == 1 && ((nb <= 1) || (nb >= n)) ) {
       /*  Use unblocked code. */
@@ -116,9 +117,9 @@ magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n,
         *info = MAGMA_ERR_HOST_ALLOC;
         return *info;
       }
-      magma_cgetmatrix( n, n, d_lA[0], 0, ldda, work, 0, n, queues[0] );
+      magma_cgetmatrix( n, n, d_lA[0], 0, ldda, work, n, queues[0] );
       lapackf77_cpotrf(lapack_uplo_const(uplo), &n, work, &n, info);
-      magma_csetmatrix( n, n, work, 0, n, d_lA[0], 0, ldda, queues[0] );
+      magma_csetmatrix( n, n, work, n, d_lA[0], 0, ldda, queues[0] );
       magma_free_cpu( work );
     } else {
       lddp = 32*((n+31)/32);
@@ -138,13 +139,13 @@ magma_cpotrf_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t n,
       }
       if (uplo == MagmaUpper) {
           /* with two queues for each device */
-          magma_cpotrf2_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, dwork, lddp, work, n, h, info, queues);
+          magma_cpotrf2_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, dwork, lddp, work, n, h, queues, info);
           /* with three streams */
           //magma_cpotrf3_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, ldda, dwork, lddp, work, n,  
           //                   h, stream, event, info);
       } else {
           /* with two queues for each device */
-          magma_cpotrf2_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, dwork, lddp, work, nb*h, h, info, queues);
+          magma_cpotrf2_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, 0, ldda, dwork, lddp, work, nb*h, h, queues, info);
           /* with three streams */
           //magma_cpotrf3_mgpu(num_gpus, uplo, n, n, 0, 0, nb, d_lA, ldda, dwork, lddp, work, nb*h, 
           //                   h, stream, event, info);

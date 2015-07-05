@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal d -> s
 
@@ -21,19 +21,21 @@
 #define VERSION3
 
 extern "C" magma_int_t
-magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
-            double *a, magma_int_t lda,
-            double *WR, double *WI,
-            double *vl, magma_int_t ldvl,
-            double *vr, magma_int_t ldvr,
-            double *work, magma_int_t lwork,
-            magma_int_t *info, magma_queue_t queue)
+magma_dgeev(
+    magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
+    double *a, magma_int_t lda,
+    double *WR, double *WI,
+    double *vl, magma_int_t ldvl,
+    double *vr, magma_int_t ldvr,
+    double *work, magma_int_t lwork,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -120,6 +122,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
                   converged.
     =====================================================================    */
 
+    magma_int_t ione = 1;
     magma_int_t c__1 = 1;
     magma_int_t c__0 = 0;
     magma_int_t c_n1 = -1;
@@ -146,17 +149,15 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
     magmaDouble_ptr dT;
     //magma_timestr_t start, end;
 
-    char side[2] = {0, 0};
-    magma_vec_t jobvl_ = jobvl;
-    magma_vec_t jobvr_ = jobvr;
+    const char* side_ = NULL;
 
     *info = 0;
     lquery = lwork == -1;
-    wantvl = lapackf77_lsame(lapack_const(jobvl_), "V");
-    wantvr = lapackf77_lsame(lapack_const(jobvr_), "V");
-    if (! wantvl && ! lapackf77_lsame(lapack_const(jobvl_), "N")) {
+    wantvl = (jobvl == MagmaVec);
+    wantvr = (jobvr == MagmaVec);
+    if (! wantvl && jobvl != MagmaNoVec) {
         *info = -1;
-    } else if (! wantvr && ! lapackf77_lsame(lapack_const(jobvr_), "N")) {
+    } else if (! wantvr && jobvr != MagmaNoVec) {
         *info = -2;
     } else if (n < 0) {
         *info = -3;
@@ -266,7 +267,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
      * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored,
      */
     magma_dgehrd(n, ilo, ihi, &a[a_offset], lda,
-                 &work[itau], &work[iwrk], i__1, dT, 0, &ierr, queue);
+                 &work[itau], &work[iwrk], i__1, dT, 0, queue, &ierr);
 #endif
     //end = get_current_time();
     //printf("    Time for dgehrd = %5.2f sec\n", GetTimerValue(start,end)/1000.);
@@ -274,7 +275,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
     if (wantvl) {
       /*        Want left eigenvectors
                 Copy Householder vectors to VL */
-        side[0] = 'L';
+        side_ = "Left";
         lapackf77_dlacpy(MagmaLowerStr, &n, &n,
                          &a[a_offset], &lda, &vl[vl_offset], &ldvl);
 
@@ -296,7 +297,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
          * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored
          */
         magma_dorghr(n, ilo, ihi, &vl[vl_offset], ldvl, &work[itau],
-                     dT, 0, nb, &ierr, queue);
+                     dT, 0, nb, queue, &ierr);
 #endif
         //end = get_current_time();
         //printf("    Time for dorghr = %5.2f sec\n", GetTimerValue(start,end)/1000.);
@@ -313,14 +314,14 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         if (wantvr) {
           /* Want left and right eigenvectors
              Copy Schur vectors to VR */
-            side[0] = 'B';
+            side_ = "Both";
             lapackf77_dlacpy("F", &n, &n, &vl[vl_offset], &ldvl, &vr[vr_offset], &ldvr);
         }
 
     } else if (wantvr) {
         /*  Want right eigenvectors
             Copy Householder vectors to VR */
-        side[0] = 'R';
+        side_ = "Right";
         lapackf77_dlacpy("L", &n, &n, &a[a_offset], &lda, &vr[vr_offset], &ldvr);
 
         /*
@@ -340,7 +341,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
          * Version 3 - LAPACK consistent MAGMA HRD + matrices T stored
          */
         magma_dorghr(n, ilo, ihi, &vr[vr_offset], ldvr,
-                     &work[itau], dT, 0, nb, &ierr, queue);
+                     &work[itau], dT, 0, nb, queue, &ierr);
 #endif
         //end = get_current_time();
         //printf("    Time for dorghr = %5.2f sec\n", GetTimerValue(start,end)/1000.);
@@ -375,7 +376,7 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
          * Compute left and/or right eigenvectors
          *   (Workspace: need 4*N)
          */
-        lapackf77_dtrevc(side, "B", select, &n, &a[a_offset], &lda, &vl[vl_offset], &ldvl,
+        lapackf77_dtrevc(side_, "B", select, &n, &a[a_offset], &lda, &vl[vl_offset], &ldvl,
                 &vr[vr_offset], &ldvr, &n, &nout, &work[iwrk], &ierr);
     }
 
@@ -390,16 +391,16 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         /* Normalize left eigenvectors and make largest component real */
         for (i__ = 1; i__ <= n; ++i__) {
             if ( WI[i__-1] == 0.) {
-                scl = cblas_dnrm2(n, &vl[i__ * vl_dim1 + 1], 1);
+                scl = magma_cblas_dnrm2(n, &vl[i__ * vl_dim1 + 1], 1);
                 scl = 1. / scl;
-                cblas_dscal(n, (scl), &vl[i__ * vl_dim1 + 1], 1);
+                blasf77_dscal( &n, &scl, &vl[i__ * vl_dim1 + 1], &ione );
             } else if (WI[i__-1] > 0.) {
-                d__1 = cblas_dnrm2(n, &vl[ i__      * vl_dim1 + 1], 1);
-                d__2 = cblas_dnrm2(n, &vl[(i__ + 1) * vl_dim1 + 1], 1);
+                d__1 = magma_cblas_dnrm2(n, &vl[ i__      * vl_dim1 + 1], 1);
+                d__2 = magma_cblas_dnrm2(n, &vl[(i__ + 1) * vl_dim1 + 1], 1);
                 scl = lapackf77_dlapy2(&d__1, &d__2);
                 scl = 1. / scl;
-                cblas_dscal(n, (scl), &vl[ i__      * vl_dim1 + 1], 1);
-                cblas_dscal(n, (scl), &vl[(i__ + 1) * vl_dim1 + 1], 1);
+                blasf77_dscal( &n, &scl, &vl[ i__      * vl_dim1 + 1], &ione );
+                blasf77_dscal( &n, &scl, &vl[(i__ + 1) * vl_dim1 + 1], &ione );
                 i__2 = n;
                 for (k = 1; k <= i__2; ++k) {
                     /* Computing 2nd power */
@@ -411,11 +412,11 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
                 /* Comment:
                    Fortran BLAS does not have to add 1
                    C       BLAS must add one to cblas_idamax */
-                k = cblas_idamax(n, &work[iwrk], 1)+1;
+                k = blasf77_idamax( &n, &work[iwrk], &ione );  //+1;
                 lapackf77_dlartg(&vl[k +  i__      * vl_dim1],
                                  &vl[k + (i__ + 1) * vl_dim1], &cs, &sn, &r__);
-                cblas_drot(n, &vl[ i__      * vl_dim1 + 1], 1,
-                           &vl[(i__ + 1) * vl_dim1 + 1], 1, cs, (sn));
+                blasf77_drot( &n, &vl[ i__      * vl_dim1 + 1], &ione,
+                                  &vl[(i__ + 1) * vl_dim1 + 1], &ione, &cs, &sn );
                 vl[k + (i__ + 1) * vl_dim1] = 0.;
             }
         }
@@ -432,15 +433,15 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
         /* Normalize right eigenvectors and make largest component real */
         for (i__ = 1; i__ <= n; ++i__) {
             if (WI[i__-1] == 0.) {
-                scl = 1. / cblas_dnrm2(n, &vr[i__ * vr_dim1 + 1], 1);
-                cblas_dscal(n, (scl), &vr[i__ * vr_dim1 + 1], 1);
+                scl = 1. / magma_cblas_dnrm2(n, &vr[i__ * vr_dim1 + 1], 1);
+                blasf77_dscal( &n, &scl, &vr[i__ * vr_dim1 + 1], &ione );
             } else if (WI[i__-1] > 0.) {
-                d__1 = cblas_dnrm2(n, &vr[ i__      * vr_dim1 + 1], 1);
-                d__2 = cblas_dnrm2(n, &vr[(i__ + 1) * vr_dim1 + 1], 1);
+                d__1 = magma_cblas_dnrm2(n, &vr[ i__      * vr_dim1 + 1], 1);
+                d__2 = magma_cblas_dnrm2(n, &vr[(i__ + 1) * vr_dim1 + 1], 1);
                 scl = lapackf77_dlapy2(&d__1, &d__2);
                 scl = 1. / scl;
-                cblas_dscal(n, (scl), &vr[ i__      * vr_dim1 + 1], 1);
-                cblas_dscal(n, (scl), &vr[(i__ + 1) * vr_dim1 + 1], 1);
+                blasf77_dscal( &n, &scl, &vr[ i__      * vr_dim1 + 1], &ione );
+                blasf77_dscal( &n, &scl, &vr[(i__ + 1) * vr_dim1 + 1], &ione );
                 i__2 = n;
                 for (k = 1; k <= i__2; ++k) {
                     /* Computing 2nd power */
@@ -452,11 +453,11 @@ magma_dgeev(magma_vec_t jobvl, magma_vec_t jobvr, magma_int_t n,
                 /* Comment:
                    Fortran BLAS does not have to add 1
                    C       BLAS must add one to cblas_idamax */
-                k = cblas_idamax(n, &work[iwrk], 1)+1;
+                k = blasf77_idamax( &n, &work[iwrk], &ione );  //+1;
                 lapackf77_dlartg(&vr[k + i__ * vr_dim1], &vr[k + (i__ + 1) * vr_dim1],
                         &cs, &sn, &r__);
-                cblas_drot(n, &vr[ i__      * vr_dim1 + 1], 1,
-                              &vr[(i__ + 1) * vr_dim1 + 1], 1, cs, (sn));
+                blasf77_drot( &n, &vr[ i__      * vr_dim1 + 1], &ione,
+                                  &vr[(i__ + 1) * vr_dim1 + 1], &ione, &cs, &sn );
                 vr[k + (i__ + 1) * vr_dim1] = 0.;
             }
         }

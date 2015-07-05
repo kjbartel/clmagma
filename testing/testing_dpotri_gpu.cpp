@@ -1,14 +1,12 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
-
-       @generated from testing_zpotri_gpu.cpp normal z -> d, Fri Jan 10 15:51:19 2014
-
+       @date November 2014
+  
+       @generated from testing_zpotri_gpu.cpp normal z -> d, Sat Nov 15 00:21:40 2014
 */
-
 // includes, system
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,140 +22,107 @@
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing dpotrf
 */
-#define h_A(i,j) h_A[ i + j*lda ]
-
 int main( int argc, char** argv)
 {
-    real_Double_t    gflops, gpu_perf, cpu_perf, gpu_time, cpu_time;
+    TESTING_INIT();
 
+    real_Double_t   gflops, gpu_perf, gpu_time, cpu_perf, cpu_time;
     double *h_A, *h_R;
     magmaDouble_ptr d_A;
-    magma_int_t N = 0, n2, lda, ldda;
-    magma_int_t size[10] = {1024,2048,3072,4032,5184,5600,5600,5600,5600,5600};
-    
-    magma_int_t i, info;
-    magma_uplo_t  uplo = MagmaUpper;
     double c_neg_one = MAGMA_D_NEG_ONE;
+    magma_int_t N, n2, lda, ldda, info;
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
-    double      work[1], matnorm;
+    double      work[1], error;
+    magma_int_t status = 0;
+
+    magma_opts opts;
+    parse_opts( argc, argv, &opts );
+    opts.lapack |= opts.check;  // check (-c) implies lapack (-l)
     
-    if (argc != 1){
-        for(i = 1; i<argc; i++){
-            if (strcmp("-N", argv[i])==0)
-                N = atoi(argv[++i]);
-        }
-        if (N>0) size[0] = size[9] = N;
-        else exit(1);
-    }
-    else {
-        printf("\nUsage: \n");
-        printf("  testing_dpotri_gpu -N %d\n\n", 1024);
-    }
-
-    /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-    magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-        fprintf( stderr, "magma_get_devices failed: %d\n", err );
-        exit(-1);
-    }
-    err = magma_queue_create( device[0], &queue );
-    if ( err != 0 ) {
-        fprintf( stderr, "magma_queue_create failed: %d\n", err );
-        exit(-1);
-    }
-
-    /* Allocate host memory for the matrix */
-    n2   = size[9] * size[9];
-    ldda = ((size[9]+31)/32) * 32;
-    TESTING_MALLOC_CPU( h_A, double, n2 );
-    TESTING_MALLOC_PIN( h_R, double, n2 );
-    TESTING_MALLOC_DEV( d_A, double, ldda*size[9] );
-
-    printf("  N    CPU GFlop/s    GPU GFlop/s    ||R||_F / ||A||_F\n");
-    printf("========================================================\n");
-    for(i=0; i<10; i++){
-        N   = size[i];
-        lda = N;
-        n2  = lda*N;
-        gflops = FLOPS_DPOTRI( (double)N ) / 1e9;
-        
-        ldda = ((N+31)/32)*32;
-
-        /* Initialize the matrix */
-        lapackf77_dlarnv( &ione, ISEED, &n2, h_A );
-        /* Symmetrize and increase the diagonal */
-        {
-            magma_int_t i, j;
-            for(i=0; i<N; i++) {
-                MAGMA_D_SET2REAL( h_A[i*lda+i], ( MAGMA_D_REAL(h_A[i*lda+i]) + 1.*N ) );
-                for(j=0; j<i; j++)
-                    h_A(i, j) = MAGMA_D_CNJG( h_A(j,i) );
+    double tol = opts.tolerance * lapackf77_dlamch("E");
+    
+    printf("uplo = %s\n", lapack_uplo_const(opts.uplo) );
+    printf("    N   CPU GFlop/s (sec)   GPU GFlop/s (sec)   ||R||_F / ||A||_F\n");
+    printf("=================================================================\n");
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
+        for( int iter = 0; iter < opts.niter; ++iter ) {
+            N = opts.nsize[itest];
+            lda    = N;
+            n2     = lda*N;
+            ldda   = ((N+31)/32)*32;
+            gflops = FLOPS_DPOTRI( N ) / 1e9;
+            
+            TESTING_MALLOC_CPU( h_A, double, n2 );
+            TESTING_MALLOC_PIN( h_R, double, n2 );
+            TESTING_MALLOC_DEV( d_A, double, ldda*N );
+            
+            /* Initialize the matrix */
+            lapackf77_dlarnv( &ione, ISEED, &n2, h_A );
+            magma_dmake_hpd( N, h_A, lda );
+            lapackf77_dlacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+            
+            /* ====================================================================
+               Performs operation using MAGMA
+               =================================================================== */
+            /* factorize matrix */
+            magma_dsetmatrix( N, N, h_A, lda, d_A, 0, ldda, opts.queue );
+            magma_dpotrf_gpu( opts.uplo, N, d_A, 0, ldda, opts.queue, &info );
+            
+            // check for exact singularity
+            //magma_dgetmatrix( N, N, d_A, 0, ldda, h_R, lda, opts.queue );
+            //h_R[ 10 + 10*lda ] = MAGMA_D_MAKE( 0.0, 0.0 );
+            //magma_dsetmatrix( N, N, h_R, lda, d_A, 0, ldda, opts.queue );
+            
+            gpu_time = magma_wtime();
+            magma_dpotri_gpu( opts.uplo, N, d_A, 0, ldda, opts.queues2, &info );
+            gpu_time = magma_wtime() - gpu_time;
+            gpu_perf = gflops / gpu_time;
+            if (info != 0)
+                printf("magma_dpotri_gpu returned error %d: %s.\n",
+                       (int) info, magma_strerror( info ));
+            
+            /* =====================================================================
+               Performs operation using LAPACK
+               =================================================================== */
+            if ( opts.lapack ) {
+                lapackf77_dpotrf( lapack_uplo_const(opts.uplo), &N, h_A, &lda, &info );
+                
+                cpu_time = magma_wtime();
+                lapackf77_dpotri( lapack_uplo_const(opts.uplo), &N, h_A, &lda, &info );
+                cpu_time = magma_wtime() - cpu_time;
+                cpu_perf = gflops / cpu_time;
+                if (info != 0)
+                    printf("lapackf77_dpotri returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                /* =====================================================================
+                   Check the result compared to LAPACK
+                   =================================================================== */
+                magma_dgetmatrix( N, N, d_A, 0, ldda, h_R, lda, opts.queue );
+                error = lapackf77_dlange("f", &N, &N, h_A, &lda, work);
+                blasf77_daxpy(&n2, &c_neg_one, h_A, &ione, h_R, &ione);
+                error = lapackf77_dlange("f", &N, &N, h_R, &lda, work) / error;
+                printf("%5d   %7.2f (%7.2f)   %7.2f (%7.2f)   %8.2e   %s\n",
+                       (int) N, cpu_perf, cpu_time, gpu_perf, gpu_time,
+                       error, (error < tol ? "ok" : "failed") );
+                status += ! (error < tol);
             }
+            else {
+                printf("%5d     ---   (  ---  )   %7.2f (%7.2f)     ---\n",
+                       (int) N, gpu_perf, gpu_time );
+            }
+            
+            TESTING_FREE_CPU( h_A );
+            TESTING_FREE_PIN( h_R );
+            TESTING_FREE_DEV( d_A );
+            fflush( stdout );
         }
-        lapackf77_dlacpy( MagmaFullStr, &N, &N, h_A, &lda, h_R, &lda );
-
-        /* ====================================================================
-           Performs operation using MAGMA
-           =================================================================== */
-        /* factorize matrix */
-        magma_dsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-        magma_dpotrf_gpu(uplo, N, d_A, 0, ldda, &info, queue);
-        magma_dgetmatrix(N, N, d_A, 0, ldda, h_A, 0, lda, queue);
-
-        // check for exact singularity
-        //magma_dgetmatrix( N, N, d_A, ldda, h_R, lda );
-        //h_R[ 10 + 10*lda ] = MAGMA_D_MAKE( 0.0, 0.0 );
-        //magma_dsetmatrix( N, N, h_R, lda, d_A, ldda );
-       
-        //warm-up
-     //   magma_dpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
-        
-    //    magma_dsetmatrix( N, N, h_A, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = magma_wtime();
-        magma_dpotri_gpu(uplo, N, d_A, 0, ldda, &info, queue);
-        gpu_time = magma_wtime()-gpu_time;
-        if (info != 0)
-            printf("magma_dpotri_gpu returned error %d\n", (int) info);
-
-        gpu_perf = gflops / gpu_time;
-        
-        /* =====================================================================
-           Performs operation using LAPACK
-           =================================================================== */
-        cpu_time = magma_wtime();
-        lapackf77_dpotri(lapack_const(uplo), &N, h_A, &lda, &info);
-        cpu_time = magma_wtime() - cpu_time;
-        if (info != 0)
-            printf("lapackf77_dpotri returned error %d\n", (int) info);
-        
-        cpu_perf = gflops / cpu_time;
-      
-        /* =====================================================================
-           Check the result compared to LAPACK
-           =================================================================== */
-        magma_dgetmatrix( N, N, d_A, 0, ldda, h_R, 0, lda, queue );
-        matnorm = lapackf77_dlange("f", &N, &N, h_A, &lda, work);
-        blasf77_daxpy(&n2, &c_neg_one, h_A, &ione, h_R, &ione);
-        printf("%5d    %6.2f         %6.2f        %e\n",
-               (int) size[i], cpu_perf, gpu_perf,
-               lapackf77_dlange("f", &N, &N, h_R, &lda, work) / matnorm);
-        
-        if (argc != 1)
-            break;
+        if ( opts.niter > 1 ) {
+            printf( "\n" );
+        }
     }
 
-    /* Memory clean up */
-    TESTING_FREE_CPU( h_A );
-    TESTING_FREE_PIN( h_R );
-    TESTING_FREE_DEV( d_A );
-
-    /* Shutdown */
-    magma_queue_destroy( queue );
-    magma_finalize();
+    TESTING_FINALIZE();
+    return status;
 }

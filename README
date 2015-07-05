@@ -23,9 +23,9 @@ clMAGMA README FILE
   'testing/results_clmagma.txt', as an easy check for your installation.
 
 * To autotune clAcmlBlas, set the AMD_CLBLAS_STORAGE_PATH environment variable
-  to a working directory and run clAmdBlasTune. Subsequent clMAGMA runs will
+  to a working directory and run clblas tune. Subsequent clMAGMA runs will
   use the optimized routines (as long as AMD_CLBLAS_STORAGE_PATH points
-  to the directory storing the results from the clAmdBlasTune runs).
+  to the directory storing the results from the clblas tune runs).
 
 * To use a GPU on a server, disable X forwarding when you ssh to the server,
   using 'ssh -x hostname'. To see whether OpenCL finds your GPU, use 'clinfo'.

@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0) --
+ *  -- clMAGMA (version 1.3.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date January 2014
+ *     @date November 2014
  *
- * @generated from testing_zgemm_reduce.cpp normal z -> c, Fri Jan 10 15:51:19 2014
+ * @generated from testing_zgemm_reduce.cpp normal z -> c, Sat Nov 15 00:21:40 2014
  *
  **/
 
@@ -19,20 +19,13 @@
 #include "magma_lapack.h"
 #include "testings.h"
 
-extern "C" magma_err_t
-magmablas_cgemm_reduce(magma_int_t m, magma_int_t n, magma_int_t k,
-               magmaFloatComplex alpha, magmaFloatComplex_ptr d_A, size_t d_A_offset, magma_int_t lda,
-               magmaFloatComplex_ptr d_B, size_t d_B_offset, magma_int_t ldb,
-               magmaFloatComplex beta,        magmaFloatComplex_ptr d_C, size_t d_C_offset, magma_int_t ldc,
-               magma_queue_t queue);
-
 
 int main( int argc, char** argv)
 {
     real_Double_t   gflops, magma_perf, magma_time, clblas_perf, clblas_time, cpu_perf, cpu_time;
     float      magma_error, clblas_error, work[1];
-    int        transA = MagmaNoTrans;
-    int        transB = MagmaNoTrans;
+    magma_trans_t transA = MagmaNoTrans;
+    magma_trans_t transB = MagmaNoTrans;
 
     magma_int_t istart = 1024;
     magma_int_t iend   = 6240;
@@ -142,17 +135,17 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queue;
     magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
     magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
+    err = magma_getdevices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
+      fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
       exit(-1);
     }
     err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
+      fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
       exit(-1);
     }
 
@@ -222,15 +215,15 @@ int main( int argc, char** argv)
             /* =====================================================================
                Performs operation using MAGMA-BLAS
                =================================================================== */
-            magma_csetmatrix( Am, An, h_A, 0, lda, d_A, 0, ldda, queue );
-            magma_csetmatrix( Bm, Bn, h_B, 0, ldb, d_B, 0, lddb, queue );
-            magma_csetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+            magma_csetmatrix( Am, An, h_A, lda, d_A, 0, ldda, queue );
+            magma_csetmatrix( Bm, Bn, h_B, ldb, d_B, 0, lddb, queue );
+            magma_csetmatrix( M, N, h_C, ldc, d_C, 0, lddc, queue );
     
             magmablas_cgemm_reduce( M, N, K,
                     alpha, d_A, 0, ldda,
                     d_B, 0, lddb,
                     beta,  d_C, 0, lddc, queue );
-            magma_csetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+            magma_csetmatrix( M, N, h_C, ldc, d_C, 0, lddc, queue );
             magma_queue_sync(queue);
             
             magma_time = magma_wtime();
@@ -242,18 +235,18 @@ int main( int argc, char** argv)
             magma_time = magma_wtime() - magma_time;
             magma_perf = gflops / magma_time;
             
-            magma_cgetmatrix( M, N, d_C, 0, lddc, h_C2, 0, ldc, queue );
+            magma_cgetmatrix( M, N, d_C, 0, lddc, h_C2, ldc, queue );
             
             /* =====================================================================
                Performs operation using CUDA-BLAS
                =================================================================== */
-            magma_csetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+            magma_csetmatrix( M, N, h_C, ldc, d_C, 0, lddc, queue );
             
             magma_cgemm( transA, transB, M, N, K,
                          alpha, d_A, 0, ldda,
                                 d_B, 0, lddb,
                          beta,  d_C, 0, lddc, queue );
-            magma_csetmatrix( M, N, h_C, 0, ldc, d_C, 0, lddc, queue );
+            magma_csetmatrix( M, N, h_C, ldc, d_C, 0, lddc, queue );
             magma_queue_sync(queue);
             
             clblas_time = magma_wtime();
@@ -265,7 +258,7 @@ int main( int argc, char** argv)
             clblas_time = magma_wtime() - clblas_time;
             clblas_perf = gflops / clblas_time;
             
-            magma_cgetmatrix( M, N, d_C, 0, lddc, h_C3, 0, ldc, queue );
+            magma_cgetmatrix( M, N, d_C, 0, lddc, h_C3, ldc, queue );
             
             /* =====================================================================
                Performs operation using BLAS

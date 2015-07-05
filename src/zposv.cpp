@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> s d c
 
@@ -11,16 +11,18 @@
 #include "common_magma.h"
 
 extern "C" magma_int_t
-magma_zposv    ( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
-                 magmaDoubleComplex *A, magma_int_t lda,
-                 magmaDoubleComplex *B, magma_int_t ldb, magma_int_t *info,
-                 magma_queue_t *queue )
+magma_zposv    (
+    magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+    magmaDoubleComplex *A, magma_int_t lda,
+    magmaDoubleComplex *B, magma_int_t ldb,
+    magma_queue_t *queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -77,12 +79,12 @@ magma_zposv    ( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     magma_int_t num_gpus, ldda, lddb;
 
-    *info = 0 ;
-    if( (uplo != MagmaUpper) && (uplo != MagmaLower) )
+    *info = 0;
+    if ( uplo != MagmaUpper && uplo != MagmaLower )
         *info = -1;
-    if( n < 0 )
+    if ( n < 0 )
         *info = -2;
-    if( nrhs < 0)
+    if ( nrhs < 0)
         *info = -3;
     if ( lda < max(1, n) )
         *info = -5;
@@ -94,7 +96,7 @@ magma_zposv    ( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
     }
 
     /* Quick return if possible */
-    if ( (n==0) || (nrhs == 0) ) {
+    if ( (n == 0) || (nrhs == 0) ) {
         return *info;
     }
 
@@ -109,22 +111,22 @@ magma_zposv    ( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
     if ( MAGMA_SUCCESS != magma_zmalloc( &dA, ldda*n )) {
         goto CPU_INTERFACE;
     }
-    if ( MAGMA_SUCCESS != magma_zmalloc( &dB, (lddb*nrhs) )) {
+    if ( MAGMA_SUCCESS != magma_zmalloc( &dB, lddb*nrhs )) {
         magma_free( dA );
         goto CPU_INTERFACE;
     }
-    chk( magma_zsetmatrix( n, n, A, 0, lda, dA, 0, ldda, queue[0] ) );
-    magma_zpotrf2_gpu( uplo, n, dA, 0, ldda, info, queue );
+    magma_zsetmatrix( n, n, A, lda, dA, 0, ldda, queue[0] );
+    magma_zpotrf2_gpu( uplo, n, dA, 0, ldda, queue, info );
     if ( *info == MAGMA_ERR_DEVICE_ALLOC ) {
         magma_free( dA );
         magma_free( dB );
         goto CPU_INTERFACE;
     }
-    chk ( magma_zgetmatrix( n, n, dA, 0, ldda, A, 0, lda, queue[0] ) );
+    magma_zgetmatrix( n, n, dA, 0, ldda, A, lda, queue[0] );
     if ( *info == 0 ) {
-        chk( magma_zsetmatrix( n, nrhs, B, 0, ldb, dB, 0, lddb, queue[0] ));
-        magma_zpotrs_gpu( uplo, n, nrhs, dA, 0, ldda, dB, 0, lddb, info, queue[0] );
-        chk( magma_zgetmatrix( n, nrhs, dB, 0, lddb, B, 0, ldb, queue[0] ));
+        magma_zsetmatrix( n, nrhs, B, ldb, dB, 0, lddb, queue[0] );
+        magma_zpotrs_gpu( uplo, n, nrhs, dA, 0, ldda, dB, 0, lddb, queue[0], info );
+        magma_zgetmatrix( n, nrhs, dB, 0, lddb, B, ldb, queue[0] );
     }
     magma_free( dA );
     magma_free( dB );
@@ -133,9 +135,9 @@ magma_zposv    ( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 CPU_INTERFACE:
     /* If multi-GPU or allocation failed, use CPU interface and LAPACK.
      * Faster to use LAPACK for potrs than to copy A to GPU. */
-    magma_zpotrf( uplo, n, A, lda, info, queue );
+    magma_zpotrf( uplo, n, A, lda, queue, info );
     if ( *info == 0 ) {
-         lapackf77_zpotrs( lapack_uplo_const(uplo), &n, &nrhs, A, &lda, B, &ldb, info );
+        lapackf77_zpotrs( lapack_uplo_const(uplo), &n, &nrhs, A, &lda, B, &ldb, info );
     }
 
     return *info;

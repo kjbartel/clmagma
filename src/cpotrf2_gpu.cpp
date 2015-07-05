@@ -1,15 +1,13 @@
 /*
- *   -- clMAGMA (version 1.1.0) --
+ *   -- clMAGMA (version 1.3.0) --
  *      Univ. of Tennessee, Knoxville
  *      Univ. of California, Berkeley
  *      Univ. of Colorado, Denver
- *      @date January 2014
+ *      @date November 2014
  *
  * @author Mark Gates
- * @generated from zpotrf2_gpu.cpp normal z -> c, Fri Jan 10 15:51:17 2014
+ * @generated from zpotrf2_gpu.cpp normal z -> c, Sat Nov 15 00:21:37 2014
  */
-
-#include <stdio.h>
 
 #include "common_magma.h"
 
@@ -59,7 +57,7 @@ extern cl_context     gContext;
     LDDA    (input) INTEGER   
             The leading dimension of the array dA.  LDDA >= max(1,N).
             To benefit from coalescent memory accesses LDDA must be
-            dividable by 16.
+            divisible by 16.
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -68,14 +66,15 @@ extern cl_context     gContext;
                   positive definite, and the factorization could not be   
                   completed.   
     =====================================================================   */
-magma_err_t
+
+extern "C" magma_int_t
 magma_cpotrf2_gpu(
     magma_uplo_t   uplo,
     magma_int_t    n,
     magmaFloatComplex_ptr dA, size_t dA_offset, 
     magma_int_t    ldda,
-    magma_err_t*   info,
-    magma_queue_t* queue)
+    magma_queue_t* queue,
+    magma_int_t*   info)
 {
     magma_int_t j, jb, nb;
     magmaFloatComplex  z_one = MAGMA_C_MAKE(  1.0, 0.0 );
@@ -83,7 +82,7 @@ magma_cpotrf2_gpu(
     float    one =  1.0;
     float  m_one = -1.0;
     magmaFloatComplex* work;
-    magma_err_t err;
+    magma_int_t err;
     
     *info = 0;
     if ( uplo != MagmaUpper && uplo != MagmaLower ) {
@@ -112,9 +111,9 @@ magma_cpotrf2_gpu(
 
     if ((nb <= 1) || (nb >= n)) {
         // use unblocked code
-        chk( magma_cgetmatrix( n, n, dA, dA_offset, ldda, work, 0, n, queue[1] ));
+        magma_cgetmatrix( n, n, dA, dA_offset, ldda, work, n, queue[1] );
         lapackf77_cpotrf( lapack_uplo_const(uplo), &n, work, &n, info );
-        chk( magma_csetmatrix( n, n, work, 0, n, dA, dA_offset, ldda, queue[1] ));
+        magma_csetmatrix( n, n, work, n, dA, dA_offset, ldda, queue[1] );
     }
     else {
         if ( uplo == MagmaUpper ) {
@@ -125,23 +124,23 @@ magma_cpotrf2_gpu(
                 // apply all previous updates to diagonal block
                 jb = min( nb, n-j );
                 if ( j > 0 ) {
-                    chk( magma_cherk( MagmaUpper, MagmaConjTrans, jb, j,
+                    magma_cherk( MagmaUpper, MagmaConjTrans, jb, j,
                         m_one, dA(0,j), ldda,
-                          one, dA(j,j), ldda, queue[1]));
+                          one, dA(j,j), ldda, queue[1]);
                 }
                 
                 // apply all previous updates to block row right of diagonal block
                 if ( j+jb < n && j > 0) {
-                    chk( magma_cgemm( MagmaConjTrans, MagmaNoTrans,
+                    magma_cgemm( MagmaConjTrans, MagmaNoTrans,
                         jb, n-j-jb, j,
                         mz_one, dA(0, j   ), ldda,
                                 dA(0, j+jb), ldda,
-                        z_one,  dA(j, j+jb), ldda, queue[1]));
+                        z_one,  dA(j, j+jb), ldda, queue[1]);
                 }
                 
                 // simultaneous with above cgemm, transfer data, factor
                 // diagonal block on CPU, and test for positive definiteness
-                chk( magma_cgetmatrix_async( jb, jb, dA(j,j), ldda, work, 0, jb, queue[0], NULL ));
+                magma_cgetmatrix_async( jb, jb, dA(j,j), ldda, work, jb, queue[0], NULL );
                 magma_queue_sync(queue[0]);
                 lapackf77_cpotrf( MagmaUpperStr, &jb, work, &jb, info );
                 if ( *info != 0 ) {
@@ -150,15 +149,15 @@ magma_cpotrf2_gpu(
                     break;
                 }
                 //clFinish(queue[0]);
-                chk( magma_csetmatrix_async( jb, jb, work, 0, jb, dA(j,j), ldda, queue[0], NULL ));
+                magma_csetmatrix_async( jb, jb, work, jb, dA(j,j), ldda, queue[0], NULL );
                 magma_queue_sync(queue[0]);
                 // apply diagonal block to block row right of diagonal block
                 if ( j+jb < n ) {
-                    chk( magma_ctrsm(
+                    magma_ctrsm(
                         MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit,
                         jb, n-j-jb,
                         z_one, dA(j, j),    ldda,
-                               dA(j, j+jb), ldda, queue[1]));
+                               dA(j, j+jb), ldda, queue[1]);
                 }
             }
         }
@@ -170,23 +169,23 @@ magma_cpotrf2_gpu(
                 // apply all previous updates to diagonal block
                 jb = min( nb, n-j );
                 if(j>0){
-                    chk( magma_cherk( MagmaLower, MagmaNoTrans, jb, j,
+                    magma_cherk( MagmaLower, MagmaNoTrans, jb, j,
                         m_one, dA(j, 0), ldda,
-                        one, dA(j, j), ldda, queue[1]));
+                        one, dA(j, j), ldda, queue[1]);
                 }
                 magma_queue_sync(queue[1]); 
                 // apply all previous updates to block column below diagonal block
                 if ( j+jb < n && j > 0) {
-                    chk( magma_cgemm( MagmaNoTrans, MagmaConjTrans,
+                    magma_cgemm( MagmaNoTrans, MagmaConjTrans,
                         n-j-jb, jb, j,
                         mz_one, dA(j+jb, 0), ldda,
                                 dA(j,    0), ldda,
-                        z_one,  dA(j+jb, j), ldda, queue[1]));
+                        z_one,  dA(j+jb, j), ldda, queue[1]);
                 }
                 
                 // simultaneous with above cgemm, transfer data, factor
                 // diagonal block on CPU, and test for positive definiteness
-                chk( magma_cgetmatrix_async( jb, jb, dA(j,j), ldda, work, 0, jb, queue[0], NULL ));
+                magma_cgetmatrix_async( jb, jb, dA(j,j), ldda, work, jb, queue[0], NULL );
                 magma_queue_sync(queue[0]);
                 lapackf77_cpotrf( MagmaLowerStr, &jb, work, &jb, info );
                 if ( *info != 0 ) {
@@ -194,21 +193,21 @@ magma_cpotrf2_gpu(
                     *info += j;
                     break;
                 }
-                chk( magma_csetmatrix_async( jb, jb, work, 0, jb, dA(j,j), ldda, queue[0], NULL ));
+                magma_csetmatrix_async( jb, jb, work, jb, dA(j,j), ldda, queue[0], NULL );
                 magma_queue_sync(queue[0]);
 
                 // apply diagonal block to block column below diagonal
                 if ( j+jb < n ) {
-                    chk( magma_ctrsm(
+                    magma_ctrsm(
                         MagmaRight, MagmaLower, MagmaConjTrans, MagmaNonUnit,
                         n-j-jb, jb,
                         z_one, dA(j, j   ), ldda,
-                               dA(j+jb, j), ldda, queue[1]));
+                               dA(j+jb, j), ldda, queue[1]);
                 }
             }
         }
     }
-//  chk( magma_free_cpu( work ));
+//  magma_free_cpu( work );
     magma_queue_sync(queue[0]);
     magma_queue_sync(queue[1]);
     clEnqueueUnmapMemObject(queue[0], buffer, work, 0, NULL, NULL);

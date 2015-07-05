@@ -1,37 +1,32 @@
-/*  -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
     @author Raffaele Solca
 
     @precisions normal d -> s
 */
-#include <stdio.h>
 #include "common_magma.h"
+#include "magma_timer.h"
 
 #define Q(ix, iy) (q + (ix) + ldq * (iy))
 
-extern "C" {
-    magma_int_t get_dlaex0_smlsize()
-    {
-        return 25;
-    }
-}
-
 extern "C" magma_int_t
-magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
-             double* work, magma_int_t* iwork, magmaDouble_ptr dwork,
-             magma_vec_t range, double vl, double vu,
-             magma_int_t il, magma_int_t iu, magma_int_t* info, magma_queue_t queue)
+magma_dlaex0(
+    magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
+    double* work, magma_int_t* iwork, magmaDouble_ptr dwork,
+    magma_range_t range, double vl, double vu,
+    magma_int_t il, magma_int_t iu,
+    magma_queue_t queue,
+    magma_int_t* info)
 {
-/*
-    -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
        .. Scalar Arguments ..
       CHARACTER          RANGE
@@ -46,13 +41,11 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
 
     Purpose
     =======
-
     DLAEX0 computes all eigenvalues and the choosen eigenvectors of a
     symmetric tridiagonal matrix using the divide and conquer method.
 
     Arguments
     =========
-
     N      (input) INTEGER
            The dimension of the symmetric tridiagonal matrix.  N >= 0.
 
@@ -74,10 +67,10 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
            desired, then  LDQ >= max(1,N).  In any case,  LDQ >= 1.
 
     WORK   (workspace) DOUBLE PRECISION array,
-           the dimension of WORK must be at least 4*N + N**2.
+           the dimension of WORK >= 4*N + N**2.
 
     IWORK  (workspace) INTEGER array,
-           the dimension of IWORK must be at least 3 + 5*N.
+           the dimension of IWORK >= 3 + 5*N.
 
     DWORK  (device workspace) DOUBLE PRECISION array, dimension (3*N*N/2+3*N)
 
@@ -109,23 +102,20 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
 
     Further Details
     ===============
-
     Based on contributions by
        Jeff Rutter, Computer Science Division, University of California
        at Berkeley, USA
 
-    =====================================================================
-*/
+    ===================================================================== */
 
     magma_int_t ione = 1;
-    magma_vec_t range_ = range;
-    magma_int_t curlvl, curprb, i, indxq;
+    magma_range_t range2;
+    magma_int_t curlvl, i, indxq;
     magma_int_t j, k, matsiz, msd2, smlsiz;
     magma_int_t submat, subpbs, tlvls;
 
 
     // Test the input parameters.
-
     *info = 0;
 
     if( n < 0 )
@@ -141,11 +131,10 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
     if(n == 0)
         return MAGMA_SUCCESS;
 
-    smlsiz = get_dlaex0_smlsize();
+    smlsiz = magma_get_smlsize_divideconquer();
 
     // Determine the size and placement of the submatrices, and save in
     // the leading elements of IWORK.
-
     iwork[0] = n;
     subpbs= 1;
     tlvls = 0;
@@ -162,7 +151,6 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
 
     // Divide the matrix into SUBPBS submatrices of size at most SMLSIZ+1
     // using rank-1 modifications (cuts).
-
     for(i=0; i < subpbs-1; ++i){
         submat = iwork[i];
         d[submat-1] -= MAGMA_D_ABS(e[submat-1]);
@@ -173,14 +161,8 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
 
     // Solve each submatrix eigenproblem at the bottom of the divide and
     // conquer tree.
-
-    char char_I[] = {'I', 0};
-//#define ENABLE_TIMER
-#ifdef ENABLE_TIMER
-        magma_timestr_t start, end;
-
-        start = get_current_time();
-#endif
+    magma_timer_t time;
+    timer_start( time );
 
     for (i = 0; i < subpbs; ++i){
         if(i == 0){
@@ -190,7 +172,7 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
             submat = iwork[i-1];
             matsiz = iwork[i] - iwork[i-1];
         }
-        lapackf77_dsteqr(char_I , &matsiz, &d[submat], &e[submat],
+        lapackf77_dsteqr("I" , &matsiz, &d[submat], &e[submat],
                          Q(submat, submat), &ldq, work, info);  // change to edc?
         if(*info != 0){
             printf("info: %d\n, submat: %d\n", (int) *info, (int) submat);
@@ -205,21 +187,15 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
         }
     }
 
-#ifdef ENABLE_TIMER
-    end = get_current_time();
+    timer_stop( time );
+    timer_printf( "  for: dsteqr = %6.2f\n", time );
 
-    printf("for: dsteqr = %6.2f\n", GetTimerValue(start,end)/1000.);
-#endif
     // Successively merge eigensystems of adjacent submatrices
     // into eigensystem for the corresponding larger matrix.
-
     curlvl = 1;
     while (subpbs > 1){
-#ifdef ENABLE_TIMER
-        magma_timestr_t start, end;
+        timer_start( time );
 
-        start = get_current_time();
-#endif
         for (i=0; i<subpbs-1; i+=2){
             if(i == 0){
                 submat = 0;
@@ -235,17 +211,16 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
             // into an eigensystem of size MATSIZ.
             // DLAEX1 is used only for the full eigensystem of a tridiagonal
             // matrix.
-
             if (matsiz == n)
-                range_=range;
+                range2 = range;
             else
                 // We need all the eigenvectors if it is not last step
-                range_= MagmaAllVec;
+                range2 = MagmaRangeAll;
 
             magma_dlaex1(matsiz, &d[submat], Q(submat, submat), ldq,
                          &iwork[indxq+submat], e[submat+msd2-1], msd2,
                          work, &iwork[subpbs], dwork,
-                         range_, vl, vu, il, iu, info, queue);
+                         range2, vl, vu, il, iu, queue, info);
 
             if(*info != 0){
                 *info = (submat+1)*(n+1) + submat + matsiz;
@@ -255,27 +230,20 @@ magma_dlaex0(magma_int_t n, double* d, double* e, double* q, magma_int_t ldq,
         }
         subpbs /= 2;
         ++curlvl;
-#ifdef ENABLE_TIMER
-        end = get_current_time();
 
-        printf("%d: time: %6.2f\n", curlvl, GetTimerValue(start,end)/1000.);
-#endif
-
+        timer_stop( time );
+        timer_printf("%d: time: %6.2f\n", curlvl, time );
     }
 
     // Re-merge the eigenvalues/vectors which were deflated at the final
     // merge step.
-
     for(i = 0; i<n; ++i){
         j = iwork[indxq+i] - 1;
         work[i] = d[j];
         blasf77_dcopy(&n, Q(0, j), &ione, &work[ n*(i+1) ], &ione);
     }
     blasf77_dcopy(&n, work, &ione, d, &ione);
-    char char_A[] = {'A',0};
-    lapackf77_dlacpy ( char_A, &n, &n, &work[n], &n, q, &ldq );
+    lapackf77_dlacpy ( "A", &n, &n, &work[n], &n, q, &ldq );
 
     return MAGMA_SUCCESS;
-
 } /* magma_dlaex0 */
-

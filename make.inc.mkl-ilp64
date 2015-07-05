@@ -1,0 +1,55 @@
+#//////////////////////////////////////////////////////////////////////////////
+#   -- MAGMA (version 1.3.0) --
+#      Univ. of Tennessee, Knoxville
+#      Univ. of California, Berkeley
+#      Univ. of Colorado, Denver
+#      @date November 2014
+#//////////////////////////////////////////////////////////////////////////////
+
+# setenv AMD_CLBLAS_STORAGE_PATH /home/tomov/cl_magma
+
+# GPU_TARGET specifies for which GPUs you want to compile MAGMA.
+# In clMAGMA, only AMD is supported, and is the default.
+#     AMD - clMAGMA with OpenCL on AMD cards
+#
+#GPU_TARGET ?= AMD
+
+CC        = g++
+FORT      = gfortran
+
+ARCH      = ar
+ARCHFLAGS = cr
+RANLIB    = ranlib
+
+# Defining MAGMA_ILP64 or MKL_ILP64 changes magma_int_t to int64_t in include/magma_types.h
+# Compiling with -std=c++98 -pedantic finds non-standard things like variable length arrays
+OPTS      = -O3 -DADD_ -Wall -fno-strict-aliasing -fopenmp -DMAGMA_WITH_MKL -DMAGMA_SETAFFINITY -DMKL_ILP64
+OPTS     += -std=c++98 -pedantic -Wno-long-long
+#OPTS     += -Werror  # uncomment to ensure all warnings are dealt with
+F77OPTS   = -O3 -DADD_ -Wall -fdefault-integer-8
+FOPTS     = -O3 -DADD_ -Wall -fdefault-integer-8 -x f95-cpp-input
+LDOPTS    = -fopenmp
+
+# define library directories preferably in your environment, or here.
+# for MKL run, e.g.: source /opt/intel/composerxe/mkl/bin/mklvars.sh intel64
+#MKLROOT ?= /opt/intel/composerxe/mkl
+#clBLAS  ?= /opt/clBLAS
+#AMDAPP  ?= /opt/AMDAPP
+-include make.check-mkl
+-include make.check-clblas
+
+# IMPORTANT: this link line is for 64-bit int !!!!
+# For regular 64-bit builds using 64-bit pointers and 32-bit int,
+# use the lp64 library, not the ilp64 library. See make.inc.mkl.
+# see MKL Link Advisor at http://software.intel.com/sites/products/mkl/
+# gcc with MKL 10.3, Intel threads, 64-bit int
+# note -DMAGMA_ILP64 or -DMKL_ILP64, and -fdefault-integer-8 in OPTS above
+LIB        = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lm -fopenmp
+LIB       += -lclBLAS -lOpenCL
+
+LIBDIR    = -L$(MKLROOT)/lib/intel64 \
+            -L$(MKLROOT)/../compiler/lib/intel64 \
+            -L$(clBLAS)/lib64
+
+INC       = -I$(clBLAS)/include \
+            -I$(AMDAPP)/include

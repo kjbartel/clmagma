@@ -1,11 +1,11 @@
 /*
- *  -- clMAGMA (version 1.1.0) --
+ *  -- clMAGMA (version 1.3.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date January 2014
+ *     @date November 2014
  *
- * @generated from testing_zpotrf_msub.cpp normal z -> d, Fri Jan 10 15:51:19 2014
+ * @generated from testing_zpotrf_msub.cpp normal z -> d, Sat Nov 15 00:21:40 2014
  *
  **/
 
@@ -27,15 +27,16 @@ extern cl_context gContext;
 #endif
 
 #define h_A(i,j) h_A[ i + j*lda ]
-void init_matrix( int N, double *h_A, magma_int_t lda )
+void init_matrix( magma_int_t N, double *h_A, magma_int_t lda )
 {
     magma_int_t ione = 1, n2 = N*lda;
     magma_int_t ISEED[4] = {0,0,0,1};
     lapackf77_dlarnv( &ione, ISEED, &n2, h_A );
     /* Symmetrize and increase the diagonal */
-    for (int i = 0; i < N; ++i) {
-        MAGMA_D_SET2REAL( h_A(i,i), MAGMA_D_REAL(h_A(i,i)) + N );
-        for (int j = 0; j < i; ++j) h_A(i, j) = MAGMA_D_CNJG( h_A(j, i) );
+    for (magma_int_t i = 0; i < N; ++i) {
+        h_A(i,i) = MAGMA_D_MAKE( MAGMA_D_REAL(h_A(i,i)) + N, 0 );
+        for (magma_int_t j = 0; j < i; ++j)
+            h_A(i, j) = MAGMA_D_CNJG( h_A(j, i) );
     }
 }
 
@@ -57,7 +58,7 @@ int main( int argc, char** argv)
     magma_int_t ione     = 1;
    
     magma_int_t num_gpus0 = 1, num_gpus, num_subs0 = 1, num_subs, tot_subs, flag = 0;
-    int nb, n_local, nk;
+    magma_int_t nb, n_local, nk;
 
     magma_uplo_t uplo = MagmaLower;
 
@@ -84,23 +85,23 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queues[2*MagmaMaxGPUs];
     magma_device_t devices[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
     magma_init();
-    err = magma_get_devices( devices, MagmaMaxGPUs, &num );
+    err = magma_getdevices( devices, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
-        fprintf( stderr, "magma_get_devices failed: %d\n", err );
+        fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
         exit(-1);
     }
     for(i=0;i<num_gpus0;i++){
         err = magma_queue_create( devices[i], &queues[2*i] );
         if ( err != 0 ) {
-            fprintf( stderr, "magma_queue_create failed: %d\n", err );
+            fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
             exit(-1);
         }
         err = magma_queue_create( devices[i], &queues[2*i+1] );
         if ( err != 0 ) {
-            fprintf( stderr, "magma_queue_create failed: %d\n", err );
+            fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
             exit(-1);
         }
     }
@@ -163,25 +164,25 @@ int main( int argc, char** argv)
             for (j=0; j<N; j+=nb) {
                 k = (j/nb)%tot_subs;
                 nk = min(nb, N-j);
-                magma_dsetmatrix(j+nk, nk, 
-                                 &h_R[j*lda], 0, lda,
+                magma_dsetmatrix( j+nk, nk, 
+                                 &h_R[j*lda], lda,
                                  d_lA[k], j/(nb*tot_subs)*nb*ldda, ldda, 
                                  queues[2*(k%num_gpus)]);
             }
         } else {
             for (j=0; j<N; j+=nb) {
                 nk = min(nb, N-j);
-                for (int kk = 0; kk<tot_subs; kk++) {
-                    int mk = 0;
-                    for (int ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
-                        int mii = min(nb, N-ii);
+                for (magma_int_t kk = 0; kk<tot_subs; kk++) {
+                    magma_int_t mk = 0;
+                    for (magma_int_t ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
+                        magma_int_t mii = min(nb, N-ii);
                         lapackf77_dlacpy( MagmaFullStr, &mii, &nk, &h_R[ii+j*lda], &lda, &h_P[mk], &lda );
                         mk += mii;
                     }
                     k = ((j+kk*nb)/nb)%tot_subs;
                     if (mk > 0 && nk > 0) {
-                        magma_dsetmatrix(mk, nk, 
-                                         h_P, 0, lda,
+                        magma_dsetmatrix( mk, nk, 
+                                         h_P, lda,
                                          d_lA[k], j*ldda+(j+kk*nb)/(nb*tot_subs)*nb, ldda, 
                                          queues[2*(k%num_gpus)]);
                     }
@@ -190,12 +191,12 @@ int main( int argc, char** argv)
             /*for (j=0; j<N; j+=nb) {
                 k = (j/nb)%tot_subs;
                 nk = min(nb, N-j);
-                magma_dsetmatrix(nk, j+nk, &h_R[j], 0, lda,
+                magma_dsetmatrix( nk, j+nk, &h_R[j], lda,
                                     d_lA[k], j/(nb*tot_subs)*nb, ldda,
                                     queues[2*(k%num_gpus)]);
             }*/
         }
-        magma_dpotrf_msub( num_subs, num_gpus, uplo, N, d_lA, 0, ldda, &info, queues );
+        magma_dpotrf_msub( num_subs, num_gpus, uplo, N, d_lA, 0, ldda, queues, &info );
 
         /* ====================================================================
            Performs operation using MAGMA
@@ -205,25 +206,25 @@ int main( int argc, char** argv)
             for (j=0; j<N; j+=nb) {
                 k = (j/nb)%tot_subs;
                 nk = min(nb, N-j);
-                magma_dsetmatrix(j+nk, nk, 
-                                 &h_R[j*lda], 0, lda,
+                magma_dsetmatrix( j+nk, nk, 
+                                 &h_R[j*lda], lda,
                                  d_lA[k], j/(nb*tot_subs)*nb*ldda, ldda, 
                                  queues[2*(k%num_gpus)]);
             }
         } else {
             for (j=0; j<N; j+=nb) {
                 nk = min(nb, N-j);
-                for (int kk = 0; kk<tot_subs; kk++) {
-                    int mk = 0;
-                    for (int ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
-                        int mii = min(nb, N-ii);
+                for (magma_int_t kk = 0; kk<tot_subs; kk++) {
+                    magma_int_t mk = 0;
+                    for (magma_int_t ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
+                        magma_int_t mii = min(nb, N-ii);
                         lapackf77_dlacpy( MagmaFullStr, &mii, &nk, &h_R[ii+j*lda], &lda, &h_P[mk], &lda );
                         mk += mii;
                     }
                     k = ((j+kk*nb)/nb)%tot_subs;
                     if (mk > 0 && nk > 0) {
-                        magma_dsetmatrix(mk, nk, 
-                                         h_P, 0, lda,
+                        magma_dsetmatrix( mk, nk, 
+                                         h_P, lda,
                                          d_lA[k], j*ldda+(j+kk*nb)/(nb*tot_subs)*nb, ldda, 
                                          queues[2*(k%num_gpus)]);
                     }
@@ -232,14 +233,14 @@ int main( int argc, char** argv)
             /*for (j=0; j<N; j+=nb) {
                 k = (j/nb)%tot_subs;
                 nk = min(nb, N-j);
-                magma_dsetmatrix(nk, j+nk, &h_R[j], 0, lda,
+                magma_dsetmatrix( nk, j+nk, &h_R[j], lda,
                                     d_lA[k], (j/(nb*tot_subs)*nb), ldda,
                                     queues[2*(k%num_gpus)]);
             }*/
         }
     
         gpu_time = magma_wtime();
-        magma_dpotrf_msub( num_subs, num_gpus, uplo, N, d_lA, 0, ldda, &info, queues );
+        magma_dpotrf_msub( num_subs, num_gpus, uplo, N, d_lA, 0, ldda, queues, &info );
         gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         if (info != 0)
@@ -250,29 +251,29 @@ int main( int argc, char** argv)
             for (j=0; j<N; j+=nb) {
                 k = (j/nb)%tot_subs;
                 nk = min(nb, N-j);
-                magma_dgetmatrix(j+nk, nk,
+                magma_dgetmatrix( j+nk, nk,
                                  d_lA[k], j/(nb*tot_subs)*nb*ldda, ldda,
-                                 &h_R[j*lda], 0, lda, queues[2*(k%num_gpus)]);
+                                 &h_R[j*lda], lda, queues[2*(k%num_gpus)]);
             }
         } else {
             for (j=0; j<N; j+=nb) {
                 nk = min(nb, N-j);
-                for (int kk = 0; kk<tot_subs; kk++) {
+                for (magma_int_t kk = 0; kk<tot_subs; kk++) {
                     k = ((j+kk*nb)/nb)%tot_subs;
-                    int mk = 0;
+                    magma_int_t mk = 0;
                     mk = 0;
-                    for (int ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
+                    for (magma_int_t ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
                         mk += min(nb, N-ii);
                     }
                     if (mk > 0 && nk > 0) {
-                        magma_dgetmatrix(mk, nk, 
+                        magma_dgetmatrix( mk, nk, 
                                          d_lA[k], j*ldda+(j+kk*nb)/(nb*tot_subs)*nb, ldda, 
-                                         h_P, 0, lda,
+                                         h_P, lda,
                                          queues[2*(k%num_gpus)]);
                     }
                     mk = 0;
-                    for (int ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
-                        int mii = min(nb, N-ii);
+                    for (magma_int_t ii=j+kk*nb; ii<N; ii+=nb*tot_subs) {
+                        magma_int_t mii = min(nb, N-ii);
                         lapackf77_dlacpy( MagmaFullStr, &mii, &nk, &h_P[mk], &lda, &h_R[ii+j*lda], &lda );
                         mk += mii;
                     }
@@ -283,7 +284,7 @@ int main( int argc, char** argv)
                 nk = min(nb, N-j);
                 magma_dgetmatrix( nk, j+nk, 
                             d_lA[k], (j/(nb*tot_subs)*nb), ldda, 
-                            &h_R[j], 0, lda, queues[2*(k%num_gpus)] );
+                            &h_R[j], lda, queues[2*(k%num_gpus)] );
             }*/
         }
 

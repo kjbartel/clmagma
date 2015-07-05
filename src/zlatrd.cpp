@@ -1,17 +1,19 @@
 /*
-     -- clMAGMA (version 1.1.0) --
-        Univ. of Tennessee, Knoxville
-        Univ. of California, Berkeley
-        Univ. of Colorado, Denver
-        @date January 2014
+    -- clMAGMA (version 1.3.0) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2014
 
-        @precisions normal z -> s d c
+       @author Stan Tomov
+       @author Raffaele Solca
+
+       @precisions normal z -> s d c
 
 */
-
-
-#include <stdio.h>
 #include "common_magma.h"
+
+#include <assert.h>
 
 #define PRECISION_z
 
@@ -21,19 +23,21 @@
 #define dA(i, j) da, (da_offset+(j)*ldda + (i))
 #define dW(i, j) dw, (dw_offset+(j)*lddw + (i))
 
-extern "C" magma_err_t
-magma_zlatrd(char uplo, magma_int_t n, magma_int_t nb,
-             magmaDoubleComplex *a,  magma_int_t lda,
-             double *e, magmaDoubleComplex *tau,
-             magmaDoubleComplex *w,  magma_int_t ldw,
-             magmaDoubleComplex_ptr da, size_t da_offset, magma_int_t ldda,
-             magmaDoubleComplex_ptr dw, size_t dw_offset, magma_int_t lddw, magma_queue_t queue)
+extern "C" magma_int_t
+magma_zlatrd(
+    magma_uplo_t uplo, magma_int_t n, magma_int_t nb,
+    magmaDoubleComplex *a,  magma_int_t lda,
+    double *e, magmaDoubleComplex *tau,
+    magmaDoubleComplex *w,  magma_int_t ldw,
+    magmaDoubleComplex_ptr da, size_t da_offset, magma_int_t ldda,
+    magmaDoubleComplex_ptr dw, size_t dw_offset, magma_int_t lddw,
+    magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -153,11 +157,9 @@ magma_zlatrd(char uplo, magma_int_t n, magma_int_t nb,
     an element of the original matrix that is unchanged, and vi denotes
     an element of the vector defining H(i).
     =====================================================================    */
-  
-    char uplo_[2]  = {uplo, 0};
-
+    
     magma_int_t i;
-  
+    
     magmaDoubleComplex c_neg_one = MAGMA_Z_NEG_ONE;
     magmaDoubleComplex c_one     = MAGMA_Z_ONE;
     magmaDoubleComplex c_zero    = MAGMA_Z_ZERO;
@@ -167,175 +169,158 @@ magma_zlatrd(char uplo, magma_int_t n, magma_int_t nb,
     magma_int_t ione = 1;
 
     magma_int_t i_n, i_1, iw;
-  
+    
     magmaDoubleComplex alpha;
-
     magmaDoubleComplex *f;
-    magma_zmalloc_cpu( &f, n );
 
     if (n <= 0) {
-      return 0;
+        return 0;
     }
 
     magma_event_t event = NULL;
+    magma_zmalloc_cpu( &f, n );
+    assert( f != NULL );  // TODO return error, or allocate outside zlatrd
 
-    if (lapackf77_lsame(uplo_, "U")) {
-
-      /* Reduce last NB columns of upper triangle */
-      for (i = n-1; i >= n - nb ; --i) {
-        i_1 = i + 1;
-        i_n = n - i - 1;
+    if (uplo == MagmaUpper) {
+        /* Reduce last NB columns of upper triangle */
+        for (i = n-1; i >= n - nb; --i) {
+            i_1 = i + 1;
+            i_n = n - i - 1;
+            
+            iw = i - n + nb;
+            if (i < n-1) {
+                /* Update A(1:i,i) */
+                #if defined(PRECISION_z) || defined(PRECISION_c)
+                lapackf77_zlacgv(&i_n, W(i, iw+1), &ldw);
+                #endif
+                blasf77_zgemv("No transpose", &i_1, &i_n, &c_neg_one, A(0, i+1), &lda,
+                              W(i, iw+1), &ldw, &c_one, A(0, i), &ione);
+                #if defined(PRECISION_z) || defined(PRECISION_c)
+                lapackf77_zlacgv(&i_n, W(i, iw+1), &ldw);
+                lapackf77_zlacgv(&i_n, A(i, i+1), &lda);
+                #endif
+                blasf77_zgemv("No transpose", &i_1, &i_n, &c_neg_one, W(0, iw+1), &ldw,
+                              A(i, i+1), &lda, &c_one, A(0, i), &ione);
+                #if defined(PRECISION_z) || defined(PRECISION_c)
+                lapackf77_zlacgv(&i_n, A(i, i+1), &lda);
+                #endif
+            }
+            if (i > 0) {
+                /* Generate elementary reflector H(i) to annihilate A(1:i-2,i) */
+                alpha = *A(i-1, i);
+                
+                lapackf77_zlarfg(&i, &alpha, A(0, i), &ione, &tau[i - 1]);
+                
+                e[i-1] = MAGMA_Z_REAL( alpha );
+                *A(i-1,i) = MAGMA_Z_ONE;
+                
+                /* Compute W(1:i-1,i) */
+                // 1. Send the block reflector  A(0:n-i-1,i) to the GPU
+                magma_zsetvector( i, A(0, i), 1, dA(0, i), 1, queue );
+                
+                magma_zhemv(MagmaUpper, i, c_one, dA(0, 0), ldda,
+                            dA(0, i), ione, c_zero, dW(0, iw), ione, queue);
+                
+                // 2. Start putting the result back (asynchronously)
+                magma_zgetmatrix_async( i, 1,
+                                        dW(0, iw), lddw,
+                                        W(0, iw),  ldw, queue, &event );
+                
+                if (i < n-1) {
+                    blasf77_zgemv(MagmaConjTransStr, &i, &i_n, &c_one, W(0, iw+1), &ldw,
+                                  A(0, i), &ione, &c_zero, W(i+1, iw), &ione);
+                }
+                
+                // 3. Here is where we need it // TODO find the right place
+                magma_event_sync(event);
+                
+                if (i < n-1) {
+                    blasf77_zgemv("No transpose", &i, &i_n, &c_neg_one, A(0, i+1), &lda,
+                                  W(i+1, iw), &ione, &c_one, W(0, iw), &ione);
+                    
+                    blasf77_zgemv(MagmaConjTransStr, &i, &i_n, &c_one, A(0, i+1), &lda,
+                                  A(0, i), &ione, &c_zero, W(i+1, iw), &ione);
+                    
+                    blasf77_zgemv("No transpose", &i, &i_n, &c_neg_one, W(0, iw+1), &ldw,
+                                  W(i+1, iw), &ione, &c_one, W(0, iw), &ione);
+                }
+                
+                blasf77_zscal(&i, &tau[i - 1], W(0, iw), &ione);
+                
+                value = magma_cblas_zdotc( i, W(0,iw), ione, A(0,i), ione );
+                alpha = tau[i - 1] * -0.5f * value;
+                blasf77_zaxpy(&i, &alpha, A(0, i), &ione,
+                              W(0, iw), &ione);
+            }
+        }
+    }
+    else {
+        /*  Reduce first NB columns of lower triangle */
+        for (i = 0; i < nb; ++i) {
+            /* Update A(i:n,i) */
+            i_n = n - i;
+            #if defined(PRECISION_z) || defined(PRECISION_c)
+            lapackf77_zlacgv(&i, W(i, 0), &ldw);
+            #endif
+            blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, A(i, 0), &lda,
+                          W(i, 0), &ldw, &c_one, A(i, i), &ione);
+            #if defined(PRECISION_z) || defined(PRECISION_c)
+            lapackf77_zlacgv(&i, W(i, 0), &ldw);
+            lapackf77_zlacgv(&i, A(i, 0), &lda);
+            #endif
+            blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, W(i, 0), &ldw,
+                          A(i, 0), &lda, &c_one, A(i, i), &ione);
+            #if defined(PRECISION_z) || defined(PRECISION_c)
+            lapackf77_zlacgv(&i, A(i, 0), &lda);
+            #endif
         
-        iw = i - n + nb;
-        if (i < n-1) {
-          /* Update A(1:i,i) */
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i_n, W(i, iw+1), &ldw);
-          #endif
-          blasf77_zgemv("No transpose", &i_1, &i_n, &c_neg_one, A(0, i+1), &lda,
-                        W(i, iw+1), &ldw, &c_one, A(0, i), &ione);
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i_n, W(i, iw+1), &ldw);
-              lapackf77_zlacgv(&i_n, A(i, i+1), &lda);
-          #endif
-          blasf77_zgemv("No transpose", &i_1, &i_n, &c_neg_one, W(0, iw+1), &ldw,
-                        A(i, i+1), &lda, &c_one, A(0, i), &ione);
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i_n, A(i, i+1), &lda);
-          #endif
-        }
-        if (i > 0) {
-          /* Generate elementary reflector H(i) to annihilate A(1:i-2,i) */
-          
-          alpha = *A(i-1, i);
-          
-          lapackf77_zlarfg(&i, &alpha, A(0, i), &ione, &tau[i - 1]);
-          
-          e[i-1] = MAGMA_Z_REAL( alpha );
-          MAGMA_Z_SET2REAL(*A(i-1, i), 1.);
-          
-          /* Compute W(1:i-1,i) */
-          // 1. Send the block reflector  A(0:n-i-1,i) to the GPU
-          magma_zsetvector( i, A(0, i), 0, 1, dA(0, i), 1, queue );
-          
-          magma_zhemv(MagmaUpper, i, c_one, dA(0, 0), ldda,
-                      dA(0, i), ione, c_zero, dW(0, iw), ione, queue);
-          
-          // 2. Start putting the result back (asynchronously)
-          magma_zgetmatrix_async( i, 1,
-                                  dW(0, iw),         lddw,
-                                  W(0, iw)/*test*/, 0, ldw, queue, &event );
-          
-          if (i < n-1) {
-
-            blasf77_zgemv(MagmaConjTransStr, &i, &i_n, &c_one, W(0, iw+1), &ldw,
-                          A(0, i), &ione, &c_zero, W(i+1, iw), &ione);
-          }
-          
-            // 3. Here is where we need it // TODO find the right place
-            magma_event_sync(event);
-
-          if (i < n-1) {
-          
-            blasf77_zgemv("No transpose", &i, &i_n, &c_neg_one, A(0, i+1), &lda,
-                          W(i+1, iw), &ione, &c_one, W(0, iw), &ione);
-
-            blasf77_zgemv(MagmaConjTransStr, &i, &i_n, &c_one, A(0, i+1), &lda,
-                          A(0, i), &ione, &c_zero, W(i+1, iw), &ione);
-
-            blasf77_zgemv("No transpose", &i, &i_n, &c_neg_one, W(0, iw+1), &ldw,
-                          W(i+1, iw), &ione, &c_one, W(0, iw), &ione);
-          }
-
-          blasf77_zscal(&i, &tau[i - 1], W(0, iw), &ione);
-
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-          cblas_zdotc_sub( i, W(0,iw), ione, A(0,i), ione, &value );
-          #else
-          value = cblas_zdotc( i, W(0,iw), ione, A(0,i), ione );
-          #endif
-          alpha = tau[i - 1] * -0.5f * value;
-          blasf77_zaxpy(&i, &alpha, A(0, i), &ione,
-                        W(0, iw), &ione);
-        }
-      }
-
-    } else {
-
-      /*  Reduce first NB columns of lower triangle */
-      for (i = 0; i < nb; ++i)
-        {
-
-          /* Update A(i:n,i) */
-          i_n = n - i;
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i, W(i, 0), &ldw);
-          #endif
-          blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, A(i, 0), &lda,
-                        W(i, 0), &ldw, &c_one, A(i, i), &ione);
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i, W(i, 0), &ldw);
-              lapackf77_zlacgv(&i, A(i ,0), &lda);
-          #endif
-          blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, W(i, 0), &ldw,
-                        A(i, 0), &lda, &c_one, A(i, i), &ione);
-          #if defined(PRECISION_z) || defined(PRECISION_c)
-              lapackf77_zlacgv(&i, A(i, 0), &lda);
-          #endif
-
-          if (i < n-1)
-            {
-              /* Generate elementary reflector H(i) to annihilate A(i+2:n,i) */
-              i_n = n - i - 1;
-              alpha = *A(i+1, i);
-              lapackf77_zlarfg(&i_n, &alpha, A(min(i+2,n-1), i), &ione, &tau[i]);
-              e[i] = MAGMA_Z_REAL( alpha );
-              MAGMA_Z_SET2REAL(*A(i+1, i), 1.);
-
-              /* Compute W(i+1:n,i) */
-              // 1. Send the block reflector  A(i+1:n,i) to the GPU
-              magma_zsetvector( i_n, A(i+1, i), 0, 1, dA(i+1, i), 1, queue );
-          
-              magma_zhemv(MagmaLower, i_n, c_one, dA(i+1, i+1), ldda, dA(i+1, i), ione, c_zero,
-                          dW(i+1, i), ione, queue);
-          
-              // 2. Start putting the result back (asynchronously)
-              magma_zgetmatrix_async( i_n, 1,
-                                      dW(i+1, i), lddw,
-                                      W(i+1, i), 0, ldw, queue, &event );
-
-              blasf77_zgemv(MagmaConjTransStr, &i_n, &i, &c_one, W(i+1, 0), &ldw,
-                            A(i+1, i), &ione, &c_zero, W(0, i), &ione);
-
-              blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, A(i+1, 0), &lda,
-                            W(0, i), &ione, &c_zero, f, &ione);
-              
-              blasf77_zgemv(MagmaConjTransStr, &i_n, &i, &c_one, A(i+1, 0), &lda,
-                            A(i+1, i), &ione, &c_zero, W(0, i), &ione);
-
-              // 3. Here is where we need it
-              magma_event_sync(event);
-
-              if (i!=0)
-                blasf77_zaxpy(&i_n, &c_one, f, &ione, W(i+1, i), &ione);
-     
-              blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, W(i+1, 0), &ldw,
-                            W(0, i), &ione, &c_one, W(i+1, i), &ione);
-              blasf77_zscal(&i_n, &tau[i], W(i+1,i), &ione);
-              
-              #if defined(PRECISION_z) || defined(PRECISION_c)
-              cblas_zdotc_sub( i_n, W(i+1,i), ione, A(i+1,i), ione, &value );
-              #else
-              value = cblas_zdotc( i_n, W(i+1,i), ione, A(i+1,i), ione );
-              #endif
-              alpha = tau[i] * -0.5f * value;
-              blasf77_zaxpy(&i_n, &alpha, A(i+1, i), &ione, W(i+1,i), &ione);
+            if (i < n-1) {
+                /* Generate elementary reflector H(i) to annihilate A(i+2:n,i) */
+                i_n = n - i - 1;
+                alpha = *A(i+1, i);
+                lapackf77_zlarfg(&i_n, &alpha, A(min(i+2,n-1), i), &ione, &tau[i]);
+                e[i] = MAGMA_Z_REAL( alpha );
+                *A(i+1,i) = MAGMA_Z_ONE;
+        
+                /* Compute W(i+1:n,i) */
+                // 1. Send the block reflector  A(i+1:n,i) to the GPU
+                magma_zsetvector( i_n, A(i+1, i), 1, dA(i+1, i), 1, queue );
+            
+                magma_zhemv(MagmaLower, i_n, c_one, dA(i+1, i+1), ldda, dA(i+1, i), ione, c_zero,
+                            dW(i+1, i), ione, queue);
+            
+                // 2. Start putting the result back (asynchronously)
+                magma_zgetmatrix_async( i_n, 1,
+                                        dW(i+1, i), lddw,
+                                        W(i+1, i), ldw, queue, &event );
+        
+                blasf77_zgemv(MagmaConjTransStr, &i_n, &i, &c_one, W(i+1, 0), &ldw,
+                              A(i+1, i), &ione, &c_zero, W(0, i), &ione);
+        
+                blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, A(i+1, 0), &lda,
+                              W(0, i), &ione, &c_zero, f, &ione);
+                
+                blasf77_zgemv(MagmaConjTransStr, &i_n, &i, &c_one, A(i+1, 0), &lda,
+                              A(i+1, i), &ione, &c_zero, W(0, i), &ione);
+        
+                // 3. Here is where we need it
+                magma_event_sync(event);
+        
+                if (i != 0)
+                    blasf77_zaxpy(&i_n, &c_one, f, &ione, W(i+1, i), &ione);
+        
+                blasf77_zgemv("No transpose", &i_n, &i, &c_neg_one, W(i+1, 0), &ldw,
+                              W(0, i), &ione, &c_one, W(i+1, i), &ione);
+                blasf77_zscal(&i_n, &tau[i], W(i+1,i), &ione);
+                
+                value = magma_cblas_zdotc( i_n, W(i+1,i), ione, A(i+1,i), ione );
+                alpha = tau[i] * -0.5f * value;
+                blasf77_zaxpy(&i_n, &alpha, A(i+1, i), &ione, W(i+1,i), &ione);
             }
         }
     }
 
-    magma_free_cpu(f);
+    magma_free_cpu( f );
 
     return 0;
-} /* zlatrd_ */
-
+} /* magma_zlatrd */

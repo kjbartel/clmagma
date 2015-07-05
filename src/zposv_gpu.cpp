@@ -1,32 +1,30 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
-                                                                                                              
+       @date November 2014
+
        @precisions normal z -> s d c
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-
-extern "C" magma_err_t
-magma_zposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
-                 magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb,
-                 magma_err_t *info, magma_queue_t queue )
+extern "C" magma_int_t
+magma_zposv_gpu(
+    magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+    magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
- 
+       @date November 2014
+
     Purpose
     =======
-
     ZPOSV computes the solution to a complex system of linear equations
        A * X = B,
     where A is an N-by-N Hermitian positive definite matrix and X and B
@@ -40,7 +38,6 @@ magma_zposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     Arguments
     =========
- 
     UPLO    (input) CHARACTER*1
             = 'U':  Upper triangle of A is stored;
             = 'L':  Lower triangle of A is stored.
@@ -79,14 +76,12 @@ magma_zposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
             < 0:  if INFO = -i, the i-th argument had an illegal value
     =====================================================================   */
 
-    magma_err_t ret;
-    
-    *info = 0 ;
-    if( (uplo != MagmaUpper) && (uplo != MagmaLower) )
+    *info = 0;
+    if ( uplo != MagmaUpper && uplo != MagmaLower )
         *info = -1;
-    if( n < 0 )
+    if ( n < 0 )
         *info = -2;
-    if( nrhs < 0)
+    if ( nrhs < 0 )
         *info = -3;
     if ( ldda < max(1, n) )
         *info = -5;
@@ -102,14 +97,9 @@ magma_zposv_gpu( magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
         return *info;
     }
 
-    ret = magma_zpotrf_gpu(uplo, n, dA, 0, ldda, info, queue);
-    if ( (ret != MAGMA_SUCCESS) || ( *info != 0 ) ) {
-        return ret;
-    }
-
-    ret = magma_zpotrs_gpu(uplo, n, nrhs, dA, 0, ldda, dB, 0, lddb, info, queue);
-    if ( (ret != MAGMA_SUCCESS) || ( *info != 0 ) ) {
-        return ret;
+    magma_zpotrf_gpu( uplo, n, dA, 0, ldda, queue, info );
+    if ( *info == 0 ) {
+        magma_zpotrs_gpu( uplo, n, nrhs, dA, 0, ldda, dB, 0, lddb, queue, info );
     }
 
     return *info;

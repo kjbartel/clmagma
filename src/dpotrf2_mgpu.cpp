@@ -1,14 +1,13 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zpotrf2_mgpu.cpp normal z -> d, Fri Jan 10 15:51:17 2014
+       @generated from zpotrf2_mgpu.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 
 */
-#include <stdio.h>
 #include "common_magma.h"
 
 //#define dlA(id, i, j)  (d_lA[id] + (j)*ldda + (i))
@@ -28,19 +27,21 @@
 #define dlP_offset(i, j ,k) ((k)*nb*lddp + (j)*lddp + (i))
 //#define dlPT[id] d_lP[id]
 
-extern "C" magma_err_t
-magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
-                   magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
-                   magmaDouble_ptr *d_lA, size_t d_lA_offset, magma_int_t ldda, 
-                   magmaDouble_ptr *d_lP,  magma_int_t lddp, 
-                   double *a,      magma_int_t lda,   magma_int_t h,
-                   magma_int_t *info, magma_queue_t *queues )
+extern "C" magma_int_t
+magma_dpotrf2_mgpu(
+    magma_int_t num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
+    magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
+    magmaDouble_ptr *d_lA, size_t d_lA_offset, magma_int_t ldda, 
+    magmaDouble_ptr *d_lP,  magma_int_t lddp, 
+    double *a,      magma_int_t lda,   magma_int_t h,
+    magma_queue_t *queues,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose   
     =======   
@@ -48,8 +49,8 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
     positive definite matrix dA.   
 
     The factorization has the form   
-       dA = U**T * U,  if UPLO = 'U', or   
-       dA = L  * L**T,  if UPLO = 'L',   
+       dA = U**H * U,  if UPLO = 'U', or   
+       dA = L  * L**H,  if UPLO = 'L',   
     where U is an upper triangular matrix and L is lower triangular.   
 
     This is the block version of the algorithm, calling Level 3 BLAS.   
@@ -73,12 +74,12 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
             triangular part of dA is not referenced.   
 
             On exit, if INFO = 0, the factor U or L from the Cholesky   
-            factorization dA = U**T * U or dA = L * L**T.   
+            factorization dA = U**H * U or dA = L * L**H.   
 
     LDDA     (input) INTEGER   
             The leading dimension of the array dA.  LDDA >= max(1,N).
             To benefit from coalescent memory accesses LDDA must be
-            dividable by 16.
+            divisible by 16.
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -87,7 +88,6 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                   positive definite, and the factorization could not be   
                   completed.   
     =====================================================================   */
-
 
     magma_int_t     j, jb, nb0, nb2, dd, d, id, j_local, j_local2, buf;
     double c_one     = MAGMA_D_ONE;
@@ -157,7 +157,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                         if(d != id){
                             //magma_queue_sync(queues[2*d]);
                             magma_dsetmatrix_async( j, jb, 
-                                                    Aup(0,j), 0, lda, 
+                                                    Aup(0,j), lda, 
                                                     dlP(d,jb,0,buf), lddp, 
                                                     queues[d*2], NULL );
                         }
@@ -166,7 +166,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                 }
                 /* Update the current diagonal block */
                 if( j > 0 ) {
-                    magma_dsyrk(MagmaUpper, MagmaTrans, jb, j, 
+                    magma_dsyrk(MagmaUpper, MagmaConjTrans, jb, j, 
                                 d_neg_one, dlA(id, 0, nb*j_local), ldda,
                                 d_one,     dlA(id, j, nb*j_local), ldda,
                                 queues[2*id+1]);
@@ -175,7 +175,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                 magma_queue_sync(queues[2*id+1]);// wait for syrk
                 magma_dgetmatrix_async( jb, jb, 
                                         dlA(id, j, nb*j_local), ldda,
-                                        Aup(j,j), 0, lda,
+                                        Aup(j,j), lda,
                                         queues[2*id], NULL);
                 if(j>0){
                     /* Compute the local block column of the panel. */
@@ -201,7 +201,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                             }
 
                             /* update the panel */
-                            magma_dgemm(MagmaTrans, MagmaNoTrans, 
+                            magma_dgemm(MagmaConjTrans, MagmaNoTrans, 
                                         jb, n_local[d]-nb0, j, 
                                         c_neg_one, dlpanel, dlpanel_offset, ldpanel,
                                         dlA(d, 0, nb0), ldda, 
@@ -235,14 +235,14 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                             ldpanel = lddp;
                         }
                         magma_dsetmatrix_async( jb, jb, 
-                                                Aup(j,j), 0, lda,
+                                                Aup(j,j), lda,
                                                 dlpanel, dlpanel_offset,  ldpanel, 
                                                 queues[d*2], NULL);
                         d = (d+1)%num_gpus;
                     }
                 } else {
                     magma_dsetmatrix_async( jb, jb, 
-                                            Aup(j,j), 0, lda, 
+                                            Aup(j,j), lda, 
                                             dlA(id, j, nb*j_local), ldda,
                                             queues[id*2], NULL );
                 }
@@ -268,7 +268,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                         magma_queue_sync( queues[2*d]); // wait for the diagonal
                         if(j+jb < m && d == (j/nb+1)%num_gpus){
                             /* owns the next column, look-ahead the column */
-                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit,
+                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit,
                                          jb, nb0, c_one,
                                          dlpanel, dlpanel_offset, ldpanel,
                                          dlA(d, j, nb*j_local2), ldda, 
@@ -278,21 +278,21 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                                 magma_queue_sync(queues[2*d+1]);  // wait for lookahead
                                  magma_dgetmatrix_async( (j+jb), nb0, 
                                                          dlA(d, 0, nb*j_local2), ldda, 
-                                                         Aup(0,j+jb), 0, lda,
+                                                         Aup(0,j+jb), lda,
                                                          queues[2*d], NULL);
                             }
 
                             /* update the remaining blocks */
                             nb2 = nb2 - nb0;
 
-                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit,
+                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit,
                                          jb, nb2, c_one, 
                                          dlpanel, dlpanel_offset, ldpanel,
                                          dlA(d, j, nb*j_local2+nb0), ldda, 
                                          queues[2*d+1]);
                         }else if(nb2 > 0){
                             /* update the entire trailing matrix */
-                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaTrans, MagmaNonUnit, 
+                            magma_dtrsm( MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit, 
                                          jb, nb2, c_one, 
                                          dlpanel, dlpanel_offset, ldpanel,
                                          dlA(d, j, nb*j_local2), ldda,
@@ -331,7 +331,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
 
                           /* send it to GPU */
                           magma_dsetmatrix_async( jb, j,
-                                                  Alo(j,0), 0,      lda,
+                                                  Alo(j,0), lda,
                                                   dlPT(d,0,jb,buf), nb, 
                                                   queues[d*2], NULL );
                          clFlush(queues[d*2]);
@@ -373,7 +373,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                               ldpanel = ldda;
                           }
 
-                          magma_dgemm( MagmaNoTrans, MagmaTrans,
+                          magma_dgemm( MagmaNoTrans, MagmaConjTrans,
                                        n_local[d]-nb0, jb, j,
                                        c_neg_one, dlA(d, nb0, 0), ldda,
                                                   dlpanel, dlpanel_offset, ldpanel,
@@ -387,14 +387,14 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
               /* send the diagonal to cpu */
               magma_dgetmatrix_async( jb, jb,
                                       dlA(id, nb*j_local, j), ldda,
-                                      Alo(j,j), 0,            lda, 
+                                      Alo(j,j),               lda, 
                                       queues[id*2], &events[id] );
               clFlush(queues[id*2]);
               /* factor the diagonal */
               magma_queue_sync( queues[id*2] );
               lapackf77_dpotrf(MagmaLowerStr, &jb, Alo(j,j), &lda, info);
               if (*info != 0) {
-                  printf("row number: %d\n", j);
+                  printf("row number: %d\n", (int) j);
                   *info = *info + j;
                   break;
               }
@@ -414,7 +414,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                           ldpanel = nb;
                       }
                       magma_dsetmatrix_async( jb, jb,
-                                              Alo(j,j), 0, lda,
+                                              Alo(j,j), lda,
                                               dlpanel,  dlpanel_offset, ldpanel, 
                                               queues[d*2], NULL );
                       clFlush(queues[d*2]);
@@ -422,7 +422,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                   }
               } else {
                   magma_dsetmatrix_async( jb, jb,
-                                          Alo(j,j),       0,      lda,
+                                          Alo(j,j),       lda,
                                           dlA(id, nb*j_local, j), ldda, 
                                           queues[id*2], NULL );
                   clFlush(queues[id*2]);
@@ -452,7 +452,7 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                       // wait for the diagonal
                       if( j+jb < n && d == (j/nb+1)%num_gpus ) {
                           /* owns the next column, look-ahead the column */
-                          magma_dtrsm( MagmaRight, MagmaLower, MagmaTrans, MagmaNonUnit, 
+                          magma_dtrsm( MagmaRight, MagmaLower, MagmaConjTrans, MagmaNonUnit, 
                                        nb0, jb, c_one,
                                        dlpanel,  dlpanel_offset, ldpanel, 
                                        dlA(d, nb*j_local2, j), ldda,
@@ -462,20 +462,20 @@ magma_dpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                               magma_queue_sync( queues[d*2+1] ); // wait for lookahead
                               magma_dgetmatrix_async( nb0, j+jb,
                                                       dlA(d, nb*j_local2, 0), ldda,
-                                                      Alo(j+jb,0), 0,           lda, 
+                                                      Alo(j+jb,0),            lda, 
                                                       queues[d*2], NULL);
                               clFlush(queues[d*2]);
                           }
                           /* update the remaining blocks */
                           nb2 = nb2 - nb0;
-                          magma_dtrsm( MagmaRight, MagmaLower, MagmaTrans, MagmaNonUnit, 
+                          magma_dtrsm( MagmaRight, MagmaLower, MagmaConjTrans, MagmaNonUnit, 
                                        nb2, jb, c_one,
                                        dlpanel, dlpanel_offset, ldpanel, 
                                        dlA(d, nb*j_local2+nb0, j), ldda, 
                                        queues[d*2+1]);
                       } else if( nb2 > 0 ) {
                           /* update the entire trailing matrix */
-                          magma_dtrsm( MagmaRight, MagmaLower, MagmaTrans, MagmaNonUnit, 
+                          magma_dtrsm( MagmaRight, MagmaLower, MagmaConjTrans, MagmaNonUnit, 
                                        nb2, jb, c_one,
                                        dlpanel, dlpanel_offset, ldpanel, 
                                        dlA(d, nb*j_local2, j), ldda, 

@@ -1,30 +1,29 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zlarfb_gpu.cpp normal z -> s, Fri Jan 10 15:51:18 2014
+       @generated from zlarfb_gpu.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-magma_err_t
-magma_slarfb_gpu( int side, int trans, int direct, int storev,
-                  magma_int_t m, magma_int_t n, magma_int_t k,
-                  magmaFloat_ptr dV, size_t dV_offset,   magma_int_t ldv,
-                  magmaFloat_ptr dT, size_t dT_offset,   magma_int_t ldt,
-                  magmaFloat_ptr dC, size_t dC_offset,   magma_int_t ldc,
-                  magmaFloat_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
-                  magma_queue_t queue)
+extern "C" magma_int_t
+magma_slarfb_gpu(
+    magma_side_t side, magma_trans_t trans, magma_direct_t direct, magma_storev_t storev,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    magmaFloat_ptr dV, size_t dV_offset,   magma_int_t ldv,
+    magmaFloat_ptr dT, size_t dT_offset,   magma_int_t ldt,
+    magmaFloat_ptr dC, size_t dC_offset,   magma_int_t ldc,
+    magmaFloat_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
+    magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -106,9 +105,9 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
         return MAGMA_SUCCESS;
     }
 
-    magma_int_t transt;
+    magma_trans_t transt;
     if (trans == MagmaNoTrans)
-      transt = MagmaTrans;
+      transt = MagmaConjTrans;
     else
       transt = MagmaNoTrans;
 
@@ -116,7 +115,7 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
 
     if ( storev == MagmaColumnwise )
       {
-        magma_sgemm( MagmaTrans, MagmaNoTrans,
+        magma_sgemm( MagmaConjTrans, MagmaNoTrans,
                      n, k, m,
                      c_one,  dC(dC_offset),    ldc,
                      dV(dV_offset),    ldv,
@@ -133,14 +132,14 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
                          c_one, dT(dT_offset),    ldt,
                          dwork(dwork_offset), ldwork, queue);
 
-        magma_sgemm( MagmaNoTrans, MagmaTrans,
+        magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                      m, n, k,
                      c_neg_one, dV(dV_offset),    ldv,
                      dwork(dwork_offset), ldwork,
                      c_one,     dC(dC_offset),    ldc, queue);
     }
     else {
-        magma_sgemm( MagmaNoTrans, MagmaTrans,
+        magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                      m, k, n,
                      c_one,  dC(dC_offset),    ldc,
                      dV(dV_offset),    ldv,
@@ -181,14 +180,14 @@ magma_slarfb_gpu( int side, int trans, int direct, int storev,
                              c_one, dT(dT_offset),    ldt,
                              dwork(dwork_offset), ldwork, queue);
 
-            magma_sgemm( MagmaNoTrans, MagmaTrans,
+            magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                          m, n, k,
                          c_neg_one, dwork(dwork_offset), ldwork,
                          dV(dV_offset),    ldv,
                          c_one,     dC(dC_offset),    ldc, queue);
         }
         else {
-            magma_sgemm( MagmaNoTrans, MagmaTrans,
+            magma_sgemm( MagmaNoTrans, MagmaConjTrans,
                          m, k, n,
                          c_one,  dC(dC_offset),    ldc,
                          dV(dV_offset),    ldv,

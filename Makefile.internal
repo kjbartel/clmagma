@@ -1,9 +1,9 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0) --
+#   -- clMAGMA (version 1.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date January 2014
+#      @date November 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 include $(MAGMA_DIR)/make.inc
@@ -11,16 +11,18 @@ include $(MAGMA_DIR)/make.inc
 #
 # Set default values if they are not set in make.inc
 #
-PGIFORTRAN   ?= 0
-GPU_TARGET   ?= AMD
-LIBMAGMA     ?= $(MAGMA_DIR)/lib/libclmagma.a
+PGIFORTRAN    ?= 0
+GPU_TARGET    ?= AMD
+LIBMAGMA      ?= $(MAGMA_DIR)/lib/libclmagma.a
+MAGMA_KERNELS ?= $(MAGMA_DIR)/lib/clmagma_kernels.co
+CL_COMPILER   := $(MAGMA_DIR)/interface_opencl/clcompile
 
 prefix ?= /usr/local/clmagma
 
-ifeq (${GPU_TARGET}, AMD)
-	OPTS += -DHAVE_clAmdBlas -DHAVE_CBLAS
+ifneq ($(findstring AMD, $(GPU_TARGET)),)
+    OPTS += -DHAVE_clBLAS -DHAVE_CBLAS
 else
-$(error GPU_TARGET, currently ${GPU_TARGET}, must be AMD. Please edit your make.inc file)
+    $(error GPU_TARGET, currently ${GPU_TARGET}, must contain AMD. Please edit your make.inc file)
 endif
 
 LIBEXT = $(LIBDIR) $(LIB)
@@ -63,7 +65,7 @@ FOPTS += $(PTROPT)
 %.o: %.c
 	$(CC) $(OPTS) $(INC_MAGMA) -c $< -o $@
 
-%.cu_o: %.cu
+%.o: %.cu
 	$(NVCC) $(NVOPTS) $(INC_MAGMA) -c $< -o $@
 
 %.o: %.f90  $(PTREXEC)

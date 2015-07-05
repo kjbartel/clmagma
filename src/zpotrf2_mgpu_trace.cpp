@@ -1,14 +1,13 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> s d c
 
 */
-#include <stdio.h>
 #include "common_magma.h"
 #include "trace.h"
 
@@ -28,19 +27,21 @@
 #define dlPT_offset(i, j, k) ((k)*nb*lddp + (j)*nb   + (i))
 //#define dlPT[id] d_lP[id]
 
-extern "C" magma_err_t
-magma_zpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
-                   magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
-                   magmaDoubleComplex_ptr *d_lA, size_t d_lA_offset, magma_int_t ldda, 
-                   magmaDoubleComplex_ptr *d_lP,  magma_int_t lddp, 
-                   magmaDoubleComplex *a,      magma_int_t lda,   magma_int_t h,
-                   magma_int_t *info, magma_queue_t *queues )
+extern "C" magma_int_t
+magma_zpotrf2_mgpu(
+    int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n, 
+    magma_int_t off_i, magma_int_t off_j, magma_int_t nb,
+    magmaDoubleComplex_ptr *d_lA, size_t d_lA_offset, magma_int_t ldda, 
+    magmaDoubleComplex_ptr *d_lP,  magma_int_t lddp, 
+    magmaDoubleComplex *a,      magma_int_t lda,   magma_int_t h,
+    magma_queue_t *queues,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose   
     =======   
@@ -78,7 +79,7 @@ magma_zpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
     LDDA     (input) INTEGER   
             The leading dimension of the array dA.  LDDA >= max(1,N).
             To benefit from coalescent memory accesses LDDA must be
-            dividable by 16.
+            divisible by 16.
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -87,7 +88,6 @@ magma_zpotrf2_mgpu(int num_gpus, magma_uplo_t uplo, magma_int_t m, magma_int_t n
                   positive definite, and the factorization could not be   
                   completed.   
     =====================================================================   */
-
 
     magma_int_t     j, jb, nb0, nb2, dd, d, id, j_local, j_local2, buf;
     magmaDoubleComplex c_one     = MAGMA_Z_ONE;

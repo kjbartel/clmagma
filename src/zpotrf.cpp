@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @author Stan Tomov
        @precisions normal z -> s d c
@@ -12,18 +12,20 @@
 
 
 #define A(i, j)  (a   +(j)*lda  + (i))
-#define dA(i, j) work, ((j)*ldda + (i))
+#define dA(i, j) dwork, ((j)*ldda + (i))
 
 extern "C" magma_int_t
-magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
-             magmaDoubleComplex *a, magma_int_t lda, magma_int_t *info,
-             magma_queue_t* queue )
+magma_zpotrf(
+    magma_uplo_t uplo, magma_int_t n,
+    magmaDoubleComplex *a, magma_int_t lda,
+    magma_queue_t* queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -33,8 +35,8 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
     routine.
 
     The factorization has the form
-       A = U**H * U,  if UPLO = 'U', or
-       A = L  * L**H, if UPLO = 'L',
+        A = U**H * U,  if UPLO = 'U', or
+        A = L  * L**H, if UPLO = 'L',
     where U is an upper triangular matrix and L is lower triangular.
 
     This is the block version of the algorithm, calling Level 3 BLAS.
@@ -81,7 +83,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
     magma_int_t ldda, nb, j, jb;
     magmaDoubleComplex c_one     = MAGMA_Z_ONE;
     magmaDoubleComplex c_neg_one = MAGMA_Z_NEG_ONE;
-    magmaDoubleComplex_ptr  work;
+    magmaDoubleComplex_ptr  dwork;
     double             d_one     =  1.0;
     double             d_neg_one = -1.0;
 
@@ -112,7 +114,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
 
     ldda = ((n+31)/32)*32;
     
-    if (MAGMA_SUCCESS != magma_zmalloc( &work, (n)*ldda )) {
+    if (MAGMA_SUCCESS != magma_zmalloc( &dwork, (n)*ldda )) {
         /* alloc failed so call the non-GPU-resident version */
         printf("non-GPU-resident version not implemented\n"); 
         return MAGMA_ERR_NOT_IMPLEMENTED;
@@ -131,7 +133,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                 /* Update and factorize the current diagonal block and test
                    for non-positive-definiteness. Computing MIN */
                 jb = min(nb, (n-j));
-                magma_zsetmatrix_async( jb, (n-j), A(j, j), 0, lda, dA(j, j), ldda, queue[1], NULL);
+                magma_zsetmatrix_async( jb, (n-j), A(j, j), lda, dA(j, j), ldda, queue[1], NULL);
                 
                 magma_zherk(MagmaUpper, MagmaConjTrans, jb, j,
                             d_neg_one, dA(0, j), ldda,
@@ -140,7 +142,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
 
                 magma_zgetmatrix_async( jb, jb,
                                         dA(j, j), ldda,
-                                        A(j, j), 0, lda, queue[0], NULL );
+                                        A(j, j), lda, queue[0], NULL );
                 
                 if ( (j+jb) < n) {
                     magma_zgemm(MagmaConjTrans, MagmaNoTrans,
@@ -153,7 +155,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                 magma_queue_sync( queue[0] );
                 magma_zgetmatrix_async( j, jb,
                                         dA(0, j), ldda,
-                                        A (0, j), 0, lda, queue[0], NULL );
+                                        A (0, j), lda, queue[0], NULL );
 
                 lapackf77_zpotrf(MagmaUpperStr, &jb, A(j, j), &lda, info);
                 if (*info != 0) {
@@ -161,7 +163,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                     break;
                 }
                 magma_zsetmatrix_async( jb, jb,
-                                        A(j, j), 0, lda,
+                                        A(j, j), lda,
                                         dA(j, j), ldda, queue[0], NULL );
                 magma_queue_sync( queue[0] );
 
@@ -180,7 +182,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                 //  Update and factorize the current diagonal block and test
                 //  for non-positive-definiteness. Computing MIN
                 jb = min(nb, (n-j));
-                magma_zsetmatrix_async( (n-j), jb, A(j, j), 0, lda, dA(j, j), ldda, queue[1], NULL);
+                magma_zsetmatrix_async( (n-j), jb, A(j, j), lda, dA(j, j), ldda, queue[1], NULL);
 
                 magma_zherk(MagmaLower, MagmaNoTrans, jb, j,
                             d_neg_one, dA(j, 0), ldda,
@@ -189,7 +191,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
 
                 magma_zgetmatrix_async( jb, jb,
                                         dA(j,j), ldda,
-                                        A(j,j), 0, lda, queue[0], NULL );
+                                        A(j,j), lda, queue[0], NULL );
 
                 if ( (j+jb) < n) {
                     magma_zgemm( MagmaNoTrans, MagmaConjTrans,
@@ -202,7 +204,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                 magma_queue_sync( queue[0] );
                 magma_zgetmatrix_async( jb, j,
                                         dA(j, 0), ldda,
-                                        A(j, 0), 0, lda, queue[1], NULL );
+                                        A(j, 0), lda, queue[1], NULL );
 
                 lapackf77_zpotrf(MagmaLowerStr, &jb, A(j, j), &lda, info);
                 if (*info != 0){
@@ -210,7 +212,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
                     break;
                 } 
                 magma_zsetmatrix_async( jb, jb,
-                                        A(j, j), 0, lda,
+                                        A(j, j), lda,
                                         dA(j, j), ldda, queue[0], NULL );
                 magma_queue_sync( queue[0] );
 
@@ -224,8 +226,7 @@ magma_zpotrf(magma_uplo_t uplo, magma_int_t n,
         }
     }
     
-    magma_free( work );
+    magma_free( dwork );
     
     return *info;
 } /* magma_zpotrf */
-

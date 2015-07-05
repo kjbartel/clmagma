@@ -1,33 +1,34 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @author Stan Tomov
        @author Raffaele Solca
 
-       @generated from zunmtr.cpp normal z -> d, Fri Jan 10 15:51:18 2014
+       @generated from zunmtr.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 
 */
-#include <stdio.h>
 #include "common_magma.h"
 
 extern "C" magma_int_t
-magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
-             magma_int_t m, magma_int_t n,
-             double *a,    magma_int_t lda,
-             double *tau,
-             double *c,    magma_int_t ldc,
-             double *work, magma_int_t lwork,
-             magma_int_t *info, magma_queue_t queue)
+magma_dormtr(
+    magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
+    magma_int_t m, magma_int_t n,
+    double *a,    magma_int_t lda,
+    double *tau,
+    double *c,    magma_int_t ldc,
+    double *work, magma_int_t lwork,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -35,7 +36,7 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
 
                     SIDE = 'L'     SIDE = 'R'
     TRANS = 'N':      Q * C          C * Q
-    TRANS = 'T':      Q**T * C       C * Q**T
+    TRANS = 'T':      Q**H * C       C * Q**H
 
     where Q is a real orthogonal matrix of order nq, with nq = m if
     SIDE = 'L' and nq = n if SIDE = 'R'. Q is defined as the product of
@@ -48,8 +49,8 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
     Arguments
     =========
     SIDE    (input) CHARACTER*1
-            = 'L': apply Q or Q**T from the Left;
-            = 'R': apply Q or Q**T from the Right.
+            = 'L': apply Q or Q**H from the Left;
+            = 'R': apply Q or Q**H from the Right.
 
     UPLO    (input) CHARACTER*1
             = 'U': Upper triangle of A contains elementary reflectors
@@ -59,7 +60,7 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
 
     TRANS   (input) CHARACTER*1
             = 'N':  No transpose, apply Q;
-            = 'T':  Transpose, apply Q**T.
+            = 'T':  Transpose, apply Q**H.
 
     M       (input) INTEGER
             The number of rows of the matrix C. M >= 0.
@@ -85,7 +86,7 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
 
     C       (input/output) DOUBLE_PRECISION array, dimension (LDC,N)
             On entry, the M-by-N matrix C.
-            On exit, C is overwritten by Q*C or Q**T * C or C * Q**T or C*Q.
+            On exit, C is overwritten by Q*C or Q**H * C or C * Q**H or C*Q.
 
     LDC     (input) INTEGER
             The leading dimension of the array C. LDC >= max(1,M).
@@ -113,9 +114,6 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
    
     double c_one = MAGMA_D_ONE;
 
-    magma_side_t side_  = side;
-    magma_uplo_t uplo_  = uplo;
-    magma_trans_t trans_ = trans;
     magma_int_t  i__2;
     magma_int_t i1, i2, nb, mi, ni, nq, nw;
     int left, upper, lquery;
@@ -123,8 +121,8 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
     magma_int_t lwkopt;
 
     *info = 0;
-    left   = lapackf77_lsame(lapack_const(side_), "L");
-    upper  = lapackf77_lsame(lapack_const(uplo_), "U");
+    left   = (side == MagmaLeft);
+    upper  = (uplo == MagmaUpper);
     lquery = lwork == -1;
 
     /* NQ is the order of Q and NW is the minimum dimension of WORK */
@@ -135,12 +133,12 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
         nq = n;
         nw = m;
     }
-    if (! left && ! lapackf77_lsame(lapack_const(side_), "R")) {
+    if (! left && side != MagmaRight) {
         *info = -1;
-    } else if (! upper && ! lapackf77_lsame(lapack_const(uplo_), "L")) {
+    } else if (! upper && uplo != MagmaLower) {
         *info = -2;
-    } else if (! lapackf77_lsame(lapack_const(trans_), "N") &&
-               ! lapackf77_lsame(lapack_const(trans_), "C")) {
+    } else if (trans != MagmaNoTrans &&
+               trans != MagmaConjTrans) {
         *info = -3;
     } else if (m < 0) {
         *info = -4;
@@ -154,12 +152,11 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
         *info = -12;
     }
 
-    if (*info == 0)
-      {
-        nb = 32;
-        lwkopt = max(1,nw) * nb;
-        MAGMA_D_SET2REAL( work[0], lwkopt );
-      }
+    nb = 32;
+    lwkopt = max(1,nw) * nb;
+    if (*info == 0) {
+        work[0] = MAGMA_D_MAKE( lwkopt, 0 );
+    }
 
     if (*info != 0) {
         magma_xerbla( __func__, -(*info) );
@@ -183,17 +180,13 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
         ni = n - 1;
     }
 
-    if (upper)
-      {
+    if (upper) {
         /* Q was determined by a call to SSYTRD with UPLO = 'U' */
         i__2 = nq - 1;
-        //lapackf77_dormql(side_, trans_, &mi, &ni, &i__2, &a[lda], &lda,
-        //                 tau, c, &ldc, work, &lwork, &iinfo);
         magma_dormql(side, trans, mi, ni, i__2, &a[lda], lda, tau,
-                     c, ldc, work, lwork, &iinfo, queue);
-      }
-    else
-      {
+                     c, ldc, work, lwork, queue, &iinfo);
+    }
+    else {
         /* Q was determined by a call to SSYTRD with UPLO = 'L' */
         if (left) {
             i1 = 1;
@@ -204,10 +197,10 @@ magma_dormtr(magma_side_t side, magma_uplo_t uplo, magma_trans_t trans,
         }
         i__2 = nq - 1;
         magma_dormqr(side, trans, mi, ni, i__2, &a[1], lda, tau,
-                     &c[i1 + i2 * ldc], ldc, work, lwork, &iinfo, queue);
-      }
+                     &c[i1 + i2 * ldc], ldc, work, lwork, queue, &iinfo);
+    }
 
-    MAGMA_D_SET2REAL( work[0], lwkopt );
+    work[0] = MAGMA_D_MAKE( lwkopt, 0 );
 
     return *info;
 } /* magma_dormtr */

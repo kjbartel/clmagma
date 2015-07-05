@@ -1,29 +1,29 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zunghr.cpp normal z -> d, Fri Jan 10 15:51:18 2014
+       @generated from zunghr.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-extern "C" magma_err_t
-magma_dorghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
-             double *a, magma_int_t lda,
-             double *tau,
-             magmaDouble_ptr dT, size_t dT_offset, magma_int_t nb,
-             magma_int_t *info, magma_queue_t queue )
+extern "C" magma_int_t
+magma_dorghr(
+    magma_int_t n, magma_int_t ilo, magma_int_t ihi,
+    double *a, magma_int_t lda,
+    double *tau,
+    magmaDouble_ptr dT, size_t dT_offset, magma_int_t nb,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -122,12 +122,13 @@ magma_dorghr(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
       *a_ref(j, j) = MAGMA_D_ONE;
     }
 
-    if (nh > 0)
+    if (nh > 0) {
       /* Generate Q(ilo+1:ihi,ilo+1:ihi) */
       magma_dorgqr(nh, nh, nh,
                    a_ref(ilo, ilo), lda,
-                   tau+ilo-1, dT, dT_offset, nb, &iinfo, queue);
-
+                   tau+ilo-1, dT, dT_offset, nb, queue, &iinfo);
+    }
+    
     return *info;
 } /* magma_dorghr */
 

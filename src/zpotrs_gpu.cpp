@@ -1,39 +1,37 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
                                                                                                               
        @precisions normal z -> s d c
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 
-extern "C" magma_err_t
-magma_zpotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
-                 magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb,
-                 magma_err_t *info, magma_queue_t queue )
+extern "C" magma_int_t
+magma_zpotrs_gpu(
+    magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
+    magmaDoubleComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magmaDoubleComplex_ptr dB, size_t dB_offset, magma_int_t lddb,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
  
     Purpose
     =======
-
     ZPOTRS solves a system of linear equations A*X = B with a Hermitian
     positive definite matrix A using the Cholesky factorization
     A = U**H*U or A = L*L**H computed by ZPOTRF.
 
     Arguments
     =========
- 
     UPLO    (input) CHARACTER*1
             = 'U':  Upper triangle of A is stored;
             = 'L':  Lower triangle of A is stored.
@@ -89,22 +87,22 @@ magma_zpotrs_gpu(magma_uplo_t uplo, magma_int_t n, magma_int_t nrhs,
 
     if( uplo== MagmaUpper){
         if ( nrhs == 1) {
-            chk(magma_ztrsv(MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue));
-            chk(magma_ztrsv(MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue));
+            magma_ztrsv(MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue);
+            magma_ztrsv(MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue);
         } else {
-            chk(magma_ztrsm(MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
-            chk(magma_ztrsm(MagmaLeft, MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            magma_ztrsm(MagmaLeft, MagmaUpper, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
+            magma_ztrsm(MagmaLeft, MagmaUpper, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
         }
     }
     else{
         if ( nrhs == 1) {
-            chk(magma_ztrsv(MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
-            chk(magma_ztrsv(MagmaLower, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue ));
+            magma_ztrsv(MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue );
+            magma_ztrsv(MagmaLower, MagmaConjTrans, MagmaNonUnit, n, dA, dA_offset, ldda, dB, dB_offset, 1, queue );
         } else {
-            chk(magma_ztrsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
-            chk(magma_ztrsm(MagmaLeft, MagmaLower, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue));
+            magma_ztrsm(MagmaLeft, MagmaLower, MagmaNoTrans,   MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
+            magma_ztrsm(MagmaLeft, MagmaLower, MagmaConjTrans, MagmaNonUnit, n, nrhs, z_one, dA, dA_offset, ldda, dB, dB_offset, lddb, queue);
         }
     }
-    chk( magma_queue_sync( queue ));
+    magma_queue_sync( queue );
     return *info;
 }

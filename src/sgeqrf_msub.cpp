@@ -1,11 +1,11 @@
 /*
-   -- clMAGMA (version 1.1.0) --
+   -- clMAGMA (version 1.3.0) --
    Univ. of Tennessee, Knoxville
    Univ. of California, Berkeley
    Univ. of Colorado, Denver
-   @date January 2014
+   @date November 2014
 
-   @generated from zgeqrf_msub.cpp normal z -> s, Fri Jan 10 15:51:18 2014
+   @generated from zgeqrf_msub.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 
  */
 #include "common_magma.h"
@@ -15,80 +15,79 @@
 extern cl_context gContext;
 #endif
 
-extern "C" magma_err_t
-magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus, 
-                   magma_int_t m, magma_int_t n,
-                   magmaFloat_ptr *dlA, magma_int_t ldda,
-                   float *tau, 
-                   magma_int_t *info, magma_queue_t *queues)
+extern "C" magma_int_t
+magma_sgeqrf_msub(
+    magma_int_t num_subs, magma_int_t num_gpus, 
+    magma_int_t m, magma_int_t n,
+    magmaFloat_ptr *dlA, magma_int_t ldda,
+    float *tau, 
+    magma_queue_t *queues,
+    magma_int_t *info)
 {
-    /*  -- clMAGMA (version 1.1.0) --
-        Univ. of Tennessee, Knoxville
-        Univ. of California, Berkeley
-        Univ. of Colorado, Denver
-        @date January 2014
+/*  -- clMAGMA (version 1.3.0) --
+    Univ. of Tennessee, Knoxville
+    Univ. of California, Berkeley
+    Univ. of Colorado, Denver
+    @date November 2014
 
-        Purpose
-        =======
-        SGEQRF2_MGPU computes a QR factorization of a real M-by-N matrix A:
-        A = Q * R. This is a GPU interface of the routine.
+    Purpose
+    =======
+    SGEQRF2_MGPU computes a QR factorization of a real M-by-N matrix A:
+    A = Q * R. This is a GPU interface of the routine.
 
-        Arguments
-        =========
-        M       (input) INTEGER
-        The number of rows of the matrix A.  M >= 0.
+    Arguments
+    =========
+    M       (input) INTEGER
+            The number of rows of the matrix A.  M >= 0.
 
-        N       (input) INTEGER
-        The number of columns of the matrix A.  N >= 0.
+    N       (input) INTEGER
+            The number of columns of the matrix A.  N >= 0.
 
-        dA      (input/output) REAL array on the GPU, dimension (LDDA,N)
-        On entry, the M-by-N matrix dA.
-        On exit, the elements on and above the diagonal of the array
-        contain the min(M,N)-by-N upper trapezoidal matrix R (R is
-        upper triangular if m >= n); the elements below the diagonal,
-        with the array TAU, represent the orthogonal matrix Q as a
-        product of min(m,n) elementary reflectors (see Further
-        Details).
+    dA      (input/output) REAL array on the GPU, dimension (LDDA,N)
+            On entry, the M-by-N matrix dA.
+            On exit, the elements on and above the diagonal of the array
+            contain the min(M,N)-by-N upper trapezoidal matrix R (R is
+            upper triangular if m >= n); the elements below the diagonal,
+            with the array TAU, represent the orthogonal matrix Q as a
+            product of min(m,n) elementary reflectors (see Further
+            Details).
 
-        LDDA    (input) INTEGER
-        The leading dimension of the array dA.  LDDA >= max(1,M).
-        To benefit from coalescent memory accesses LDDA must be
-        dividable by 16.
+    LDDA    (input) INTEGER
+            The leading dimension of the array dA.  LDDA >= max(1,M).
+            To benefit from coalescent memory accesses LDDA must be
+            divisible by 16.
 
-        TAU     (output) REAL array, dimension (min(M,N))
-        The scalar factors of the elementary reflectors (see Further
-        Details).
+    TAU     (output) REAL array, dimension (min(M,N))
+            The scalar factors of the elementary reflectors (see Further
+            Details).
 
-        INFO    (output) INTEGER
-        = 0:  successful exit
-        < 0:  if INFO = -i, the i-th argument had an illegal value
-        or another error occured, such as memory allocation failed.
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+            or another error occured, such as memory allocation failed.
 
-        Further Details
-        ===============
-
-        The matrix Q is represented as a product of elementary reflectors
+    Further Details
+    ===============
+    The matrix Q is represented as a product of elementary reflectors
 
         Q = H(1) H(2) . . . H(k), where k = min(m,n).
 
-        Each H(i) has the form
+    Each H(i) has the form
 
         H(i) = I - tau * v * v'
 
-        where tau is a real scalar, and v is a real vector with
-        v(1:i-1) = 0 and v(i) = 1; v(i+1:m) is stored on exit in A(i+1:m,i),
-        and tau in TAU(i).
-        =====================================================================    */
+    where tau is a real scalar, and v is a real vector with
+    v(1:i-1) = 0 and v(i) = 1; v(i+1:m) is stored on exit in A(i+1:m,i),
+    and tau in TAU(i).
+    =====================================================================    */
 
 #define dlA(gpu,a_1,a_2) dlA[gpu], ((a_2)*(ldda) + (a_1))
 #define dlA_offset(a_1, a_2) ((a_2)*(ldda) + (a_1))
 #define work_ref(a_1)    ( work + (a_1))
 #define hwork            ( work + (nb)*(m))
 
-#define hwrk_ref(a_1)    ( local_work + (a_1))
+#define hwrk(a_1)        ( local_work + (a_1))
 #define lhwrk            ( local_work + (nb)*(m))
-#define hwrk_off(a_1)      local_work,  (a_1)
-#define lhwrk_off          local_work,  (nb)*(m)
 
     magmaFloat_ptr dwork[MagmaMaxGPUs], panel[MagmaMaxGPUs];
     size_t panel_offset[MagmaMaxGPUs];
@@ -177,7 +176,7 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
             magma_queue_sync(queues[2*(panel_id%num_gpus)]);
             magma_sgetmatrix_async( rows, ib,
                                     dlA(panel_id, i, i_local), ldda,
-                                    hwrk_off(i), ldwork, 
+                                    hwrk(i), ldwork, 
                                     queues[2*(panel_id%num_gpus)+1], NULL );
 
             if (i > 0) {
@@ -186,7 +185,7 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                 la_id = panel_id;
 
                 /* only the GPU that has next panel is done look-ahead */
-                magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
+                magma_slarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                   m-old_i, n_local[la_id]-i_local-old_ib, old_ib,
                                   panel[la_id%num_gpus], panel_offset[la_id%num_gpus], ldda, 
                                   dwork[la_id%num_gpus], 0, lddwork,
@@ -196,22 +195,22 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
 
                 la_id = ((i-nb)/nb)%tot_subs;
                 magma_ssetmatrix_async( old_ib, old_ib,
-                                        hwrk_off(old_i), ldwork,
+                                        hwrk(old_i), ldwork,
                                         panel[la_id%num_gpus], panel_offset[la_id%num_gpus], ldda, 
                                         queues[2*(la_id%num_gpus)], NULL );
             }
 
             magma_queue_sync( queues[2*(panel_id%num_gpus)+1] );
 
-            lapackf77_sgeqrf(&rows, &ib, hwrk_ref(i), &ldwork, tau+i, lhwrk, &lhwork, info);
+            lapackf77_sgeqrf(&rows, &ib, hwrk(i), &ldwork, tau+i, lhwrk, &lhwork, info);
 
             // Form the triangular factor of the block reflector
             // H = H(i) H(i+1) . . . H(i+ib-1) 
             lapackf77_slarft( MagmaForwardStr, MagmaColumnwiseStr,
                               &rows, &ib,
-                              hwrk_ref(i), &ldwork, tau+i, lhwrk, &ib);
+                              hwrk(i), &ldwork, tau+i, lhwrk, &ib);
 
-            spanel_to_q( MagmaUpper, ib, hwrk_ref(i), ldwork, lhwrk+ib*ib );
+            spanel_to_q( MagmaUpper, ib, hwrk(i), ldwork, lhwrk+ib*ib );
             // Send the current panel back to the GPUs 
             // Has to be done with asynchronous copies
 
@@ -225,13 +224,13 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                 }
                 magma_queue_sync( queues[2*j] );
                 magma_ssetmatrix_async( rows, ib,
-                                        hwrk_off(i), ldwork,
+                                        hwrk(i), ldwork,
                                         panel[j], panel_offset[j], ldda, 
                                         queues[2*j+1], NULL );
 
                 /* Send the T matrix to the GPU. 
                    Has to be done with asynchronous copies */
-                magma_ssetmatrix_async( ib, ib, lhwrk_off, ib,
+                magma_ssetmatrix_async( ib, ib, lhwrk, ib,
                                         dwork[j], 0, lddwork, 
                                         queues[2*j+1], NULL );
             }
@@ -248,7 +247,7 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                     int i_loc = (i+nb)/(nb*tot_subs)*nb;
                     for (j=0; j<tot_subs; j++) {
                         if (j == la_id)
-                            magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
+                            magma_slarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                               rows, ib, ib,
                                               panel[j%num_gpus], panel_offset[j%num_gpus], ldda, 
                                               dwork[j%num_gpus], 0, lddwork,
@@ -256,7 +255,7 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                                               dwork[j%num_gpus], ib, lddwork, 
                                               queues[2*(j%num_gpus)]);
                         else if (j <= panel_id)
-                            magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
+                            magma_slarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                               rows, n_local[j]-i_local-ib, ib,
                                               panel[j%num_gpus], panel_offset[j%num_gpus], ldda, 
                                               dwork[j%num_gpus], 0, lddwork,
@@ -264,7 +263,7 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                                               dwork[j%num_gpus], ib, lddwork,
                                               queues[2*(j%num_gpus)]);
                         else
-                            magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
+                            magma_slarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                               rows, n_local[j]-i_local, ib,
                                               panel[j%num_gpus], panel_offset[j%num_gpus], ldda, 
                                               dwork[j%num_gpus], 0, lddwork,
@@ -274,13 +273,13 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                     }
 
                     /* Restore the panel */
-                    sq_to_panel( MagmaUpper, ib, hwrk_ref(i), ldwork, lhwrk+ib*ib );
+                    sq_to_panel( MagmaUpper, ib, hwrk(i), ldwork, lhwrk+ib*ib );
                 } else {
                     /* do the entire update as we exit and there would be no lookahead */
                     la_id = (panel_id+1)%tot_subs;
                     int i_loc = (i+nb)/(nb*tot_subs)*nb;
 
-                    magma_slarfb_gpu( MagmaLeft, MagmaTrans, MagmaForward, MagmaColumnwise,
+                    magma_slarfb_gpu( MagmaLeft, MagmaConjTrans, MagmaForward, MagmaColumnwise,
                                       rows, n_local[la_id]-i_loc, ib,
                                       panel[la_id%num_gpus], panel_offset[la_id%num_gpus], ldda, 
                                       dwork[la_id%num_gpus], 0, lddwork,
@@ -289,10 +288,10 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
                                       queues[2*(la_id%num_gpus)]);
  
                     /* Restore the panel */
-                    sq_to_panel( MagmaUpper, ib, hwrk_ref(i), ldwork, lhwrk+ib*ib ); 
+                    sq_to_panel( MagmaUpper, ib, hwrk(i), ldwork, lhwrk+ib*ib ); 
                     
                     magma_ssetmatrix( ib, ib,
-                                      hwrk_off(i), ldwork,
+                                      hwrk(i), ldwork,
                                       dlA(panel_id, i, i_local), ldda,
                                       queues[2*(panel_id%num_gpus)]);
                 }
@@ -319,14 +318,14 @@ magma_sgeqrf_msub( magma_int_t num_subs, magma_int_t num_gpus,
 
         magma_sgetmatrix( rows, ib,
                           dlA(panel_id, i, i_loc), ldda,
-                          lhwrk_off, rows, 
+                          lhwrk, rows, 
                           queues[2*(panel_id%num_gpus)]);
 
         lhwork = lwork - rows*ib;
         lapackf77_sgeqrf(&rows, &ib, lhwrk, &rows, tau+i, lhwrk+ib*rows, &lhwork, info);
 
         magma_ssetmatrix( rows, ib,
-                          lhwrk_off, rows,
+                          lhwrk, rows,
                           dlA(panel_id, i, i_loc), ldda, 
                           queues[2*(panel_id%num_gpus)]);
     }

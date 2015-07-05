@@ -1,13 +1,13 @@
 /*
- *  -- clMAGMA (version 1.1.0) --
- *     Univ. of Tennessee, Knoxville
- *     Univ. of California, Berkeley
- *     Univ. of Colorado, Denver
- *     @date January 2014
- *
- * @generated from testing_zgetrf_gpu.cpp normal z -> s, Fri Jan 10 15:51:19 2014
- *
- **/
+    -- clMAGMA (version 1.3.0) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2014
+
+       @generated from testing_zgetrf_gpu.cpp normal z -> s, Sat Nov 15 00:21:40 2014
+       @author Mark Gates
+*/
 // includes, system
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,35 +20,108 @@
 #include "magma_lapack.h"
 #include "testings.h"
 
-// Flops formula
-#define PRECISION_s
-#if defined(PRECISION_z) || defined(PRECISION_c)
-#define FLOPS(m, n) ( 6. * FMULS_GETRF(m, n) + 2. * FADDS_GETRF(m, n) )
-#else
-#define FLOPS(m, n) (      FMULS_GETRF(m, n) +      FADDS_GETRF(m, n) )
-#endif
 
+// Initialize matrix to random.
+// Having this in separate function ensures the same ISEED is always used,
+// so we can re-generate the identical matrix.
+void init_matrix( int m, int n, float *h_A, magma_int_t lda )
+{
+    magma_int_t ione = 1;
+    magma_int_t ISEED[4] = {0,0,0,1};
+    magma_int_t n2 = lda*n;
+    lapackf77_slarnv( &ione, ISEED, &n2, h_A );
+}
+
+
+// On input, A and ipiv is LU factorization of A. On output, A is overwritten.
+// Requires m == n.
+// Uses init_matrix() to re-generate original A as needed.
+// Generates random RHS b and solves Ax=b.
+// Returns residual, |Ax - b| / (n |A| |x|).
+float get_residual(
+    magma_int_t m, magma_int_t n,
+    float *A, magma_int_t lda,
+    magma_int_t *ipiv )
+{
+    if ( m != n ) {
+        printf( "\nERROR: residual check defined only for square matrices\n" );
+        return -1;
+    }
+    
+    const float c_one     = MAGMA_S_ONE;
+    const float c_neg_one = MAGMA_S_NEG_ONE;
+    const magma_int_t ione = 1;
+    
+    // this seed should be DIFFERENT than used in init_matrix
+    // (else x is column of A, so residual can be exactly zero)
+    magma_int_t ISEED[4] = {0,0,0,2};
+    magma_int_t info = 0;
+    float *x, *b;
+    
+    // initialize RHS
+    TESTING_MALLOC_CPU( x, float, n );
+    TESTING_MALLOC_CPU( b, float, n );
+    lapackf77_slarnv( &ione, ISEED, &n, b );
+    blasf77_scopy( &n, b, &ione, x, &ione );
+    
+    // solve Ax = b
+    lapackf77_sgetrs( "Notrans", &n, &ione, A, &lda, ipiv, x, &n, &info );
+    if (info != 0)
+        printf("lapackf77_sgetrs returned error %d: %s.\n",
+               (int) info, magma_strerror( info ));
+    
+    // reset to original A
+    init_matrix( m, n, A, lda );
+    
+    // compute r = Ax - b, saved in b
+    blasf77_sgemv( "Notrans", &m, &n, &c_one, A, &lda, x, &ione, &c_neg_one, b, &ione );
+    
+    // compute residual |Ax - b| / (n*|A|*|x|)
+    float norm_x, norm_A, norm_r, work[1];
+    norm_A = lapackf77_slange( "F", &m, &n, A, &lda, work );
+    norm_r = lapackf77_slange( "F", &n, &ione, b, &n, work );
+    norm_x = lapackf77_slange( "F", &n, &ione, x, &n, work );
+    
+    //printf( "r=\n" ); magma_sprint( 1, n, b, 1 );
+    
+    TESTING_FREE_CPU( x );
+    TESTING_FREE_CPU( b );
+    
+    //printf( "r=%.2e, A=%.2e, x=%.2e, n=%d\n", norm_r, norm_A, norm_x, n );
+    return norm_r / (n * norm_A * norm_x);
+}
+
+
+// On input, LU and ipiv is LU factorization of A. On output, LU is overwritten.
+// Works for any m, n.
+// Uses init_matrix() to re-generate original A as needed.
+// Returns error in factorization, |PA - LU| / (n |A|)
+// This allocates 3 more matrices to store A, L, and U.
 float get_LU_error(magma_int_t M, magma_int_t N,
-                    float *A,  magma_int_t lda,
-                    float *LU, magma_int_t *IPIV)
+                    float *LU, magma_int_t lda,
+                    magma_int_t *ipiv)
 {
     magma_int_t min_mn = min(M,N);
     magma_int_t ione   = 1;
     magma_int_t i, j;
     float alpha = MAGMA_S_ONE;
     float beta  = MAGMA_S_ZERO;
-    float *L, *U;
+    float *A, *L, *U;
     float work[1], matnorm, residual;
-                       
+    
+    TESTING_MALLOC_CPU( A, float, lda*N    );
     TESTING_MALLOC_CPU( L, float, M*min_mn );
     TESTING_MALLOC_CPU( U, float, min_mn*N );
     memset( L, 0, M*min_mn*sizeof(float) );
     memset( U, 0, min_mn*N*sizeof(float) );
 
-    lapackf77_slaswp( &N, A, &lda, &ione, &min_mn, IPIV, &ione);
+    // set to original A
+    init_matrix( M, N, A, lda );
+    lapackf77_slaswp( &N, A, &lda, &ione, &min_mn, ipiv, &ione);
+    
+    // copy LU to L and U, and set diagonal to 1
     lapackf77_slacpy( MagmaLowerStr, &M, &min_mn, LU, &lda, L, &M      );
     lapackf77_slacpy( MagmaUpperStr, &min_mn, &N, LU, &lda, U, &min_mn );
-
     for(j=0; j<min_mn; j++)
         L[j+j*M] = MAGMA_S_MAKE( 1., 0. );
     
@@ -64,148 +137,131 @@ float get_LU_error(magma_int_t M, magma_int_t N,
     }
     residual = lapackf77_slange("f", &M, &N, LU, &lda, work);
 
+    TESTING_FREE_CPU( A );
     TESTING_FREE_CPU( L );
     TESTING_FREE_CPU( U );
 
     return residual / (matnorm * N);
 }
 
+
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing sgetrf
 */
 int main( int argc, char** argv)
 {
-    real_Double_t    gflops, gpu_perf, cpu_perf, gpu_time, cpu_time, error;
-    float *h_A, *h_R;
+    TESTING_INIT();
+
+    real_Double_t   gflops, gpu_perf, gpu_time, cpu_perf=0, cpu_time=0;
+    float          error;
+    float *h_A;
     magmaFloat_ptr d_A;
     magma_int_t     *ipiv;
+    magma_int_t M, N, n2, lda, ldda, info, min_mn;
+    magma_int_t status   = 0;
 
-    /* Matrix size */
-    magma_int_t M = 0, N = 0, n2, lda, ldda;
-#if defined (PRECISION_z)
-    magma_int_t size[10] = {1024,2048,3072,4032,4992,5952,7000,7000,7000,7000};
-#else
-    magma_int_t size[10] = {1024,2048,3072,4032,4992,5952,7104,8064,9000,10000};
-#endif
-    magma_int_t i, info, min_mn;
-    //magma_int_t nb, maxn, ret;
-    magma_int_t ione     = 1;
-    magma_int_t ISEED[4] = {0,0,0,1};
+    magma_opts opts;
+    parse_opts( argc, argv, &opts );
 
-    if (argc != 1){
-        for(i = 1; i<argc; i++){
-            if (strcmp("-N", argv[i])==0)
-                N = atoi(argv[++i]);
-            else if (strcmp("-M", argv[i])==0)
-                M = atoi(argv[++i]);
-        }
-        if (M>0 && N>0)
-            printf("  testing_sgetrf -M %d -N %d\n\n", M, N);
-        else
-            {
-                printf("\nUsage: \n");
-                printf("  testing_sgetrf -M %d -N %d\n\n", 1024, 1024);
-                exit(1);
-            }
+    float tol = opts.tolerance * lapackf77_slamch("E");
+    
+    printf("version = %d\n", opts.version );
+    if ( opts.check == 2 ) {
+        printf("    M     N   CPU GFlop/s (sec)   GPU GFlop/s (sec)   |Ax-b|/(N*|A|*|x|)\n");
     }
     else {
-        printf("\nUsage: \n");
-        printf("  testing_sgetrf_gpu -M %d -N %d\n\n", 1024, 1024);
-        M = N = size[9];
+        printf("    M     N   CPU GFlop/s (sec)   GPU GFlop/s (sec)   |PA-LU|/(N*|A|)\n");
     }
-
-    /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-
-    magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
-    }
-    err = magma_queue_create( device[0], &queue );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-    
-    ldda   = ((M+31)/32)*32;
-    //maxn   = ((N+31)/32)*32;
-    n2     = M * N;
-    min_mn = min(M, N);
-    //nb     = magma_get_sgetrf_nb(min_mn);
-
-    /* Allocate host memory for the matrix */
-    TESTING_MALLOC_CPU( ipiv, magma_int_t,        min_mn );
-    TESTING_MALLOC_CPU( h_A,  float, n2     );
-    TESTING_MALLOC_PIN( h_R,  float, n2     );
-    TESTING_MALLOC_DEV( d_A,  float, ldda*N );
-
-    printf("\n\n");
-    printf("  M     N    CPU GFlop/ (sec)s   GPU GFlop/s (sec)   ||PA-LU||/(||A||*N)\n");
-    printf("========================================================================\n");
-    for(i=0; i<10; i++){
-        if (argc == 1){
-            M = N = size[i];
+    printf("=========================================================================\n");
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
+        for( int iter = 0; iter < opts.niter; ++iter ) {
+            M = opts.msize[itest];
+            N = opts.nsize[itest];
+            min_mn = min(M, N);
+            lda    = M;
+            n2     = lda*N;
+            ldda   = ((M+31)/32)*32;
+            gflops = FLOPS_SGETRF( M, N ) / 1e9;
+            
+            TESTING_MALLOC_CPU( ipiv, magma_int_t,        min_mn );
+            TESTING_MALLOC_CPU( h_A,  float, n2     );
+            TESTING_MALLOC_DEV( d_A,  float, ldda*N );
+            
+            /* =====================================================================
+               Performs operation using LAPACK
+               =================================================================== */
+            if ( opts.lapack ) {
+                init_matrix( M, N, h_A, lda );
+                
+                cpu_time = magma_wtime();
+                lapackf77_sgetrf(&M, &N, h_A, &lda, ipiv, &info);
+                cpu_time = magma_wtime() - cpu_time;
+                cpu_perf = gflops / cpu_time;
+                if (info != 0)
+                    printf("lapackf77_sgetrf returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+            }
+            
+            /* ====================================================================
+               Performs operation using MAGMA
+               =================================================================== */
+            init_matrix( M, N, h_A, lda );
+            magma_ssetmatrix( M, N, h_A, lda, d_A, 0, ldda, opts.queue );
+            
+            gpu_time = magma_wtime();
+            if ( opts.version == 1 ) {
+                magma_sgetrf_gpu( M, N, d_A, 0, ldda, ipiv, opts.queue, &info );
+            }
+            else if ( opts.version == 2 ) {
+                magma_sgetrf2_gpu( M, N, d_A, 0, ldda, ipiv, opts.queues2, &info );
+            }
+            else {
+                printf( "Unknown version %d\n", opts.version );
+                exit(1);
+            }
+            gpu_time = magma_wtime() - gpu_time;
+            gpu_perf = gflops / gpu_time;
+            if (info != 0)
+                printf("magma_sgetrf_gpu returned error %d: %s.\n",
+                       (int) info, magma_strerror( info ));
+            
+            /* =====================================================================
+               Check the factorization
+               =================================================================== */
+            if ( opts.lapack ) {
+                printf("%5d %5d   %7.2f (%7.2f)   %7.2f (%7.2f)",
+                       (int) M, (int) N, cpu_perf, cpu_time, gpu_perf, gpu_time );
+            }
+            else {
+                printf("%5d %5d     ---   (  ---  )   %7.2f (%7.2f)",
+                       (int) M, (int) N, gpu_perf, gpu_time );
+            }
+            if ( opts.check == 2 ) {
+                magma_sgetmatrix( M, N, d_A, 0, ldda, h_A, lda, opts.queue );
+                error = get_residual( M, N, h_A, lda, ipiv );
+                printf("   %8.2e   %s\n", error, (error < tol ? "ok" : "failed"));
+                status += ! (error < tol);
+            }
+            else if ( opts.check ) {
+                magma_sgetmatrix( M, N, d_A, 0, ldda, h_A, lda, opts.queue );
+                error = get_LU_error( M, N, h_A, lda, ipiv );
+                printf("   %8.2e   %s\n", error, (error < tol ? "ok" : "failed"));
+                status += ! (error < tol);
+            }
+            else {
+                printf("     ---  \n");
+            }
+            
+            TESTING_FREE_CPU( ipiv );
+            TESTING_FREE_CPU( h_A );
+            TESTING_FREE_DEV( d_A );
+            fflush( stdout );
         }
-        min_mn= min(M, N);
-        lda   = M;
-        n2    = lda*N;
-        ldda  = ((M+31)/32)*32;
-        gflops = FLOPS( (float)M, (float)N ) *1e-9;
-
-        /* Initialize the matrix */
-        lapackf77_slarnv( &ione, ISEED, &n2, h_A );
-        lapackf77_slacpy( MagmaUpperLowerStr, &M, &N, h_A, &lda, h_R, &lda );
-
-        /* =====================================================================
-           Performs operation using LAPACK
-           =================================================================== */
-        cpu_time = magma_wtime();
-        lapackf77_sgetrf(&M, &N, h_A, &lda, ipiv, &info);
-        cpu_time = magma_wtime() - cpu_time;
-        if (info < 0)
-            printf("Argument %d of sgetrf had an illegal value.\n", -info);
-
-        cpu_perf = gflops / cpu_time;
-
-        /* ====================================================================
-           Performs operation using MAGMA
-           =================================================================== */
-        magma_ssetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-        magma_sgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
-
-        magma_ssetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
-        gpu_time = magma_wtime();
-        magma_sgetrf_gpu( M, N, d_A, 0, ldda, ipiv, &info, queue );
-        gpu_time = magma_wtime() - gpu_time;
-        if (info < 0)
-            printf("Argument %d of sgetrf had an illegal value.\n", -info);
-
-        gpu_perf = gflops / gpu_time;
-
-        /* =====================================================================
-           Check the factorization
-           =================================================================== */
-        magma_sgetmatrix( M, N, d_A, 0, ldda, h_A, 0, lda, queue );
-        error = get_LU_error(M, N, h_R, lda, h_A, ipiv);
-        
-        printf("%5d %5d  %6.2f (%6.2f)     %6.2f (%6.2f)      %e\n",
-               M, N, cpu_perf, cpu_time, gpu_perf, gpu_time, error);
-
-        if (argc != 1)
-            break;
+        if ( opts.niter > 1 ) {
+            printf( "\n" );
+        }
     }
 
-    /* clean up */
-    TESTING_FREE_CPU( ipiv );
-    TESTING_FREE_CPU( h_A );
-    TESTING_FREE_PIN( h_R );
-    TESTING_FREE_DEV( d_A );
-
-    magma_queue_destroy( queue );
-    magma_finalize();
+    TESTING_FINALIZE();
+    return status;
 }

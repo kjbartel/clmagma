@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> s d c
 
@@ -17,18 +17,22 @@
 //#if (defined(PRECISION_s) || defined(PRECISION_d))
 // === End defining what BLAS to use =======================================
 
-extern "C" magma_err_t
-magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
-             magmaDoubleComplex *a, magma_int_t lda,
-             magmaDoubleComplex_ptr d_a, size_t d_a_offset, magmaDoubleComplex_ptr y, size_t y_offset,
-             magmaDoubleComplex_ptr v, size_t v_offset, magmaDoubleComplex_ptr d_t, size_t d_t_offset,
-             magmaDoubleComplex_ptr d_work, size_t d_work_offset, magma_queue_t queue)
+extern "C" magma_int_t
+magma_zlahru(
+    magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
+    magmaDoubleComplex *a, magma_int_t lda,
+    magmaDoubleComplex_ptr d_a, size_t d_a_offset, magma_int_t ldda,
+    magmaDoubleComplex_ptr y, size_t y_offset, magma_int_t lddy,
+    magmaDoubleComplex_ptr v, size_t v_offset,  magma_int_t lddv,
+    magmaDoubleComplex_ptr d_t, size_t d_t_offset,
+    magmaDoubleComplex_ptr d_work, size_t d_work_offset,
+    magma_queue_t queue)
 {
 /*  -- clMAGMA auxiliary routine (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -105,7 +109,6 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
     magmaDoubleComplex c_one     = MAGMA_Z_ONE;
     magmaDoubleComplex c_neg_one = MAGMA_Z_NEG_ONE;
 
-    magma_int_t ldda = lda;
     //magmaDoubleComplex *v0 = v + ihi - k;
     magmaDoubleComplex_ptr v0 = v;
     size_t v0_offset = v_offset + ihi - k;
@@ -113,7 +116,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
     /* V0 = M V */
     magma_zgemm( MagmaNoTrans, MagmaNoTrans, k, nb, ihi-k,
                  c_one,  d_a, d_a_offset, ldda,
-                         v,   v_offset, ldda,
+                         v,   v_offset, lddv,
                  c_zero, v0,  v0_offset, ldda, queue);
 
     /* Update matrix M -= V0 T V' through
@@ -121,18 +124,18 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        2. M -= V0 d_work                  */
     magma_zgemm( MagmaNoTrans, MagmaConjTrans, nb, ihi-k, nb,
                  c_one,  d_t, d_t_offset, nb,
-                         v, v_offset, ldda,
+                         v, v_offset, lddv,
                  c_zero, d_work, d_work_offset, nb, queue );
 
     magma_zgemm( MagmaNoTrans, MagmaNoTrans, k, ihi-k, nb,
                  c_neg_one, v0, v0_offset, ldda,
                             d_work, d_work_offset, nb,
                  c_one,     d_a, d_a_offset, ldda, queue );
-    magma_zgetmatrix( k, nb, d_a, d_a_offset, ldda, a, 0, lda, queue );
+    magma_zgetmatrix( k, nb, d_a, d_a_offset, ldda, a, lda, queue );
 
     /* Update G -= Y T -= Y d_work */
     magma_zgemm( MagmaNoTrans, MagmaNoTrans, ihi-k, ihi-k-nb, nb,
-                 c_neg_one, y, y_offset, ldda,
+                 c_neg_one, y, y_offset, lddy,
                             d_work, d_work_offset+nb*nb,     nb,
                  c_one,     d_a, d_a_offset+nb*ldda+k, ldda, queue );
 
@@ -142,7 +145,7 @@ magma_zlahru(magma_int_t n, magma_int_t ihi, magma_int_t k, magma_int_t nb,
        Note that G is A(k:ihi, nb+1:ihi-k)
        while    G2 is A(k:ihi, nb+1: n -k)   */
     magma_zgemm( MagmaConjTrans, MagmaNoTrans, nb, n-k-nb, ihi-k,
-                 c_one,  v, v_offset, ldda,
+                 c_one,  v, v_offset, lddv,
                          d_a, d_a_offset + nb*ldda+k, ldda,
                  c_zero, y, y_offset, nb, queue );
     magma_zgemm( MagmaConjTrans, MagmaNoTrans, ihi-k, n-k-nb, nb,

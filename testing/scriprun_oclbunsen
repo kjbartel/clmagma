@@ -1,0 +1,149 @@
+#!/bin/sh
+
+machine=clmagma_bunsenocl
+dogpu=0
+maxdev=3
+
+for ((pb=2;pb<=2;pb=pb+1));
+do
+
+case $pb in
+    1) algo=dpotrf_msub;;
+    2) algo=dgetrf_msub;;
+    3) algo=dgeqrf_msub;;
+    *) run=0 echo "INVALID NUMBER!";;
+esac
+talgo=`echo $algo | awk -F '_' '{print$1}' `
+echo $algo $talgo
+
+
+
+#create directory with machine name to store result of each machine
+if [ ! -d "$machine" ]; then
+    mkdir $machine  
+fi
+#create directory inside the machine directory with algo name 
+algodir=$machine'/'$talgo
+if [ ! -d "$algodir" ]; then
+    mkdir $algodir  
+fi
+#create directory inside the algo directory to store results 
+algores=$machine'/'$talgo'/RESULTS'
+if [ ! -d "$algores" ]; then
+    mkdir $algores 
+fi
+#create directory inside the algo directory to store SVG 
+algosvg=$machine'/'$talgo'/SVG'
+if [ ! -d "$algosvg" ]; then
+    mkdir $algosvg 
+fi
+#getthe date in order to use to store results
+now=$(date)
+d1=`echo $now | awk -F ' ' '{print$2}'`
+d2=`echo $now | awk -F ' ' '{print$3}'`
+d3=`echo $now | awk -F ' ' '{print$6}'`
+mydate=$d1'_'$d2'_'$d3
+echo $mydate
+
+
+
+
+
+for ((ndev=1;ndev<=maxdev;ndev=ndev+1));
+do
+    if [ "$dogpu" -eq "0" ]
+    then
+        ngpu=0
+        nmic=0
+        ncpu=0
+        nocl=$ndev
+	maxnb=3
+    else
+        nmic=0
+        ngpu=$ndev
+	maxnb=9
+    fi
+
+    for ((mynb=1;mynb<=1;mynb=mynb+1));
+    do
+
+    NBD=0
+    run=1
+    case $mynb in
+	1) nbblk=128 NBD=512;;
+	2) nbblk=256 NBD=512;;
+	3) nbblk=512 NBD=512;;
+	*) run=0 echo "INVALID NUMBER!";;
+    esac
+
+    if [ "$run" -eq "1" ]
+    then
+
+        exname='./testing_'$algo
+	shft=1000
+
+        if [ "$nocl" -eq "1" ]
+        then
+            maxsiz=22000
+        elif [ "$nocl" -eq "2" ]
+        then
+            maxsiz=30000   
+        else #3nocl
+            maxsiz=32000   
+        fi
+
+        for ((testsiz=maxsiz ;testsiz>0;testsiz=testsiz-shft));
+        do
+
+        myn=$(( $testsiz + 31))
+        siz=$(( $myn / 32 ))
+        siz=$(( $siz * 32 ))
+        if [ "$nocl" -eq "1" ]
+        then
+           if [ "$siz" -gt "18000" ]
+           then
+            nsub=2
+           else
+            nsub=1
+           fi
+        elif [ "$nocl" -eq "2" ]
+        then
+           if [ "$siz" -gt "26000" ]
+           then
+            nsub=2
+           else
+            nsub=1
+           fi
+        else #3 nocl
+           if [ "$siz" -gt "30000" ]
+           then
+            nsub=2
+           else
+            nsub=1
+           fi
+        fi
+
+           
+            fname=$talgo'_nocl'$nocl'_nsub'$nsub'_'$siz'_'$machine'_'$mydate
+            resultfilename=$algores'/'$fname
+            touch $resultfilename
+            excuteline=$exname' -NGPU '$nocl' -NSUB '$nsub' -M '$siz' -N '$siz
+	        echo $excuteline      
+            $excuteline  >> $resultfilename
+
+	        # save the svg file
+            #svgfilename=$algosvg'/'$fname
+            #touch $talgo'_quark'.svg
+            #mv $talgo'_quark'.svg $svgfilename.svg
+            sleep 5
+        done
+    fi
+
+
+    done
+done
+
+#done for pb that loop over algo
+done 
+
+exit

@@ -1,25 +1,17 @@
 /*
- *   -- clMAGMA (version 1.1.0) --
- *      Univ. of Tennessee, Knoxville
- *      Univ. of California, Berkeley
- *      Univ. of Colorado, Denver
- *      @date January 2014
- */
+    -- MAGMA (version 1.3.0) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2014
+
+       @precisions normal z -> s d c
+*/
 
 #ifndef MAGMA_LAPACK_H
 #define MAGMA_LAPACK_H
 
-#ifndef FORTRAN_NAME
-#  if defined(ADD_)
-#    define FORTRAN_NAME(lcname, UCNAME)  lcname##_
-#  elif defined(NOCHANGE)
-#    define FORTRAN_NAME(lcname, UCNAME)  lcname
-#  elif defined(UPCASE)
-#    define FORTRAN_NAME(lcname, UCNAME)  UCNAME
-#  else
-#    error No Fortran calling convention given. Define one of ADD_, NOCHANGE, or UPCASE
-#  endif
-#endif
+#include "magma_mangling.h"
 
 #include "magma_zlapack.h"
 #include "magma_clapack.h"
@@ -30,8 +22,8 @@
 extern "C" {
 #endif
 
+#define lapackf77_ieeeck FORTRAN_NAME( ieeeck, IEEECK )
 #define lapackf77_lsame  FORTRAN_NAME( lsame,  LSAME  )
-#define lapackf77_xerbla FORTRAN_NAME( xerbla, XERBLA )
 
 #define lapackf77_slamch FORTRAN_NAME( slamch, SLAMCH )
 #define lapackf77_dlamch FORTRAN_NAME( dlamch, DLAMCH )
@@ -48,41 +40,99 @@ extern "C" {
 #define lapackf77_dlag2s FORTRAN_NAME( dlag2s, DLAG2S )
 #define lapackf77_slag2d FORTRAN_NAME( slag2d, SLAG2D )
 
+#define lapackf77_zlat2c FORTRAN_NAME( zlat2c, ZLAT2C )
+#define lapackf77_dlat2s FORTRAN_NAME( dlat2s, DLAT2S )
+//#define lapackf77_clat2z FORTRAN_NAME( clat2z, CLAT2Z )
+//#define lapackf77_slat2d FORTRAN_NAME( slat2d, SLAT2D )
+
 #define lapackf77_dlapy2 FORTRAN_NAME( dlapy2, DLAPY2 )
 #define lapackf77_slapy2 FORTRAN_NAME( slapy2, SLAPY2 )
 
-long int lapackf77_lsame( const char *ca, const char *cb);
-void     lapackf77_xerbla( const char* name, magma_int_t* info, int name_len );
+magma_int_t lapackf77_ieeeck( magma_int_t *ispec, float *zero, float *one );
 
-float    lapackf77_slamch(const char *cmach);
-double   lapackf77_dlamch(const char *cmach);
+long   lapackf77_lsame(  const char *ca, const char *cb );
+
+float  lapackf77_slamch( const char *cmach );
+double lapackf77_dlamch( const char *cmach );
 
 // "small" (lowercase) defined as char on Windows (reported by MathWorks)
-void     lapackf77_slabad(float  *Small, float  *large);
-void     lapackf77_dlabad(double *Small, double *large);
+void   lapackf77_slabad( float  *Small, float  *large );
+void   lapackf77_dlabad( double *Small, double *large );
 
-void     lapackf77_zcgesv(magma_int_t *n, magma_int_t *nrhs, magmaDoubleComplex *A, magma_int_t *lda, magma_int_t *IPIV, magmaDoubleComplex *B, magma_int_t *ldb,
-                          magmaDoubleComplex *X, magma_int_t *ldx, magmaDoubleComplex *work, magmaFloatComplex *swork, double *rwork, magma_int_t *iter, magma_int_t *info);
-void     lapackf77_dsgesv(magma_int_t *n, magma_int_t *nrhs, double          *A, magma_int_t *lda, magma_int_t *IPIV, double          *B, magma_int_t *ldb,
-                          double          *X, magma_int_t *ldx, double          *work, float          *swork,                magma_int_t *iter, magma_int_t *info);
+void   lapackf77_zcgesv( const magma_int_t *n, const magma_int_t *nrhs,
+                         magmaDoubleComplex *A, const magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         const magmaDoubleComplex *B, const magma_int_t *ldb,
+                               magmaDoubleComplex *X, const magma_int_t *ldx,
+                         magmaDoubleComplex *work, magmaFloatComplex *swork, double *rwork,
+                         magma_int_t *iter,
+                         magma_int_t *info );
 
-void     lapackf77_dsterf(magma_int_t *, double *, double *, magma_int_t *);
-void     lapackf77_ssterf(magma_int_t *, float *, float *, magma_int_t *);
+void   lapackf77_dsgesv( const magma_int_t *n, const magma_int_t *nrhs,
+                         double *A, const magma_int_t *lda,
+                         magma_int_t *ipiv,
+                         const double *B, const magma_int_t *ldb,
+                               double *X, const magma_int_t *ldx,
+                         double *work, float *swork,
+                         magma_int_t *iter,
+                         magma_int_t *info );
 
-void     lapackf77_zlag2c( magma_int_t *m, magma_int_t *n, magmaDoubleComplex *a,  magma_int_t *lda,  magmaFloatComplex  *sa, magma_int_t *ldsa, magma_int_t *info );
-void     lapackf77_clag2z( magma_int_t *m, magma_int_t *n, magmaFloatComplex  *sa, magma_int_t *ldsa, magmaDoubleComplex *a,  magma_int_t *lda,  magma_int_t *info );
-void     lapackf77_dlag2s( magma_int_t *m, magma_int_t *n, double          *a,  magma_int_t *lda,  float           *sa, magma_int_t *ldsa, magma_int_t *info );
-void     lapackf77_slag2d( magma_int_t *m, magma_int_t *n, float           *sa, magma_int_t *ldsa, double          *a,  magma_int_t *lda,  magma_int_t *info );
+void   lapackf77_dsterf( const magma_int_t *n,
+                         double *d, double *e,
+                         magma_int_t *info );
 
-double   lapackf77_dlapy2( double *x, double *y  );
-float    lapackf77_slapy2( float  *x, float  *y  );
+void   lapackf77_ssterf( const magma_int_t *n,
+                         float *d, float *e,
+                         magma_int_t *info );
 
-// zdotc has different calling sequence, so define these here
-double   blasf77_ddot( magma_int_t *, double *, magma_int_t *, double *, magma_int_t *);
-float    blasf77_sdot( magma_int_t *, float *,  magma_int_t *, float *,  magma_int_t *);
+// precision conversion, general matrix
+void   lapackf77_zlag2c( magma_int_t *m, const magma_int_t *n,
+                         const magmaDoubleComplex *A,  const magma_int_t *lda,
+                               magmaFloatComplex  *SA, const magma_int_t *ldsa,
+                         magma_int_t *info );
+
+void   lapackf77_clag2z( magma_int_t *m, const magma_int_t *n,
+                         const magmaFloatComplex  *SA, const magma_int_t *ldsa,
+                               magmaDoubleComplex *A,  const magma_int_t *lda,
+                         magma_int_t *info );
+
+void   lapackf77_dlag2s( magma_int_t *m, const magma_int_t *n,
+                         const double *A,  const magma_int_t *lda,
+                               float  *SA, const magma_int_t *ldsa,
+                         magma_int_t *info );
+
+void   lapackf77_slag2d( magma_int_t *m, const magma_int_t *n,
+                         const float  *SA, const magma_int_t *ldsa,
+                               double *A,  const magma_int_t *lda,
+                         magma_int_t *info );
+
+// precision conversion, triangular (or symmetric) matrix
+void   lapackf77_zlat2c( const char *uplo, const magma_int_t *n,
+                         const magmaDoubleComplex *A,  const magma_int_t *lda,
+                               magmaFloatComplex  *SA, const magma_int_t *ldsa,
+                         magma_int_t *info );
+
+void   lapackf77_dlat2s( const char *uplo, const magma_int_t *n,
+                         const double *A,  const magma_int_t *lda,
+                               float  *SA, const magma_int_t *ldsa,
+                         magma_int_t *info );
+
+// not implemented in LAPACK
+//void lapackf77_clat2z(const char *uplo, const magma_int_t *n,
+//                       const magmaFloatComplex  *SA, const magma_int_t *ldsa,
+//                             magmaDoubleComplex *A,  const magma_int_t *lda,
+//                       magma_int_t *info );
+//
+//void lapackf77_slat2d( const char *uplo, const magma_int_t *n,
+//                       const float  *SA, const magma_int_t *ldsa,
+//                             double *A,  const magma_int_t *lda,
+//                       magma_int_t *info );
+
+double lapackf77_dlapy2( const double *x, const double *y );
+float  lapackf77_slapy2( const float  *x, const float  *y );
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MAGMA LAPACK */
+#endif /* MAGMA_LAPACK_H */

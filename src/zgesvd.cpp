@@ -1,30 +1,33 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @precisions normal z -> c
 
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
+// TODO -- replace with updated code from CUDA magma !
+
 extern "C" magma_int_t
-magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
-             magmaDoubleComplex *a,    magma_int_t lda_, double *s,
-             magmaDoubleComplex *u,    magma_int_t ldu_,
-             magmaDoubleComplex *vt,   magma_int_t ldvt_,
-             magmaDoubleComplex *work, magma_int_t lwork_,
-             double *rwork, magma_int_t *info, magma_queue_t queue )
+magma_zgesvd(
+    magma_vec_t jobu, magma_vec_t jobvt, magma_int_t m_, magma_int_t n_,
+    magmaDoubleComplex *a,    magma_int_t lda_, double *s,
+    magmaDoubleComplex *u,    magma_int_t ldu_,
+    magmaDoubleComplex *vt,   magma_int_t ldvt_,
+    magmaDoubleComplex *work, magma_int_t lwork_,
+    double *rwork,
+    magma_queue_t queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -143,9 +146,6 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
     ===================================================================== */
 
-
-    char jobu_[2]  = {jobu, 0};
-    char jobvt_[2] = {jobvt, 0};
     magma_int_t *m     = &m_;
     magma_int_t *n     = &n_;
     magma_int_t *lda   = &lda_;
@@ -184,17 +184,17 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
     *info = 0;
     minmn = min(*m,*n);
-    wntua = lapackf77_lsame(jobu_, "A");
+    wntua = (jobu == MagmaAllVec);
     mnthr  = (magma_int_t)( (double)(min( m_, n_ )) * 1.6 );
-    wntus = lapackf77_lsame(jobu_, "S");
+    wntus = (jobu == MagmaSomeVec);
     wntuas = wntua || wntus;
-    wntuo = lapackf77_lsame(jobu_, "O");
-    wntun = lapackf77_lsame(jobu_, "N");
-    wntva = lapackf77_lsame(jobvt_, "A");
-    wntvs = lapackf77_lsame(jobvt_, "S");
+    wntuo = (jobu == MagmaOverwriteVec);
+    wntun = (jobu == MagmaNoVec);
+    wntva = (jobvt == MagmaAllVec);
+    wntvs = (jobvt == MagmaSomeVec);
     wntvas = wntva || wntvs;
-    wntvo = lapackf77_lsame(jobvt_, "O");
-    wntvn = lapackf77_lsame(jobvt_, "N");
+    wntvo = (jobvt == MagmaOverwriteVec);
+    wntvn = (jobvt == MagmaNoVec);
     lquery = *lwork == -1;
 
     if (! (wntua || wntus || wntuo || wntun)) {
@@ -214,7 +214,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
     }
 
     /*     Compute workspace   */
-    lapackf77_zgesvd(jobu_, jobvt_, m, n, a, lda, s, u, ldu,
+    lapackf77_zgesvd(lapack_const(jobu), lapack_const(jobvt), m, n, a, lda, s, u, ldu,
                      vt, ldvt, work, &c_n1, rwork, info );
     maxwrk = (magma_int_t)MAGMA_Z_REAL(work[0]);
     if (*info == 0) {
@@ -222,7 +222,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
         minwrk = ((*m)+(*n))*nb + 2*(*n);
         // multiply by 1+eps to ensure length gets rounded up,
         // if it cannot be exactly represented in floating point.
-        MAGMA_Z_SET2REAL( work[0], minwrk * (1. + lapackf77_dlamch("Epsilon")));
+        work[0] = MAGMA_Z_MAKE( minwrk * (1. + lapackf77_dlamch("Epsilon")), 0 );
         if ( !lquery && (lwork_ < minwrk) ) {
             *info = -13;
         }
@@ -284,7 +284,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
             if (wntun) {
 
-              /* Path 1 (M much larger than N, JOBU_='N')
+              /* Path 1 (M much larger than N, JOBU='N')
                  No left singular vectors to be computed */
                 itau = 1;
                 iwork = itau + *n;
@@ -314,7 +314,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                                  &work[itauq], &work[itaup], &work[iwork], &i__2, &ierr);
                 */
                 magma_zgebrd(*n, *n, &a[a_offset], *lda, &s[1], &rwork[ie],
-                             &work[itauq], &work[itaup], &work[iwork], i__2, &ierr, queue);
+                             &work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
                 
                 ncvt = 0;
                 if (wntvo || wntvas) {
@@ -344,7 +344,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                 
             } else if (wntuo && wntvn) {
 
-              /*  Path 2 (M much larger than N, JOBU_='O', JOBVT_='N')
+              /*  Path 2 (M much larger than N, JOBU='O', JOBVT='N')
                   N left singular vectors to be overwritten on A and
                   no right singular vectors to be computed */
               if (*lwork >= *n * *n + *n * 3) {
@@ -410,8 +410,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                                  ierr);
                 */
                 magma_zgebrd(*n, *n, &work[ir], ldwrkr, &s[1], &rwork[ie], &
-                             work[itauq], &work[itaup], &work[iwork], i__2, &
-                             ierr, queue);
+                             work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
                 
                 /*  Generate left vectors bidiagonalizing R
                     (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
@@ -465,7 +464,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                                  &work[itauq], &work[itaup], &work[iwork], &i__3, &ierr);
                 */
                 magma_zgebrd(*m, *n, &a[a_offset], *lda, &s[1], &rwork[ie],
-                             &work[itauq], &work[itaup], &work[iwork], i__3, &ierr, queue);
+                             &work[itauq], &work[itaup], &work[iwork], i__3, queue, &ierr);
                 
                 /* Generate left vectors bidiagonalizing A
                    (CWorkspace: need 3*N, prefer 2*N+N*NB)
@@ -486,7 +485,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
               
             } else if (wntuo && wntvas) {
               
-              /*  Path 3 (M much larger than N, JOBU_='O', JOBVT_='S' or 'A')
+              /*  Path 3 (M much larger than N, JOBU='O', JOBVT='S' or 'A')
                   N left singular vectors to be overwritten on A and
                   N right singular vectors to be computed in VT */
               if (*lwork >= *n * *n + *n * 3) {
@@ -555,7 +554,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                                  ierr);
                 */
                 magma_zgebrd(*n, *n, &vt[vt_offset], *ldvt, &s[1], &rwork[ie], &
-                             work[itauq], &work[itaup], &work[iwork], i__3, &ierr, queue);
+                             work[itauq], &work[itaup], &work[iwork], i__3, queue, &ierr);
 
                 lapackf77_zlacpy("L", n, n, &vt[vt_offset], ldvt, &work[ir], &
                                  ldwrkr);
@@ -646,7 +645,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                                  ierr);
                 */
                 magma_zgebrd(*n, *n, &vt[vt_offset], *ldvt, &s[1], &rwork[ie], &
-                             work[itauq], &work[itaup], &work[iwork], i__2, &ierr, queue);
+                             work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
 
                 /* Multiply Q in A by left vectors bidiagonalizing R
                    (CWorkspace: need 2*N+M, prefer 2*N+M*NB)
@@ -679,7 +678,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
               
               if (wntvn) {
                 
-                /*  Path 4 (M much larger than N, JOBU_='S', JOBVT_='N')
+                /*  Path 4 (M much larger than N, JOBU='S', JOBVT='N')
                     N left singular vectors to be computed in U and
                     no right singular vectors to be computed */
                 if (*lwork >= *n * *n + *n * 3) {
@@ -735,7 +734,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                   */
                   magma_zgebrd(*n, *n, &work[ir], ldwrkr, &s[1], &rwork[ie], &
                                work[itauq], &work[itaup], &work[iwork],
-                               i__2, &ierr, queue);
+                               i__2, queue, &ierr);
 
                   /*  Generate left vectors bidiagonalizing R in WORK(IR)
                       (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
@@ -803,7 +802,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                   */
                   magma_zgebrd(*n, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                work[itauq], &work[itaup], &work[iwork],
-                               i__2, &ierr, queue);
+                               i__2, queue, &ierr);
                   
                   /*  Multiply Q in U by left vectors bidiagonalizing R
                       (CWorkspace: need 2*N+M, prefer 2*N+M*NB)
@@ -825,7 +824,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                 
               } else if (wntvo) {
                 
-                /* Path 5 (M much larger than N, JOBU_='S', JOBVT_='O')
+                /* Path 5 (M much larger than N, JOBU='S', JOBVT='O')
                    N left singular vectors to be computed in U and
                    N right singular vectors to be overwritten on A */
                 if (*lwork >= (*n << 1) * *n + *n * 3) {
@@ -894,7 +893,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                   */
                   magma_zgebrd(*n, *n, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                work[itauq], &work[itaup], &work[iwork],
-                               i__2, &ierr, queue);
+                               i__2, queue, &ierr);
 
                   lapackf77_zlacpy("U", n, n, &work[iu], &ldwrku, &work[ir], &
                                    ldwrkr);
@@ -980,7 +979,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                   */
                   magma_zgebrd(*n, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                work[itauq], &work[itaup], &work[iwork],
-                               i__2, &ierr, queue);
+                               i__2, queue, &ierr);
 
                   /*  Multiply Q in U by left vectors bidiagonalizing R
                       (CWorkspace: need 2*N+M, prefer 2*N+M*NB)
@@ -1010,7 +1009,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                 
               } else if (wntvas) {
                 
-                /* Path 6 (M much larger than N, JOBU_='S', JOBVT_='S' or 'A')
+                /* Path 6 (M much larger than N, JOBU='S', JOBVT='S' or 'A')
                    N left singular vectors to be computed in U and
                    N right singular vectors to be computed in VT */
 
@@ -1073,7 +1072,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
                         
                         lapackf77_zlacpy("U", n, n, &work[iu], &ldwrku, &vt[vt_offset],
                                  ldvt);
@@ -1167,7 +1166,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &vt[vt_offset], *ldvt, &s[1], &rwork[ie],
                                      &work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 /*                    Multiply Q in U by left bidiagonalizing vectors
                       in VT
@@ -1207,7 +1206,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 if (wntvn) {
 
-/*                 Path 7 (M much larger than N, JOBU_='A', JOBVT_='N')
+/*                 Path 7 (M much larger than N, JOBU='A', JOBVT='N')
                    M left singular vectors to be computed in U and
                    no right singular vectors to be computed
 
@@ -1275,7 +1274,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &work[ir], ldwrkr, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 /*                    Generate left bidiagonalizing vectors in WORK(IR)
                       (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
@@ -1356,7 +1355,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
                         
 /*                    Multiply Q in U by left bidiagonalizing vectors
                       in A
@@ -1383,7 +1382,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntvo) {
 
-/*                 Path 8 (M much larger than N, JOBU_='A', JOBVT_='O')
+/*                 Path 8 (M much larger than N, JOBU='A', JOBVT='O')
                    M left singular vectors to be computed in U and
                    N right singular vectors to be overwritten on A
 
@@ -1464,7 +1463,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("U", n, n, &work[iu], &ldwrku, &work[ir], &
                                 ldwrkr);
@@ -1563,7 +1562,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 /*                    Multiply Q in U by left bidiagonalizing vectors
                       in A
@@ -1599,7 +1598,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntvas) {
 
-/*                 Path 9 (M much larger than N, JOBU_='A', JOBVT_='S'
+/*                 Path 9 (M much larger than N, JOBU='A', JOBVT='S'
                            or 'A')
                    M left singular vectors to be computed in U and
                    N right singular vectors to be computed in VT
@@ -1668,7 +1667,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("U", n, n, &work[iu], &ldwrku, &vt[vt_offset],
                                  ldvt);
@@ -1767,7 +1766,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*n, *n, &vt[vt_offset], *ldvt, &s[1], &rwork[ie],
                                      &work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 /*                    Multiply Q in U by left bidiagonalizing vectors
                       in VT
@@ -1827,7 +1826,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                     &work[itaup], &work[iwork], &i__2, &ierr);
             */
             magma_zgebrd(*m, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &work[itauq],
-                         &work[itaup], &work[iwork], i__2, &ierr, queue);
+                         &work[itaup], &work[iwork], i__2, queue, &ierr);
 
             if (wntuas) {
 
@@ -1941,7 +1940,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
             if (wntvn) {
 
-/*              Path 1t(N much larger than M, JOBVT_='N')
+/*              Path 1t(N much larger than M, JOBVT='N')
                 No right singular vectors to be computed */
 
                 itau = 1;
@@ -1976,7 +1975,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         itauq], &work[itaup], &work[iwork], &i__2, &ierr);
                 */
                 magma_zgebrd(*m, *m, &a[a_offset], *lda, &s[1], &rwork[ie],
-                             &work[itauq], &work[itaup], &work[iwork], i__2, &ierr, queue);
+                             &work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
 
                 if (wntuo || wntuas) {
 
@@ -2011,7 +2010,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
             } else if (wntvo && wntun) {
 
-/*              Path 2t(N much larger than M, JOBU_='N', JOBVT_='O')
+/*              Path 2t(N much larger than M, JOBU='N', JOBVT='O')
                 M right singular vectors to be overwritten on A and
                 no left singular vectors to be computed */
 
@@ -2090,8 +2089,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                             ierr);
                     */
                     magma_zgebrd(*m, *m, &work[ir], ldwrkr, &s[1], &rwork[ie], &
-                                 work[itauq], &work[itaup], &work[iwork], i__2, &
-                                 ierr, queue);
+                                 work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
 
 
 /*                 Generate right vectors bidiagonalizing L
@@ -2152,7 +2150,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                             itauq], &work[itaup], &work[iwork], &i__3, &ierr);
                     */
                     magma_zgebrd(*m, *n, &a[a_offset], *lda, &s[1], &rwork[ie],
-                                 &work[itauq], &work[itaup], &work[iwork], i__3, &ierr, queue);
+                                 &work[itauq], &work[itaup], &work[iwork], i__3, queue, &ierr);
 
 /*                 Generate right vectors bidiagonalizing A
                    (CWorkspace: need 3*M, prefer 2*M+M*NB)
@@ -2176,7 +2174,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
             } else if (wntvo && wntuas) {
 
-/*              Path 3t(N much larger than M, JOBU_='S' or 'A', jobvt_='O')
+/*              Path 3t(N much larger than M, JOBU='S' or 'A', jobvt='O')
                 M right singular vectors to be overwritten on A and
                 M left singular vectors to be computed in U */
 
@@ -2254,7 +2252,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                             itauq], &work[itaup], &work[iwork], &i__3, &ierr);
                     */
                     magma_zgebrd(*m, *m, &u[u_offset], *ldu, &s[1], &rwork[ie],
-                                 &work[itauq], &work[itaup], &work[iwork], i__3, &ierr, queue);
+                                 &work[itauq], &work[itaup], &work[iwork], i__3, queue, &ierr);
 
                     lapackf77_zlacpy("U", m, m, &u[u_offset], ldu, &work[ir], &ldwrkr);
 
@@ -2351,7 +2349,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                             itauq], &work[itaup], &work[iwork], &i__2, &ierr);
                     */
                     magma_zgebrd(*m, *m, &u[u_offset], *ldu, &s[1], &rwork[ie],
-                                 &work[itauq], &work[itaup], &work[iwork], i__2, &ierr, queue);
+                                 &work[itauq], &work[itaup], &work[iwork], i__2, queue, &ierr);
 
 /*                 Multiply right vectors bidiagonalizing L by Q in A
                    (CWorkspace: need 2*M+N, prefer 2*M+N*NB)
@@ -2387,7 +2385,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 if (wntun) {
 
-/*                 Path 4t(N much larger than M, JOBU_='N', JOBVT='S')
+/*                 Path 4t(N much larger than M, JOBU='N', JOBVT='S')
                    M right singular vectors to be computed in VT and
                    no left singular vectors to be computed */
 
@@ -2451,7 +2449,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[ir], ldwrkr, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 /*                    Generate right vectors bidiagonalizing L in
                       WORK(IR)
@@ -2531,7 +2529,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
                         
 /*                    Multiply right vectors bidiagonalizing L by Q in VT
                       (CWorkspace: need 2*M+N, prefer 2*M+N*NB)
@@ -2556,7 +2554,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntuo) {
 
-/*                 Path 5t(N much larger than M, JOBU_='O', JOBVT='S')
+/*                 Path 5t(N much larger than M, JOBU='O', JOBVT='S')
                    M right singular vectors to be computed in VT and
                    M left singular vectors to be overwritten on A */
 
@@ -2633,7 +2631,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("L", m, m, &work[iu], &ldwrku, &work[ir], &
                                 ldwrkr);
@@ -2729,7 +2727,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
 
 /*                    Multiply right vectors bidiagonalizing L by Q in VT
@@ -2764,7 +2762,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntuas) {
 
-                  /*   Path 6t(N much larger than M, JOBU_='S' or 'A',
+                  /*   Path 6t(N much larger than M, JOBU='S' or 'A',
                        JOBVT='S')
                        M right singular vectors to be computed in VT and
                        M left singular vectors to be computed in U */
@@ -2819,7 +2817,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("L", m, m, &work[iu], &ldwrku, &u[u_offset],
                                 ldu);
@@ -2899,7 +2897,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &u[u_offset], *ldu, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         /*  Multiply right bidiagonalizing vectors in U by Q
                             in VT
@@ -2931,7 +2929,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
             } else if (wntva) {
                 if (wntun) {
 
-                  /*  Path 7t(N much larger than M, JOBU_='N', JOBVT='A')
+                  /*  Path 7t(N much larger than M, JOBU='N', JOBVT='A')
                       N right singular vectors to be computed in VT and
                       no left singular vectors to be computed
 
@@ -2989,7 +2987,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[ir], ldwrkr, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         /* Generate right bidiagonalizing vectors in WORK(IR)
                            (CWorkspace: need   M*M+3*M-1,
@@ -3060,7 +3058,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         /*  Multiply right bidiagonalizing vectors in A by Q
                             in VT
@@ -3084,7 +3082,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntuo) {
 
-                  /*  Path 8t(N much larger than M, JOBU_='O', JOBVT='A')
+                  /*  Path 8t(N much larger than M, JOBU='O', JOBVT='A')
                       N right singular vectors to be computed in VT and
                       M left singular vectors to be overwritten on A
 
@@ -3153,7 +3151,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("L", m, m, &work[iu], &ldwrku, &work[ir], &
                                 ldwrkr);
@@ -3238,7 +3236,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &a[a_offset], *lda, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         /* Multiply right bidiagonalizing vectors in A by Q
                            in VT (CWorkspace: need 2*M+N, prefer 2*M+N*NB)
@@ -3269,7 +3267,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
 
                 } else if (wntuas) {
 
-                  /*  Path 9t(N much larger than M, JOBU_='S' or 'A',
+                  /*  Path 9t(N much larger than M, JOBU='S' or 'A',
                              JOBVT='A')
                              N right singular vectors to be computed in VT and
                              M left singular vectors to be computed in U
@@ -3328,7 +3326,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &work[iu], ldwrku, &s[1], &rwork[ie], &
                                      work[itauq], &work[itaup], &work[iwork],
-                                     i__2, &ierr, queue);
+                                     i__2, queue, &ierr);
 
                         lapackf77_zlacpy("L", m, m, &work[iu], &ldwrku, &u[u_offset],
                                 ldu);
@@ -3411,7 +3409,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                         */
                         magma_zgebrd(*m, *m, &u[u_offset], *ldu, &s[1], &rwork[ie], &
                                       work[itauq], &work[itaup], &work[iwork],
-                                      i__2, &ierr, queue);
+                                      i__2, queue, &ierr);
 
                         /* Multiply right bidiagonalizing vectors in U by Q
                            in VT
@@ -3462,7 +3460,7 @@ magma_zgesvd(char jobu, char jobvt, magma_int_t m_, magma_int_t n_,
                     &work[itaup], &work[iwork], &i__2, &ierr);
             */
             magma_zgebrd(*m, *n, &a[a_offset], *lda, &s[1], &rwork[ie], &work[itauq],
-                         &work[itaup], &work[iwork], i__2, &ierr, queue);
+                         &work[itaup], &work[iwork], i__2, queue, &ierr);
 
             if (wntuas) {
               /* If left singular vectors desired in U, copy result to U

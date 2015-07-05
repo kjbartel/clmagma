@@ -1,9 +1,9 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0) --
+#   -- clMAGMA (version 1.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date January 2014
+#      @date November 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 MAGMA_DIR = .
@@ -18,6 +18,8 @@ all: lib test
 lib: libmagma
 
 libmagma:
+	@echo ======================================== clmagmablas
+	( cd clmagmablas      && $(MAKE) )
 	@echo ======================================== src
 	( cd src              && $(MAKE) )
 	@echo ======================================== control
@@ -30,6 +32,7 @@ test: lib
 	( cd testing          && $(MAKE) )
 
 clean:
+	( cd clmagmablas      && $(MAKE) clean )
 	( cd control          && $(MAKE) clean )
 	( cd src              && $(MAKE) clean )
 	( cd interface_opencl && $(MAKE) clean )
@@ -38,6 +41,7 @@ clean:
 	-rm -f $(LIBMAGMA)
 
 cleanall:
+	( cd clmagmablas      && $(MAKE) cleanall )
 	( cd control          && $(MAKE) cleanall )
 	( cd src              && $(MAKE) cleanall )
 	( cd interface_opencl && $(MAKE) cleanall )
@@ -61,7 +65,9 @@ install: lib dir
 	# MAGMA
 	cp $(MAGMA_DIR)/include/*.h  $(prefix)/include
 	cp $(LIBMAGMA)               $(prefix)/lib
+	cp $(MAGMA_KERNELS)          $(prefix)/lib
 	-cp $(LIBMAGMA_SO)           $(prefix)/lib
+	-cp $(BLAS_FIX)              $(prefix)/lib
 	# pkgconfig
 	cat $(MAGMA_DIR)/lib/pkgconfig/clmagma.pc.in  | \
 	    sed -e s:@INSTALL_PREFIX@:"$(prefix)":    | \

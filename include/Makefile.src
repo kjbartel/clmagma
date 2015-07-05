@@ -1,17 +1,26 @@
+# Automatically generated from Makefile ZHDR and ZSRC
 CHDR = \
-magma_c.h magmablas_c.h magma_clapack.h
+	magma_c.h \
+	magmablas_c.h \
+	magma_clapack.h
 
 DHDR = \
-magma_d.h magmablas_d.h magmablas_ds.h magma_dlapack.h
+	magma_d.h \
+	magma_ds.h \
+	magmablas_d.h \
+	magmablas_ds.h \
+	magma_dlapack.h
 
 SHDR = \
-magma_s.h magmablas_s.h magma_slapack.h
+	magma_s.h \
+	magmablas_s.h \
+	magma_slapack.h
 
 CSRC = \
-
+	
 
 DSRC = \
-
+	
 
 SSRC = \
-
+	

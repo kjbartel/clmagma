@@ -1,34 +1,32 @@
 /*
-   -- clMAGMA (version 1.1.0) --
-   Univ. of Tennessee, Knoxville
-   Univ. of California, Berkeley
-   Univ. of Colorado, Denver
-   @date January 2014
+    -- clMAGMA (version 1.3.0) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2014
 
-   @generated from zlauum_gpu.cpp normal z -> c, Fri Jan 10 15:51:17 2014
+       @generated from zlauum_gpu.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 
- */
-
-#include <stdio.h>
+*/
 #include "common_magma.h"
-
 
 #define dA(i, j) dA, (dA_offset + (j)*ldda + (i))
 
 extern "C" magma_int_t
-magma_clauum_gpu(magma_uplo_t uplo, magma_int_t n,
-        magmaFloatComplex_ptr dA, size_t dA_offset, magma_int_t ldda, magma_int_t *info,
-        magma_queue_t queue)
+magma_clauum_gpu(
+    magma_uplo_t uplo, magma_int_t n,
+    magmaFloatComplex_ptr dA, size_t dA_offset, magma_int_t ldda,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- MAGMA (version 1.1.0) --
-    Univ. of Tennessee, Knoxville
-    Univ. of California, Berkeley
-    Univ. of Colorado, Denver
-    @date January 2014
+/*  -- MAGMA (version 1.3.0) --
+       Univ. of Tennessee, Knoxville
+       Univ. of California, Berkeley
+       Univ. of Colorado, Denver
+       @date November 2014
 
     Purpose
     =======
-
     CLAUUM computes the product U * U' or L' * L, where the triangular
     factor U or L is stored in the upper or lower triangular part of
     the array dA.
@@ -41,44 +39,42 @@ magma_clauum_gpu(magma_uplo_t uplo, magma_int_t n,
 
     Arguments
     =========
-
     UPLO    (input) CHARACTER*1
-    Specifies whether the triangular factor stored in the array dA
-    is upper or lower triangular:
-    = 'U':  Upper triangular
-    = 'L':  Lower triangular
+            Specifies whether the triangular factor stored in the array dA
+            is upper or lower triangular:
+            = 'U':  Upper triangular
+            = 'L':  Lower triangular
 
     N       (input) INTEGER
-    The order of the triangular factor U or L.  N >= 0.
+            The order of the triangular factor U or L.  N >= 0.
 
-    dA       (input/output) REAL array on the GPU, dimension (LDDA,N)
-    On entry, the triangular factor U or L.
-    On exit, if UPLO = 'U', the upper triangle of dA is
-    overwritten with the upper triangle of the product U * U';
-    if UPLO = 'L', the lower triangle of dA is overwritten with
-    the lower triangle of the product L' * L.
+    dA      (input/output) REAL array on the GPU, dimension (LDDA,N)
+            On entry, the triangular factor U or L.
+            On exit, if UPLO = 'U', the upper triangle of dA is
+            overwritten with the upper triangle of the product U * U';
+            if UPLO = 'L', the lower triangle of dA is overwritten with
+            the lower triangle of the product L' * L.
 
-    LDDA     (input) INTEGER
-    The leading dimension of the array A.  LDDA >= max(1,N).
+    LDDA    (input) INTEGER
+            The leading dimension of the array A.  LDDA >= max(1,N).
 
     INFO    (output) INTEGER
-    = 0: successful exit
-    < 0: if INFO = -k, the k-th argument had an illegal value
+            = 0: successful exit
+            < 0: if INFO = -k, the k-th argument had an illegal value
 
     ===================================================================== */
 
     /* Local variables */
-    magma_uplo_t uplo_ = uplo;
     magma_int_t         nb, i, ib;
     float              d_one = MAGMA_D_ONE;
-    magmaFloatComplex     c_one = MAGMA_C_ONE;
-    magmaFloatComplex     *work;
+    magmaFloatComplex  c_one = MAGMA_C_ONE;
+    magmaFloatComplex  *work;
 
-    int upper  = lapackf77_lsame(lapack_const(uplo_), lapack_const(MagmaUpper));
+    int upper  = (uplo == MagmaUpper);
 
     *info = 0;
 
-    if ((! upper) && (! lapackf77_lsame(lapack_const(uplo_), lapack_const(MagmaLower))))
+    if (! upper && uplo != MagmaLower)
         *info = -1;
     else if (n < 0)
         *info = -2;
@@ -98,73 +94,71 @@ magma_clauum_gpu(magma_uplo_t uplo, magma_int_t n,
     }
 
     if (nb <= 1 || nb >= n) {
-        magma_cgetmatrix( n, n, dA, dA_offset, ldda, work, 0, n, queue );
-        lapackf77_clauum(lapack_const(uplo_), &n, work, &n, info);
-        magma_csetmatrix( n, n, work, 0, n, dA, dA_offset, ldda, queue );
+        magma_cgetmatrix( n, n, dA, dA_offset, ldda, work, n, queue );
+        lapackf77_clauum(lapack_const(uplo), &n, work, &n, info);
+        magma_csetmatrix( n, n, work, n, dA, dA_offset, ldda, queue );
     }
     else {
-        if (upper)
-        {
+        if (upper) {
             /* Compute inverse of upper triangular matrix */
-            for (i=0; i<n; i =i+ nb) {
+            for (i=0; i < n; i += nb) {
                 ib = min(nb, (n-i));
 
                 /* Compute the product U * U'. */
                 magma_ctrmm( MagmaRight, MagmaUpper,
-                        MagmaConjTrans, MagmaNonUnit, i, ib,
-                        c_one, dA(i,i), ldda, dA(0, i),ldda, queue );
+                             MagmaConjTrans, MagmaNonUnit, i, ib,
+                             c_one, dA(i,i), ldda, dA(0, i),ldda, queue );
 
                 magma_cgetmatrix( ib, ib,
-                        dA(i, i), ldda,
-                        work, 0, ib, queue );
+                                  dA(i, i), ldda,
+                                  work, ib, queue );
 
                 lapackf77_clauum(MagmaUpperStr, &ib, work, &ib, info);
 
                 magma_csetmatrix( ib, ib,
-                        work, 0, ib,
-                        dA(i, i), ldda, queue );
+                                  work, ib,
+                                  dA(i, i), ldda, queue );
 
-                if(i+ib < n) {
+                if (i+ib < n) {
                     magma_cgemm( MagmaNoTrans, MagmaConjTrans,
-                            i, ib, (n-i-ib), c_one, dA(0,i+ib),
-                            ldda, dA(i, i+ib), ldda, c_one,
-                            dA(0,i), ldda, queue);
-
+                                 i, ib, (n-i-ib), c_one, dA(0,i+ib),
+                                 ldda, dA(i, i+ib), ldda, c_one,
+                                 dA(0,i), ldda, queue);
 
                     magma_cherk( MagmaUpper, MagmaNoTrans, ib,(n-i-ib),
-                            d_one, dA(i, i+ib), ldda,
-                            d_one, dA(i, i),    ldda, queue);
+                                 d_one, dA(i, i+ib), ldda,
+                                 d_one, dA(i, i),    ldda, queue);
                 }
             }
-        } else {
+        }
+        else {
             /* Compute the product L' * L. */
-            for(i=0; i<n; i=i+nb) {
+            for (i=0; i < n; i += nb) {
                 ib=min(nb,(n-i));
 
                 magma_ctrmm( MagmaLeft, MagmaLower,
-                        MagmaConjTrans, MagmaNonUnit, ib,
-                        i, c_one, dA(i,i), ldda,
-                        dA(i, 0),ldda, queue);
+                             MagmaConjTrans, MagmaNonUnit, ib,
+                             i, c_one, dA(i,i), ldda,
+                             dA(i, 0),ldda, queue);
 
                 magma_cgetmatrix( ib, ib,
-                        dA(i, i), ldda,
-                        work, 0, ib, queue );
+                                  dA(i, i), ldda,
+                                  work, ib, queue );
 
                 lapackf77_clauum(MagmaLowerStr, &ib, work, &ib, info);
 
                 magma_csetmatrix( ib, ib,
-                        work, 0, ib,
-                        dA(i, i), ldda, queue );
+                                  work, ib,
+                                  dA(i, i), ldda, queue );
 
-
-                if((i+ib) < n) {
+                if (i+ib < n) {
                     magma_cgemm( MagmaConjTrans, MagmaNoTrans,
-                            ib, i, (n-i-ib), c_one, dA( i+ib,i),
-                            ldda, dA(i+ib, 0),ldda, c_one,
-                            dA(i,0), ldda, queue);
+                                 ib, i, (n-i-ib), c_one, dA( i+ib,i),
+                                 ldda, dA(i+ib, 0),ldda, c_one,
+                                 dA(i,0), ldda, queue);
                     magma_cherk( MagmaLower, MagmaConjTrans, ib, (n-i-ib),
-                            d_one, dA(i+ib, i), ldda,
-                            d_one, dA(i, i),    ldda, queue);
+                                 d_one, dA(i+ib, i), ldda,
+                                 d_one, dA(i, i),    ldda, queue);
                 }
             }
         }

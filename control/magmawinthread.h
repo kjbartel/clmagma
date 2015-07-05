@@ -1,15 +1,14 @@
 /**
  *
- * @file magmawinthread.h
+ * magmawinthread.h
  *
- *  This file handles the mapping from pthreads calls to windows
- *  threads MAGMA is a software package provided by Univ. of
- *  Tennessee, Univ. of California Berkeley and Univ. of Colorado
- *  Denver
+ *  This file handles the mapping from pthreads calls to windows threads.
+ *  MAGMA is a software package provided by Univ. of Tennessee,
+ *  Univ. of California Berkeley and Univ. of Colorado Denver
  *
  * @version 2.3.1
  * @author Piotr Luszczek
- * @date January 2014
+ * @date November 2014
  *
  * This file is originally from PLASMA project, where plasma has been
  * replaced by MAGMA.
@@ -18,15 +17,14 @@
 #ifndef MAGMAWINTHREAD_H
 #define MAGMAWINTHREAD_H
 
+#if (defined( _WIN32 ) || defined( _WIN64 )) && ! defined( __MINGW32__ )
+
 #include <windows.h>
 
-/*
-typedef struct pthread_s {
-  HANDLE Hth;
-  unsigned IDth;
-  void *(*Fth) (void *);
-} pthread_t;
-*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct pthread_s {
   HANDLE hThread;
   unsigned int uThId;
@@ -74,4 +72,10 @@ MAGMA_DLLPORT int MAGMA_CDECL pthread_setconcurrency (int);
 
 MAGMA_DLLPORT unsigned int MAGMA_CDECL pthread_self_id(void);
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* (_WIN32 || _WIN64) && ! __MINGW32__ */
+
+#endif /* MAGMAWINTHREAD_H */

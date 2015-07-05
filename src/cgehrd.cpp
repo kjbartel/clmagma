@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zgehrd.cpp normal z -> c, Fri Jan 10 15:51:18 2014
+       @generated from zgehrd.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 
 */
 
@@ -13,18 +13,20 @@
 #include "common_magma.h"
 
 extern "C" magma_int_t
-magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
-             magmaFloatComplex *a, magma_int_t lda,
-             magmaFloatComplex *tau,
-             magmaFloatComplex *work, magma_int_t lwork,
-             magmaFloatComplex_ptr dT, size_t dT_offset,
-             magma_int_t *info, magma_queue_t queue)
+magma_cgehrd(
+    magma_int_t n, magma_int_t ilo, magma_int_t ihi,
+    magmaFloatComplex *a, magma_int_t lda,
+    magmaFloatComplex *tau,
+    magmaFloatComplex *work, magma_int_t lwork,
+    magmaFloatComplex_ptr dT, size_t dT_offset,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -141,7 +143,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     --tau;
 
     *info = 0;
-    MAGMA_C_SET2REAL( work[0], (float) n * nb );
+    work[0] = MAGMA_C_MAKE( n * nb, 0 );
 
     lquery = lwork == -1;
     if (n < 0) {
@@ -195,7 +197,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     d_t = d_work;
     size_t d_t_offset = d_work_offset+nb*ldda;
 
-    czero_nbxnb_block(nb, d_A, d_A_offset+N*ldda, ldda, queue);
+    magmablas_claset( MagmaFull, nb, nb, c_zero, c_zero, d_A, d_A_offset+N*ldda, ldda, queue );
 
     /* Set elements 1:ILO-1 and IHI:N-1 of TAU to zero */
     for (i__ = 1; i__ < ilo; ++i__)
@@ -240,7 +242,7 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
       /* Use blocked code */
 
       /* Copy the matrix to the GPU */
-      magma_csetmatrix( N, N-ilo+1, a+(ilo-1)*(lda), 0, lda, d_A, d_A_offset, ldda, queue );
+      magma_csetmatrix( N, N-ilo+1, a+(ilo-1)*(lda), lda, d_A, d_A_offset, ldda, queue );
 
       for (i__ = ilo; i__ < ihi - nb; i__ += nb) {
         /* Computing MIN */
@@ -253,11 +255,11 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
         /*   Get the current panel (no need for the 1st iteration) */
         magma_cgetmatrix( ihi-i__+1, ib,
                           d_A, (d_A_offset + (i__ - ilo)*ldda + i__ - 1), ldda,
-                          a   + (i__ -  1 )*lda  + i__ - 1, 0, lda, queue );
+                          a   + (i__ -  1 )*lda  + i__ - 1, lda, queue );
         
         magma_clahr2(ihi, i__, ib,
-                     d_A, d_A_offset +(i__ - ilo)*ldda,
-                     d_A, d_A_offset + N*ldda + 1,
+                     d_A, d_A_offset +(i__ - ilo)*ldda, ldda,
+                     d_A, d_A_offset + N*ldda + 1, ldda,
                      a   + (i__ -   1 )*(lda) , lda,
                      &tau[i__], t, nb, work, ldwork, queue);
 
@@ -265,13 +267,13 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
         //d_t = dT + (i__ - ilo)*nb;
         d_t = dT;
         d_t_offset = dT_offset + (i__ - ilo)*nb;
-        magma_csetmatrix( nb, nb, t, 0, nb, d_t, d_t_offset, nb, queue );
+        magma_csetmatrix( nb, nb, t, nb, d_t, d_t_offset, nb, queue );
 
         magma_clahru(n, ihi, i__ - 1, ib,
                      a   + (i__ -  1 )*(lda), lda,
-                     d_A, d_A_offset + (i__ - ilo)*ldda,
-                     d_A, d_A_offset + (i__ - ilo)*ldda + i__ - 1,
-                     d_A, d_A_offset + N*ldda,
+                     d_A, d_A_offset + (i__ - ilo)*ldda, ldda,
+                     d_A, d_A_offset + (i__ - ilo)*ldda + i__ - 1, ldda,
+                     d_A, d_A_offset + N*ldda, ldda,
                      d_t, d_t_offset,
                      d_work, d_work_offset,
                      queue);
@@ -282,9 +284,9 @@ magma_cgehrd(magma_int_t n, magma_int_t ilo, magma_int_t ihi,
     if (!(nb < nbmin || nb >= nh))
         magma_cgetmatrix( n, n-i__+1,
                           d_A, d_A_offset + (i__-ilo)*ldda, ldda,
-                          a  + (i__-1)*(lda), 0, lda, queue );
+                          a  + (i__-1)*(lda), lda, queue );
     lapackf77_cgehd2(&n, &i__, &ihi, a, &lda, &tau[1], work, &iinfo);
-    MAGMA_C_SET2REAL( work[0], (float) iws );
+    work[0] = MAGMA_C_MAKE( iws, 0 );
     
     magma_free( da );
     magma_free_cpu(t);

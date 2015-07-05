@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from testing_zgeqr2x_gpu.cpp normal z -> c, Fri Jan 10 15:51:20 2014
+       @generated from testing_zgeqr2x_gpu.cpp normal z -> c, Sat Nov 15 00:21:40 2014
 
 */
 
@@ -24,29 +24,6 @@
 #include "testings.h"
 #include "common_magma.h"
 
-
-// --------------------
-// If condition is false, print error message and exit.
-// Error message is formatted using printf, using any additional arguments.
-extern "C"
-void magma_assert( bool condition, const char* msg, ... )
-{
-    if ( ! condition ) {
-        va_list va;
-        va_start( va, msg );
-        vprintf( msg, va );
-        exit(1);
-    }
-}
-
-extern "C" magma_err_t 
-magma_cgeqr2x3_gpu(magma_int_t *m, magma_int_t *n, 
-        magmaFloatComplex_ptr dA, size_t dA_offset, magma_int_t *ldda, 
-        magmaFloatComplex_ptr dtau, size_t dtau_offset, 
-        magmaFloatComplex_ptr dT, size_t dT_offset, 
-        magmaFloatComplex_ptr ddA, size_t ddA_offset, 
-        magmaFloat_ptr dwork, size_t dwork_offset, 
-        magma_int_t *info, magma_queue_t queue);
 
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing cgeqrf
@@ -124,18 +101,18 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queue;
     magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
 
     magma_init();
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
+    err = magma_getdevices( device, MagmaMaxGPUs, &num );
     if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
+      fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
       exit(-1);
     }
     err = magma_queue_create( device[0], &queue );
     if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
+      fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
       exit(-1);
     }
 
@@ -180,23 +157,23 @@ int main( int argc, char** argv)
         magma_int_t ISEED[4] = {0,0,0,1};
         lapackf77_clarnv( &ione, ISEED, &n2, h_A );
         lapackf77_clacpy( MagmaUpperLowerStr, &M, &N, h_A, &lda, h_R, &lda );
-        magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+        magma_csetmatrix( M, N, h_R, lda, d_A, 0, ldda, queue );
 
         /* ====================================================================
            Performs operation using MAGMA
            =================================================================== */
         // warm-up
       
-       // magma_cgeqr2x3_gpu(&M, &N, d_A, 0, &ldda, dtau, 0, d_T, 0, ddA, 0, dwork, 0, &info, queue);
+       // magma_cgeqr2x3_gpu( M, N, d_A, 0, ldda, dtau, 0, d_T, 0, ddA, 0, dwork, 0, &info, queue);
 /*
-        magma_csetmatrix( M, N, h_R, 0, lda, d_A, 0, ldda, queue );
+        magma_csetmatrix( M, N, h_R, lda, d_A, 0, ldda, queue );
 
         clEnqueueWriteBuffer(queue, ddA, CL_TRUE, 0, sizeof(magmaFloatComplex)*N*N, h1, 0, NULL, NULL);
         clEnqueueWriteBuffer(queue, d_T, CL_TRUE, 0, sizeof(magmaFloatComplex)*N*N, h1, 0, NULL, NULL);
 */
        
         gpu_time = magma_wtime();
-        magma_cgeqr2x3_gpu(&M, &N, d_A, 0, &ldda, dtau, 0, d_T, 0, ddA, 0, dwork, 0, &info, queue);
+        magma_cgeqr2x3_gpu( M, N, d_A, 0, ldda, dtau, 0, d_T, 0, ddA, 0, dwork, 0, queue, &info);
         gpu_time = magma_wtime() - gpu_time;
         gpu_perf = gflops / gpu_time;
         if (info != 0)
@@ -219,8 +196,8 @@ int main( int argc, char** argv)
             /* =====================================================================
                Check the result compared to LAPACK
                =================================================================== */
-            magma_cgetmatrix( M, N, d_A, 0, ldda, h_R, 0, M, queue );
-            magma_cgetmatrix( N, N, ddA, 0, N,    h_T, 0, N, queue );
+            magma_cgetmatrix( M, N, d_A, 0, ldda, h_R, M, queue );
+            magma_cgetmatrix( N, N, ddA, 0, N,    h_T, N, queue );
 
             // Restore the upper triangular part of A before the check 
             for(int col=0; col<N; col++){
@@ -234,7 +211,7 @@ int main( int argc, char** argv)
 
             // Check if T is the same
             float terr = 0.;
-            magma_cgetmatrix( N, N, d_T, 0, N, h_T, 0, N, queue );
+            magma_cgetmatrix( N, N, d_T, 0, N, h_T, N, queue );
 
             for(int col=0; col<N; col++)
                 for(int row=0; row<=col; row++)

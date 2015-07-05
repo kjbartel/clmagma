@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from testing_zposv.cpp normal z -> c, Fri Jan 10 15:51:19 2014
+       @generated from testing_zposv.cpp normal z -> c, Sat Nov 15 00:21:40 2014
 */
 // includes, system
 #include <stdio.h>
@@ -24,6 +24,8 @@
 */
 int main( int argc, char** argv)
 {
+    TESTING_INIT();
+
     real_Double_t   gflops, cpu_perf, cpu_time, gpu_perf, gpu_time;
     float          error, Rnorm, Anorm, Xnorm, *work;
     magmaFloatComplex c_one     = MAGMA_C_ONE;
@@ -34,50 +36,25 @@ int main( int argc, char** argv)
     magma_int_t ISEED[4] = {0,0,0,1};
     magma_int_t status = 0;
     
-    /* Initialize */
-    magma_queue_t  queue[2];
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-    magma_init();
-
     magma_opts opts;
     parse_opts( argc, argv, &opts );
-
+    
     float tol = opts.tolerance * lapackf77_slamch("E");
-
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
-    }
-
-    // Create two queues on device opts.device
-    err = magma_queue_create( device[ opts.device ], &queue[0] );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-    err = magma_queue_create( device[ opts.device ], &queue[1] );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-
-    printf("ngpu %d, uplo %s\n", (int) opts.ngpu, lapack_uplo_const( opts.uplo ) );
+    
+    printf("ngpu = %d, uplo = %s\n", (int) opts.ngpu, lapack_uplo_const(opts.uplo) );
     printf("    N  NRHS   CPU Gflop/s (sec)   GPU GFlop/s (sec)   ||B - AX|| / N*||A||*||X||\n");
     printf("================================================================================\n");
-    for( int i = 0; i < opts.ntest; ++i ) {
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
         for( int iter = 0; iter < opts.niter; ++iter ) {
-            N   = opts.nsize[i];
+            N   = opts.nsize[itest];
             lda = ldb = N;
             gflops = ( FLOPS_CPOTRF( N ) + FLOPS_CPOTRS( N, opts.nrhs ) ) / 1e9;
             
             TESTING_MALLOC_CPU( h_A, magmaFloatComplex, lda*N         );
-            TESTING_MALLOC_PIN( h_R, magmaFloatComplex, lda*N         );
+            TESTING_MALLOC_CPU( h_R, magmaFloatComplex, lda*N         );
             TESTING_MALLOC_CPU( h_B, magmaFloatComplex, ldb*opts.nrhs );
             TESTING_MALLOC_CPU( h_X, magmaFloatComplex, ldb*opts.nrhs );
-            TESTING_MALLOC_CPU( work, float,            N             );
+            TESTING_MALLOC_CPU( work, float, N );
             
             /* ====================================================================
                Initialize the matrix
@@ -96,7 +73,7 @@ int main( int argc, char** argv)
                Performs operation using MAGMA
                =================================================================== */
             gpu_time = magma_wtime();
-            magma_cposv( opts.uplo, N, opts.nrhs, h_R, lda, h_X, ldb, &info, queue );
+            magma_cposv( opts.uplo, N, opts.nrhs, h_R, lda, h_X, ldb, opts.queues2, &info );
             gpu_time = magma_wtime() - gpu_time;
             gpu_perf = gflops / gpu_time;
             if (info != 0)
@@ -116,45 +93,42 @@ int main( int argc, char** argv)
             
             Rnorm = lapackf77_clange("I", &N, &opts.nrhs, h_B, &ldb, work);
             error = Rnorm/(N*Anorm*Xnorm);
-            status |= ! (error < tol);
+            status += ! (error < tol);
             
             /* ====================================================================
                Performs operation using LAPACK
                =================================================================== */
             if ( opts.lapack ) {
                 cpu_time = magma_wtime();
-                lapackf77_cposv( lapack_uplo_const(opts.uplo), &N, &opts.nrhs, 
-                                 h_A, &lda, h_B, &ldb, &info );
+                lapackf77_cposv( lapack_uplo_const(opts.uplo), &N, &opts.nrhs, h_A, &lda, h_B, &ldb, &info );
                 cpu_time = magma_wtime() - cpu_time;
                 cpu_perf = gflops / cpu_time;
                 if (info != 0)
                     printf("lapackf77_cposv returned error %d: %s.\n",
                            (int) info, magma_strerror( info ));
                 
-                printf( "%5d %5d   %7.2f (%7.2f)   %7.2f (%7.2f)   %8.2e%s\n",
+                printf( "%5d %5d   %7.2f (%7.2f)   %7.2f (%7.2f)   %8.2e   %s\n",
                         (int) N, (int) opts.nrhs, cpu_perf, cpu_time, gpu_perf, gpu_time,
-                        error, (error < tol ? "" : "  failed"));
+                        error, (error < tol ? "ok" : "failed"));
             }
             else {
-                printf( "%5d %5d     ---   (  ---  )   %7.2f (%7.2f)   %8.2e%s\n",
+                printf( "%5d %5d     ---   (  ---  )   %7.2f (%7.2f)   %8.2e   %s\n",
                         (int) N, (int) opts.nrhs, gpu_perf, gpu_time,
-                        error, (error < tol ? "" : "  failed"));
+                        error, (error < tol ? "ok" : "failed"));
             }
             
             TESTING_FREE_CPU( h_A );
-            TESTING_FREE_PIN( h_R );
+            TESTING_FREE_CPU( h_R );
             TESTING_FREE_CPU( h_B );
             TESTING_FREE_CPU( h_X );
             TESTING_FREE_CPU( work );
+            fflush( stdout );
         }
         if ( opts.niter > 1 ) {
             printf( "\n" );
         }
     }
 
-    magma_queue_destroy( queue[0] );
-    magma_queue_destroy( queue[1] );
-    magma_finalize();
-
+    TESTING_FINALIZE();
     return status;
 }

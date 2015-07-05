@@ -1,15 +1,13 @@
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
     @author Raffaele Solca
 
     @precisions normal d -> s
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
 #define Q(ix, iy) (q + (ix) + ldq * (iy))
@@ -26,18 +24,21 @@ extern "C" {
 }
 
 extern "C" magma_int_t
-magma_dlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
-             magma_int_t* indxq, double rho, magma_int_t cutpnt,
-             double* work, magma_int_t* iwork, magmaDouble_ptr dwork,
-             magma_vec_t range, double vl, double vu,
-             magma_int_t il, magma_int_t iu, magma_int_t* info, magma_queue_t queue)
+magma_dlaex1(
+    magma_int_t n, double* d, double* q, magma_int_t ldq,
+    magma_int_t* indxq, double rho, magma_int_t cutpnt,
+    double* work, magma_int_t* iwork, magmaDouble_ptr dwork,
+    magma_range_t range, double vl, double vu,
+    magma_int_t il, magma_int_t iu,
+    magma_queue_t queue,
+    magma_int_t* info)
 {
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
        .. Scalar Arguments ..
       CHARACTER          RANGE
@@ -51,38 +52,36 @@ magma_dlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
 
     Purpose
     =======
-
     DLAEX1 computes the updated eigensystem of a diagonal
     matrix after modification by a rank-one symmetric matrix.
 
       T = Q(in) ( D(in) + RHO * Z*Z' ) Q'(in) = Q(out) * D(out) * Q'(out)
 
-       where Z = Q'u, u is a vector of length N with ones in the
-       CUTPNT and CUTPNT + 1 th elements and zeros elsewhere.
+    where Z = Q'u, u is a vector of length N with ones in the
+    CUTPNT and CUTPNT + 1 th elements and zeros elsewhere.
 
-       The eigenvectors of the original matrix are stored in Q, and the
-       eigenvalues are in D.  The algorithm consists of three stages:
+    The eigenvectors of the original matrix are stored in Q, and the
+    eigenvalues are in D.  The algorithm consists of three stages:
 
-          The first stage consists of deflating the size of the problem
-          when there are multiple eigenvalues or if there is a zero in
-          the Z vector.  For each such occurence the dimension of the
-          secular equation problem is reduced by one.  This stage is
-          performed by the routine DLAED2.
-
-          The second stage consists of calculating the updated
-          eigenvalues. This is done by finding the roots of the secular
-          equation via the routine DLAED4 (as called by DLAED3).
-          This routine also calculates the eigenvectors of the current
-          problem.
-
-          The final stage consists of computing the updated eigenvectors
-          directly using the updated eigenvalues.  The eigenvectors for
-          the current problem are multiplied with the eigenvectors from
-          the overall problem.
+    The first stage consists of deflating the size of the problem
+    when there are multiple eigenvalues or if there is a zero in
+    the Z vector.  For each such occurence the dimension of the
+    secular equation problem is reduced by one.  This stage is
+    performed by the routine DLAED2.
+    
+    The second stage consists of calculating the updated
+    eigenvalues. This is done by finding the roots of the secular
+    equation via the routine DLAED4 (as called by DLAED3).
+    This routine also calculates the eigenvectors of the current
+    problem.
+    
+    The final stage consists of computing the updated eigenvectors
+    directly using the updated eigenvalues.  The eigenvectors for
+    the current problem are multiplied with the eigenvectors from
+    the overall problem.
 
     Arguments
     =========
-
     N      (input) INTEGER
            The dimension of the symmetric tridiagonal matrix.  N >= 0.
 
@@ -143,14 +142,13 @@ magma_dlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
 
     Further Details
     ===============
-
     Based on contributions by
        Jeff Rutter, Computer Science Division, University of California
        at Berkeley, USA
     Modified by Francoise Tisseur, University of Tennessee.
 
-    =====================================================================
-*/
+    ===================================================================== */
+
     magma_int_t coltyp, i, idlmda;
     magma_int_t indx, indxc, indxp;
     magma_int_t iq2, is, iw, iz, k, tmp;
@@ -213,7 +211,7 @@ magma_dlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
         magma_dlaex3(k, n, cutpnt, d, q, ldq, rho,
                      &work[idlmda], &work[iq2], &iwork[indxc],
                      &iwork[coltyp], &work[iw], &work[is],
-                     indxq, dwork, range, vl, vu, il, iu, info, queue );
+                     indxq, dwork, range, vl, vu, il, iu, queue, info );
         if( *info != 0 )
             return MAGMA_SUCCESS;
     }
@@ -223,5 +221,4 @@ magma_dlaex1(magma_int_t n, double* d, double* q, magma_int_t ldq,
     }
 
     return MAGMA_SUCCESS;
-
 } /* magma_dlaex1 */

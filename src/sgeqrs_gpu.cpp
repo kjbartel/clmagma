@@ -1,30 +1,30 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
+       @date November 2014
        
-       @date January 2014
-       
-       @generated from zgeqrs_gpu.cpp normal z -> s, Fri Jan 10 15:51:18 2014
-*/
+       @generated from zgeqrs_gpu.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 
-#include <stdio.h>
+*/
 #include "common_magma.h"
 
-extern "C" magma_err_t
-magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
-                 magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
-                 float *tau,   magmaFloat_ptr dT, size_t dT_offset,
-                 magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb,
-                 float *hwork, magma_int_t lwork,
-                 magma_int_t *info, magma_queue_t queue)
+extern "C" magma_int_t
+magma_sgeqrs_gpu(
+    magma_int_t m, magma_int_t n, magma_int_t nrhs,
+    magmaFloat_ptr dA, size_t dA_offset, magma_int_t ldda,
+    float *tau,   magmaFloat_ptr dT, size_t dT_offset,
+    magmaFloat_ptr dB, size_t dB_offset, magma_int_t lddb,
+    float *hwork, magma_int_t lwork,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
 /*  -- clMagma (version 0.1) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -75,9 +75,9 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
             On exit, if INFO = 0, WORK(1) returns the optimal LWORK.
 
     LWORK   (input) INTEGER
-            The dimension of the array WORK, LWORK >= max(1,NRHS).
-            For optimum performance LWORK >= (M-N+NB)*(NRHS + 2*NB), where
-            NB is the blocksize given by magma_get_sgeqrf_nb( M ).
+            The dimension of the array WORK,
+            LWORK >= (M - N + NB)*(NRHS + NB) + NRHS*NB,
+            where NB is the blocksize given by magma_get_sgeqrf_nb( M ).
 
             If LWORK = -1, then a workspace query is assumed; the routine
             only calculates the optimal size of the HWORK array, returns
@@ -99,8 +99,8 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
     magma_int_t ione = 1;
 
     magma_int_t nb     = magma_get_sgeqrf_nb(m);
-    magma_int_t lwkopt = (m-n+nb)*(nrhs+2*nb);
-    long int lquery = (lwork == -1);
+    magma_int_t lwkopt = (m - n + nb)*(nrhs + nb) + nrhs*nb;
+    int lquery = (lwork == -1);
 
     hwork[0] = MAGMA_S_MAKE( (float)lwkopt, 0. );
 
@@ -132,10 +132,10 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
     }
 
     /* B := Q' * B */
-    magma_sormqr_gpu( MagmaLeft, MagmaTrans,
+    magma_sormqr_gpu( MagmaLeft, MagmaConjTrans,
                       m, nrhs, n,
                       a_ref(0,0), ldda, tau,
-                      dB, dB_offset, lddb, hwork, lwork, dT, dT_offset, nb, info, queue );
+                      dB, dB_offset, lddb, hwork, lwork, dT, dT_offset, nb, queue, info );
     if ( *info != 0 ) {
         return *info;
     }
@@ -145,16 +145,14 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
 
     int ldtwork;
     size_t dwork_offset = 0;
-    if (nb < k)
-      {
+    if (nb < k) {
         dwork = dT;
         dwork_offset = dT_offset+2*lddwork*nb;
-      }
-    else
-      {
+    }
+    else {
         ldtwork = ( 2*k + ((n+31)/32)*32 )*nb;
         magma_smalloc( &dwork, ldtwork );
-      }
+    }
     // To do: Why did we have this line originally; seems to be a bug (Stan)?
     //dwork = dT;
 
@@ -162,6 +160,10 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
     ib   = n-i;
     rows = m-i;
 
+    // TODO: this assumes that, on exit from magma_sormqr_gpu, hwork contains
+    // the last block of A and B (i.e., C in sormqr). This should be fixed.
+    // Seems this data should already be on the GPU, so could switch to
+    // magma_strsm and drop the ssetmatrix.
     if ( nrhs == 1 ) {
         blasf77_strsv( MagmaUpperStr, MagmaNoTransStr, MagmaNonUnitStr,
                        &ib, hwork,         &rows,
@@ -174,7 +176,7 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
     }
       
     // update the solution vector
-    magma_ssetmatrix( ib, nrhs, hwork+rows*ib, 0, rows, dwork, dwork_offset+i, lddwork, queue );
+    magma_ssetmatrix( ib, nrhs, hwork+rows*ib, rows, dwork, dwork_offset+i, lddwork, queue );
 
     // update c
     if (nrhs == 1)
@@ -205,7 +207,8 @@ magma_sgeqrs_gpu(magma_int_t m, magma_int_t n, magma_int_t nrhs,
                                  c_neg_one, a_ref(0, i), ldda,
                                  dwork, dwork_offset+i,   1,
                                  c_one,     dB, dB_offset, 1, queue );
-                } else {
+                }
+                else {
                     magma_sgemm( MagmaNoTrans, MagmaNoTrans,
                                  ib, nrhs, ib,
                                  c_one,  d_ref(i), ib,

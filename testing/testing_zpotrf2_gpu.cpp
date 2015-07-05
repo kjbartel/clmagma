@@ -1,9 +1,9 @@
 /*
- *  -- clMAGMA (version 1.1.0) --
+ *  -- clMAGMA (version 1.3.0) --
  *     Univ. of Tennessee, Knoxville
  *     Univ. of California, Berkeley
  *     Univ. of Colorado, Denver
- *     @date January 2014
+ *     @date November 2014
  *
  * @precisions normal z -> c d s
  *
@@ -65,22 +65,22 @@ int main( int argc, char** argv)
     /* Initialize */
     magma_queue_t  queue1, queue2;
     magma_device_t device;
-    int num = 0;
-    magma_err_t err;
+    magma_int_t num = 0;
+    magma_int_t err;
     magma_init();
-    err = magma_get_devices( &device, 2, &num );
+    err = magma_getdevices( &device, 2, &num );
     if ( err != 0 or num < 1 ) {
-        fprintf( stderr, "magma_get_devices failed: %d\n", err );
+        fprintf( stderr, "magma_getdevices failed: %d\n", (int) err );
         exit(-1);
     }
     err = magma_queue_create( device, &queue1 );
     if ( err != 0 ) {
-        fprintf( stderr, "magma_queue_create failed: %d\n", err );
+        fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
         exit(-1);
     }
     err = magma_queue_create( device, &queue2 );
     if ( err != 0 ) {
-        fprintf( stderr, "magma_queue_create failed: %d\n", err );
+        fprintf( stderr, "magma_queue_create failed: %d\n", (int) err );
         exit(-1);
     }
 
@@ -108,7 +108,7 @@ int main( int argc, char** argv)
         lapackf77_zlarnv( &ione, ISEED, &n2, hA );
         /* Symmetrize and increase the diagonal */
         for( int i = 0; i < N; ++i ) {
-            MAGMA_Z_SET2REAL( hA(i,i), MAGMA_Z_REAL(hA(i,i)) + N );
+            hA(i,i) = MAGMA_Z_MAKE( MAGMA_Z_REAL(hA(i,i)) + N, 0 );
             for( int j = 0; j < i; ++j ) {
           hA(i, j) = MAGMA_Z_CNJG( hA(j,i) );
             }
@@ -116,16 +116,16 @@ int main( int argc, char** argv)
         lapackf77_zlacpy( MagmaFullStr, &N, &N, hA, &lda, hR, &lda );
 
         /* Warm up to measure the performance */
-        magma_zsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue1);
+        magma_zsetmatrix( N, N, hA, lda, dA, 0, ldda, queue1);
         clFinish(queue1);
-        magma_zpotrf2_gpu( MagmaLower, N, dA, 0, ldda, &info, queues );
+        magma_zpotrf2_gpu( MagmaLower, N, dA, 0, ldda, queues, &info );
         /* ====================================================================
            Performs operation using MAGMA 
            =================================================================== */
-        magma_zsetmatrix( N, N, hA, 0, lda, dA, 0, ldda, queue1 );
+        magma_zsetmatrix( N, N, hA, lda, dA, 0, ldda, queue1 );
         clFinish(queue1);
         gpu_time = magma_wtime();
-        magma_zpotrf2_gpu( MagmaLower, N, dA, 0, ldda, &info, queues );
+        magma_zpotrf2_gpu( MagmaLower, N, dA, 0, ldda, queues, &info );
         gpu_time = magma_wtime() - gpu_time;
         if (info != 0)
             printf( "magma_zpotrf2 had error %d.\n", info );
@@ -147,7 +147,7 @@ int main( int argc, char** argv)
            Check the result compared to LAPACK
            |R_magma - R_lapack| / |R_lapack|
            =================================================================== */
-        magma_zgetmatrix( N, N, dA, 0, ldda, hR, 0, lda, queue1 );
+        magma_zgetmatrix( N, N, dA, 0, ldda, hR, lda, queue1 );
         matnorm = lapackf77_zlange("f", &N, &N, hA, &lda, work);
         blasf77_zaxpy(&n2, &mz_one, hA, &ione, hR, &ione);
         diffnorm = lapackf77_zlange("f", &N, &N, hR, &lda, work);

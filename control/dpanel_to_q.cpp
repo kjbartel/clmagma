@@ -1,12 +1,12 @@
 /*
-    -- MAGMA (version 1.1.0) --
+    -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
        @author Mark Gates
-       @generated from zpanel_to_q.cpp normal z -> d, Fri Jan 10 15:51:17 2014
+       @generated from zpanel_to_q.cpp normal z -> d, Sat Nov 15 00:21:38 2014
 */
 #include "common_magma.h"
 
@@ -14,17 +14,17 @@
 // Put 0s in the upper triangular part of a panel and 1s on the diagonal.
 // Stores previous values in work array, to be restored later with dq_to_panel.
 extern "C"
-void dpanel_to_q(magma_uplo_t uplo, int ib, double *A, int lda, double *work)
+void dpanel_to_q(magma_uplo_t uplo, magma_int_t ib, double *A, magma_int_t lda, double *work)
 {
-    int i, j, k = 0;
+    magma_int_t i, j, k = 0;
     double *col;
     double c_zero = MAGMA_D_ZERO;
     double c_one  = MAGMA_D_ONE;
     
     if (uplo == MagmaUpper) {
-        for(i = 0; i < ib; ++i){
+        for(i = 0; i < ib; ++i) {
             col = A + i*lda;
-            for(j = 0; j < i; ++j){
+            for(j = 0; j < i; ++j) {
                 work[k] = col[j];
                 col [j] = c_zero;
                 ++k;
@@ -36,12 +36,12 @@ void dpanel_to_q(magma_uplo_t uplo, int ib, double *A, int lda, double *work)
         }
     }
     else {
-        for(i=0; i<ib; ++i){
+        for(i=0; i<ib; ++i) {
             col = A + i*lda;
             work[k] = col[i];
             col [i] = c_one;
             ++k;
-            for(j=i+1; j<ib; ++j){
+            for(j=i+1; j<ib; ++j) {
                 work[k] = col[j];
                 col [j] = c_zero;
                 ++k;
@@ -54,24 +54,24 @@ void dpanel_to_q(magma_uplo_t uplo, int ib, double *A, int lda, double *work)
 // -------------------------
 // Restores a panel, after call to dpanel_to_q.
 extern "C"
-void dq_to_panel(magma_uplo_t uplo, int ib, double *A, int lda, double *work)
+void dq_to_panel(magma_uplo_t uplo, magma_int_t ib, double *A, magma_int_t lda, double *work)
 {
-    int i, j, k = 0;
+    magma_int_t i, j, k = 0;
     double *col;
     
     if (uplo == MagmaUpper) {
-        for(i = 0; i < ib; ++i){
+        for(i = 0; i < ib; ++i) {
             col = A + i*lda;
-            for(j = 0; j <= i; ++j){
+            for(j = 0; j <= i; ++j) {
                 col[j] = work[k];
                 ++k;
             }
         }
     }
     else {
-        for(i = 0; i < ib; ++i){
+        for(i = 0; i < ib; ++i) {
             col = A + i*lda;
-            for(j = i; j < ib; ++j){
+            for(j = i; j < ib; ++j) {
                 col[j] = work[k];
                 ++k;
             }

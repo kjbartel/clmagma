@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from testing_zgeev.cpp normal z -> c, Fri Jan 10 15:51:20 2014
+       @generated from testing_zgeev.cpp normal z -> c, Sat Nov 15 00:21:40 2014
 
 */
 
@@ -15,400 +15,434 @@
 #include <string.h>
 #include <math.h>
 
+#include <algorithm>  // for sorting
+
 // includes, project
 #include "magma.h"
 #include "magma_lapack.h"
 #include "testings.h"
 
+#define PRECISION_c
+#define COMPLEX
+
+
+// comparison operator for sorting
+bool lessthan( magmaFloatComplex a, magmaFloatComplex b )
+{
+    return (MAGMA_C_REAL(a) < MAGMA_C_REAL(b)) ||
+        (MAGMA_C_REAL(a) == MAGMA_C_REAL(b) && MAGMA_C_IMAG(a) < MAGMA_C_IMAG(b));
+}
+
+// DLAPY2 returns sqrt(x**2+y**2), taking care not to cause unnecessary overflow.
+// TODO: put into auxiliary file. It's useful elsewhere.
+extern "C"
+float magma_dlapy2(float x, float y)
+{
+    float ret_val, d;
+    float w, z, xabs, yabs;
+    
+    xabs = MAGMA_D_ABS(x);
+    yabs = MAGMA_D_ABS(y);
+    w    = max(xabs, yabs);
+    z    = min(xabs, yabs);
+    if (z == 0.) {
+        ret_val = w;
+    } else {
+        d = z / w;
+        ret_val = w * sqrt(d * d + 1.);
+    }
+    return ret_val;
+}
+
+extern "C"
+float magma_dzlapy2(magmaFloatComplex x)
+{
+    return magma_dlapy2( MAGMA_C_REAL(x), MAGMA_C_IMAG(x) );
+}
+
+
 /* ////////////////////////////////////////////////////////////////////////////
    -- Testing cgeev
 */
-#define PRECISION_c
-
 int main( int argc, char** argv)
 {
-    real_Double_t gpu_time, cpu_time;
+    TESTING_INIT();
+
+    real_Double_t   gpu_time, cpu_time;
     magmaFloatComplex *h_A, *h_R, *VL, *VR, *h_work, *w1, *w2;
-    magmaFloatComplex *w1i, *w2i;
+    magmaFloatComplex *w1copy, *w2copy;
     magmaFloatComplex  c_neg_one = MAGMA_C_NEG_ONE;
-    float          *rwork;
-    float          matnorm, tnrm, result[8];
-
-    /* Matrix size */
-    magma_int_t N=0, n2, lda, nb, lwork;
-    magma_int_t size[8] = {1024,2048,3072,4032,5184,6016,7040,8064};
-
-    magma_int_t i, j, info, checkres, once = 0;
+    float *rwork;
+    float tnrm, result[9];
+    magma_int_t N, n2, lda, nb, lwork, info;
     magma_int_t ione     = 1;
     magma_int_t ISEED[4] = {0,0,0,1};
-
-    magma_vec_t jobl = MagmaVec;
-    magma_vec_t jobr = MagmaVec;
-
-    if (argc != 1){
-        for(i = 1; i<argc; i++){
-            if (strcmp("-N", argv[i])==0) {
-                N = atoi(argv[++i]);
-                once = 1;
-            }
-            else if (strcmp("-LN", argv[i])==0)
-                jobl = MagmaNoVec;
-            else if (strcmp("-LV", argv[i])==0)
-                jobl = MagmaVec;
-            else if (strcmp("-RN", argv[i])==0)
-                jobr = MagmaNoVec;
-            else if (strcmp("-RV", argv[i])==0)
-                jobr = MagmaVec;
-        }
-        if ( N > 0 )
-            printf("  testing_cgeev -L[N|V] -R[N|V] -N %d\n\n", (int) N);
-        else
-        {
-            printf("\nUsage: \n");
-            printf("  testing_cgeev -L[N|V] -R[N|V] -N %d\n\n", 1024);
-            exit(1);
-        }
-    }
-    else {
-        printf("\nUsage: \n");
-        printf("  testing_cgeev -L[N|V] -R[N|V] -N %d\n\n", 1024);
-        N = size[7];
-    }
-
-    checkres = getenv("MAGMA_TESTINGS_CHECK") != NULL;
-
-    lda   = N;
-    n2    = lda * N;
-    nb    = magma_get_cgehrd_nb(N);
-
-    lwork = N*(1+nb);
-
-    // generous workspace - required by cget22
-    lwork = max(lwork, N * ( 5 + 2*N));
-
-    w1i   = NULL;
-    w2i   = NULL;
-    rwork = NULL;
-
-    TESTING_MALLOC_CPU( w1,     magmaFloatComplex, N     );
-    TESTING_MALLOC_CPU( w2,     magmaFloatComplex, N     );
-    TESTING_MALLOC_CPU( rwork,  float,             2*N   );
-    TESTING_MALLOC_CPU( h_A,    magmaFloatComplex, n2    );
+    float ulp, ulpinv, error;
+    magma_int_t status = 0;
     
-    TESTING_MALLOC_PIN( h_R,    magmaFloatComplex, n2    );
-    TESTING_MALLOC_PIN( VL,     magmaFloatComplex, n2    );
-    TESTING_MALLOC_PIN( VR,     magmaFloatComplex, n2    );
-    TESTING_MALLOC_PIN( h_work, magmaFloatComplex, lwork );
+    ulp = lapackf77_slamch("P");
+    ulpinv = 1./ulp;
     
-    /* Initialize */
-    magma_queue_t  queue;
-    magma_device_t device[ MagmaMaxGPUs ];
-    int num = 0;
-    magma_err_t err;
-
-    magma_init();
-
-    err = magma_get_devices( device, MagmaMaxGPUs, &num );
-    if ( err != 0 || num < 1 ) {
-      fprintf( stderr, "magma_get_devices failed: %d\n", err );
-      exit(-1);
+    magma_opts opts;
+    parse_opts( argc, argv, &opts );
+    
+    // need slightly looser bound (60*eps instead of 30*eps) for some tests
+    opts.tolerance = max( 60., opts.tolerance );
+    float tol    = opts.tolerance * lapackf77_slamch("E");
+    float tolulp = opts.tolerance * lapackf77_slamch("P");
+    
+    // enable at least some minimal checks, if requested
+    if ( opts.check && !opts.lapack && opts.jobvl == MagmaNoVec && opts.jobvr == MagmaNoVec ) {
+        fprintf( stderr, "NOTE: Some checks require vectors to be computed;\n"
+                "      set jobvl=V (option -LV), or jobvr=V (option -RV), or both.\n"
+                "      Some checks require running lapack (-l); setting lapack.\n\n");
+        opts.lapack = true;
     }
-    err = magma_queue_create( device[0], &queue );
-    if ( err != 0 ) {
-      fprintf( stderr, "magma_queue_create failed: %d\n", err );
-      exit(-1);
-    }
-
-    printf("  N     CPU Time(s)    GPU Time(s)     ||R||_F / ||A||_F\n");
-    printf("==========================================================\n");
-    for(i=0; i<8; i++){
-        if ( argc == 1 ){
-            N = size[i];
-        }
-        
-        lda = N;
-        n2  = lda*N;
-
-        /* Initialize the matrix */
-        lapackf77_clarnv( &ione, ISEED, &n2, h_A );
-        lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-
-        /* ====================================================================
-           Performs operation using MAGMA
-           =================================================================== */
-        // warm-up
-        magma_cgeev(jobl, jobr,
-                    N, h_R, lda, w1,
-                    VL, lda, VR, lda,
-                    h_work, lwork, rwork, &info, queue);
-        
-        lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-        gpu_time = magma_wtime();
-        magma_cgeev(jobl, jobr,
-                    N, h_R, lda, w1,
-                    VL, lda, VR, lda,
-                    h_work, lwork, rwork, &info, queue);
-
-        gpu_time = magma_wtime() - gpu_time;
-        if (info < 0)
-            printf("Argument %d of magma_cgeev had an illegal value.\n", (int) -info);
-
-        /* =====================================================================
-           Performs operation using LAPACK
-           =================================================================== */
-        cpu_time = magma_wtime();
-        lapackf77_cgeev(lapack_const(jobl), lapack_const(jobr),
-                        &N, h_A, &lda, w2,
-                        VL, &lda, VR, &lda,
-                        h_work, &lwork, rwork, &info);
-
-        cpu_time = magma_wtime() - cpu_time;
-        if (info < 0)
-            printf("Argument %d of cgeev had an illegal value.\n", (int) -info);
-
-        /* =====================================================================
-           Check the result compared to LAPACK
-           =================================================================== */
-        if ( checkres )
-          {
-            /* ===================================================================
-               Check the result following LAPACK's [zcds]drvev routine.
-               The following 7 tests are performed:
-               *     (1)     | A * VR - VR * W | / ( n |A| )
-               *
-               *       Here VR is the matrix of unit right eigenvectors.
-               *       W is a diagonal matrix with diagonal entries W(j).
-               *
-               *     (2)     | A**H * VL - VL * W**H | / ( n |A| )
-               *
-               *       Here VL is the matrix of unit left eigenvectors, A**H is the
-               *       conjugate-transpose of A, and W is as above.
-               *
-               *     (3)     | |VR(i)| - 1 |   and whether largest component real
-               *
-               *       VR(i) denotes the i-th column of VR.
-               *
-               *     (4)     | |VL(i)| - 1 |   and whether largest component real
-               *
-               *       VL(i) denotes the i-th column of VL.
-               *
-               *     (5)     W(full) = W(partial)
-               *
-               *       W(full) denotes the eigenvalues computed when both VR and VL
-               *       are also computed, and W(partial) denotes the eigenvalues
-               *       computed when only W, only W and VR, or only W and VL are
-               *       computed.
-               *
-               *     (6)     VR(full) = VR(partial)
-               *
-               *       VR(full) denotes the right eigenvectors computed when both VR
-               *       and VL are computed, and VR(partial) denotes the result
-               *       when only VR is computed.
-               *
-               *     (7)     VL(full) = VL(partial)
-               *
-               *       VL(full) denotes the left eigenvectors computed when both VR
-               *       and VL are also computed, and VL(partial) denotes the result
-               *       when only VL is computed.
-               ================================================================= */
+    
+    printf("    N   CPU Time (sec)   GPU Time (sec)   |W_magma - W_lapack| / |W_lapack|\n");
+    printf("===========================================================================\n");
+    for( int itest = 0; itest < opts.ntest; ++itest ) {
+        for( int iter = 0; iter < opts.niter; ++iter ) {
+            N = opts.nsize[itest];
+            lda   = N;
+            n2    = lda*N;
+            nb    = magma_get_cgehrd_nb(N);
+            lwork = N*(1 + nb);
+            // generous workspace - required by cget22
+            lwork = max( lwork, N*(5 + 2*N) );
             
-            int jj;
-            float ulp, ulpinv, vmx, vrmx, vtst;
-
-            magmaFloatComplex *LRE, DUM;
-            TESTING_MALLOC_PIN( LRE, magmaFloatComplex, n2 );
-
-            ulp = lapackf77_slamch( "P" );
-            ulpinv = 1./ulp;
-
-            // Initialize RESULT
-            for (j = 0; j < 8; j++)
-              result[j] = -1.;
-
+            TESTING_MALLOC_CPU( w1copy, magmaFloatComplex, N );
+            TESTING_MALLOC_CPU( w2copy, magmaFloatComplex, N );
+            TESTING_MALLOC_CPU( w1,     magmaFloatComplex, N );
+            TESTING_MALLOC_CPU( w2,     magmaFloatComplex, N );
+            TESTING_MALLOC_CPU( rwork,  float, 2*N );
+            TESTING_MALLOC_CPU( h_A,    magmaFloatComplex, n2 );
+            
+            TESTING_MALLOC_PIN( h_R,    magmaFloatComplex, n2 );
+            TESTING_MALLOC_PIN( VL,     magmaFloatComplex, n2 );
+            TESTING_MALLOC_PIN( VR,     magmaFloatComplex, n2 );
+            TESTING_MALLOC_PIN( h_work, magmaFloatComplex, lwork );
+            
+            /* Initialize the matrix */
             lapackf77_clarnv( &ione, ISEED, &n2, h_A );
             lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-
-            magma_cgeev(MagmaVec, MagmaVec,
-                        N, h_R, lda, w1,
-                        VL, lda, VR, lda,
-                        h_work, lwork, rwork, &info, queue);
-
-            // Do test 1
-            lapackf77_cget22("N", "N", "N", &N, h_A, &lda, VR, &lda, w1,
-                             h_work, rwork, &result[0]);
-            result[0] *= ulp;
-
-            // Do test 2
-            lapackf77_cget22("C", "N", "C", &N, h_A, &lda, VL, &lda, w1,
-                             h_work, rwork, &result[1]);
-            result[1] *= ulp;
-
-            // Do test 3
-            result[2] = -1.;
-            for (j = 0; j < N; ++j) {
-              tnrm = cblas_scnrm2(N, &VR[j * lda], ione);
-              result[2] = fmax(result[2], fmin(ulpinv, fabs(tnrm-1.)/ulp));
-
-              vmx  = vrmx = 0.;
-              for (jj = 0; jj <N; ++jj) {
-                vtst = MAGMA_C_ABS(VR[jj + j * lda]);
-                if (vtst > vmx)
-                  vmx = vtst;
+            
+            /* ====================================================================
+               Performs operation using MAGMA
+               =================================================================== */
+            gpu_time = magma_wtime();
+            magma_cgeev( opts.jobvl, opts.jobvr,
+                         N, h_R, lda, w1,
+                         VL, lda, VR, lda,
+                         h_work, lwork, rwork, opts.queue, &info );
+            gpu_time = magma_wtime() - gpu_time;
+            if (info != 0)
+                printf("magma_cgeev returned error %d: %s.\n",
+                       (int) info, magma_strerror( info ));
+            
+            /* =====================================================================
+               Check the result
+               =================================================================== */
+            if ( opts.check ) {
+                /* ===================================================================
+                 * Check the result following LAPACK's [zcds]drvev routine.
+                 * The following tests are performed:
+                 * (1)   | A * VR - VR * W | / ( n |A| )
+                 *
+                 *       Here VR is the matrix of unit right eigenvectors.
+                 *       W is a diagonal matrix with diagonal entries W(j).
+                 *
+                 * (2)   | |VR(i)| - 1 |   and whether largest component real
+                 *
+                 *       VR(i) denotes the i-th column of VR.
+                 *
+                 * (3)   | A**H * VL - VL * W**H | / ( n |A| )
+                 *
+                 *       Here VL is the matrix of unit left eigenvectors, A**H is the
+                 *       conjugate-transpose of A, and W is as above.
+                 *
+                 * (4)   | |VL(i)| - 1 |   and whether largest component real
+                 *
+                 *       VL(i) denotes the i-th column of VL.
+                 *
+                 * (5)   W(full) = W(partial, W only) -- currently skipped
+                 * (6)   W(full) = W(partial, W and VR)
+                 * (7)   W(full) = W(partial, W and VL)
+                 *
+                 *       W(full) denotes the eigenvalues computed when both VR and VL
+                 *       are also computed, and W(partial) denotes the eigenvalues
+                 *       computed when only W, only W and VR, or only W and VL are
+                 *       computed.
+                 *
+                 * (8)   VR(full) = VR(partial, W and VR)
+                 *
+                 *       VR(full) denotes the right eigenvectors computed when both VR
+                 *       and VL are computed, and VR(partial) denotes the result
+                 *       when only VR is computed.
+                 *
+                 * (9)   VL(full) = VL(partial, W and VL)
+                 *
+                 *       VL(full) denotes the left eigenvectors computed when both VR
+                 *       and VL are also computed, and VL(partial) denotes the result
+                 *       when only VL is computed.
+                 *
+                 * (1, 2) only if jobvr = V
+                 * (3, 4) only if jobvl = V
+                 * (5-9)  only if check = 2 (option -c2)
+                 ================================================================= */
+                float vmx, vrmx, vtst;
                 
-                if (MAGMA_C_IMAG(VR[jj + j*lda])==0. &&
-                    fabs( MAGMA_C_REAL(VR[jj+j*lda]) ) > vrmx)
-                  vrmx = fabs( MAGMA_C_REAL( VR[jj+j*lda] ) );
-              }
-              if (vrmx / vmx < 1. - ulp * 2.)
-                result[2] = ulpinv;
+                // Initialize result. -1 indicates test was not run.
+                for( int j = 0; j < 9; ++j )
+                    result[j] = -1.;
+                
+                if ( opts.jobvr == MagmaVec ) {
+                    // Do test 1: | A * VR - VR * W | / ( n |A| )
+                    // Note this writes result[1] also
+                    lapackf77_cget22( MagmaNoTransStr, MagmaNoTransStr, MagmaNoTransStr,
+                                      &N, h_A, &lda, VR, &lda, w1,
+                                      h_work, rwork, &result[0] );
+                    result[0] *= ulp;
+                    
+                    // Do test 2: | |VR(i)| - 1 |   and whether largest component real
+                    result[1] = -1.;
+                    for( int j = 0; j < N; ++j ) {
+                        tnrm = magma_cblas_scnrm2( N, &VR[j*lda], ione );
+                        result[1] = max( result[1], min( ulpinv, fabs(tnrm-1.)/ulp ));
+                        
+                        vmx = vrmx = 0.;
+                        for( int jj = 0; jj <N; ++jj ) {
+                            vtst = magma_dzlapy2(VR[jj + j*lda]);
+                            if (vtst > vmx)
+                                vmx = vtst;
+                            
+                            if (MAGMA_C_IMAG(VR[jj + j*lda])==0. &&
+                                fabs( MAGMA_C_REAL(VR[jj+j*lda]) ) > vrmx)
+                            {
+                                vrmx = fabs( MAGMA_C_REAL( VR[jj+j*lda] ) );
+                            }
+                        }
+                        if (vrmx / vmx < 1. - ulp*2.)
+                            result[1] = ulpinv;
+                    }
+                    result[1] *= ulp;
+                }
+                
+                if ( opts.jobvl == MagmaVec ) {
+                    // Do test 3: | A**H * VL - VL * W**H | / ( n |A| )
+                    // Note this writes result[3] also
+                    lapackf77_cget22( MagmaConjTransStr, MagmaNoTransStr, MagmaConjTransStr,
+                                      &N, h_A, &lda, VL, &lda, w1,
+                                      h_work, rwork, &result[2] );
+                    result[2] *= ulp;
+                
+                    // Do test 4: | |VL(i)| - 1 |   and whether largest component real
+                    result[3] = -1.;
+                    for( int j = 0; j < N; ++j ) {
+                        tnrm = magma_cblas_scnrm2( N, &VL[j*lda], ione );
+                        result[3] = max( result[3], min( ulpinv, fabs(tnrm - 1.)/ ulp ));
+                        
+                        vmx = vrmx = 0.;
+                        for( int jj = 0; jj < N; ++jj ) {
+                            vtst = magma_dzlapy2(VL[jj + j*lda]);
+                            if (vtst > vmx)
+                                vmx = vtst;
+                            
+                            if (MAGMA_C_IMAG(VL[jj + j*lda])==0. &&
+                                fabs( MAGMA_C_REAL( VL[jj + j*lda] ) ) > vrmx)
+                            {
+                                vrmx = fabs( MAGMA_C_REAL( VL[jj+j*lda]) );
+                            }
+                        }
+                        if (vrmx / vmx < 1. - ulp*2.)
+                            result[3] = ulpinv;
+                    }
+                    result[3] *= ulp;
+                }
             }
-            result[2] *= ulp;
-
-            // Do test 4
-            result[3] = -1.;
-            for (j = 0; j < N; ++j) {
-              tnrm = cblas_scnrm2(N, &VL[j * lda], ione);
-              result[3] = fmax(result[3], fmin(ulpinv,fabs(tnrm - 1.)/ ulp));
-
-              vmx = vrmx = 0.;
-              for (jj = 0; jj < N; ++jj) {
-                vtst = MAGMA_C_ABS(VL[jj + j * lda]);
-                if (vtst > vmx)
-                  vmx = vtst;
-               
-                if (MAGMA_C_IMAG(VL[jj + j*lda])==0. &&
-                    fabs( MAGMA_C_REAL( VL[jj + j*lda] ) ) > vrmx)
-                  vrmx = fabs( MAGMA_C_REAL( VL[jj+j*lda]) );
-              }
-              if (vrmx / vmx < 1. - ulp * 2.)
-                result[3] = ulpinv;
+            if ( opts.check == 2 ) {
+                // more extensive tests
+                // this is really slow because it calls magma_cgeev multiple times
+                magmaFloatComplex *LRE, DUM;
+                TESTING_MALLOC_PIN( LRE, magmaFloatComplex, n2 );
+                
+                lapackf77_clarnv( &ione, ISEED, &n2, h_A );
+                lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+                
+                // ----------
+                // Compute eigenvalues, left and right eigenvectors
+                magma_cgeev( MagmaVec, MagmaVec,
+                             N, h_R, lda, w1,
+                             VL, lda, VR, lda,
+                             h_work, lwork, rwork, opts.queue, &info );
+                if (info != 0)
+                    printf("magma_cgeev (case V, V) returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                // ----------
+                // Compute eigenvalues only
+                // These are not exactly equal, and not in the same order, so skip for now.
+                // lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+                // magma_cgeev( MagmaNoVec, MagmaNoVec,
+                //              N, h_R, lda, w2,
+                //              &DUM, 1, &DUM, 1,
+                //              h_work, lwork, rwork, opts.queue, &info );
+                // if (info != 0)
+                //     printf("magma_cgeev (case N, N) returned error %d: %s.\n",
+                //            (int) info, magma_strerror( info ));
+                // 
+                // // Do test 5: W(full) = W(partial, W only)
+                // result[4] = 1;
+                // for( int j = 0; j < N; ++j )
+                //     if ( ! MAGMA_C_EQUAL( w1[j], w2[j] ))
+                //         result[4] = 0;
+                
+                // ----------
+                // Compute eigenvalues and right eigenvectors
+                lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+                magma_cgeev( MagmaNoVec, MagmaVec,
+                             N, h_R, lda, w2,
+                             &DUM, 1, LRE, lda,
+                             h_work, lwork, rwork, opts.queue, &info );
+                if (info != 0)
+                    printf("magma_cgeev (case N, V) returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                // Do test 6: W(full) = W(partial, W and VR)
+                result[5] = 1;
+                for( int j = 0; j < N; ++j )
+                    if ( ! MAGMA_C_EQUAL( w1[j], w2[j] ))
+                        result[5] = 0;
+                
+                // Do test 8: VR(full) = VR(partial, W and VR)
+                result[7] = 1;
+                for( int j = 0; j < N; ++j )
+                    for( int jj = 0; jj < N; ++jj )
+                        if ( ! MAGMA_C_EQUAL( VR[j+jj*lda], LRE[j+jj*lda] ))
+                            result[7] = 0;
+                
+                // ----------
+                // Compute eigenvalues and left eigenvectors
+                lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
+                magma_cgeev( MagmaVec, MagmaNoVec,
+                             N, h_R, lda, w2,
+                             LRE, lda, &DUM, 1,
+                             h_work, lwork, rwork, opts.queue, &info );
+                if (info != 0)
+                    printf("magma_cgeev (case V, N) returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                // Do test 7: W(full) = W(partial, W and VL)
+                result[6] = 1;
+                for( int j = 0; j < N; ++j )
+                    if ( ! MAGMA_C_EQUAL( w1[j], w2[j] ))
+                        result[6] = 0;
+                
+                // Do test 9: VL(full) = VL(partial, W and VL)
+                result[8] = 1;
+                for( int j = 0; j < N; ++j )
+                    for( int jj = 0; jj < N; ++jj )
+                        if ( ! MAGMA_C_EQUAL( VL[j+jj*lda], LRE[j+jj*lda] ))
+                            result[8] = 0;
+                
+                TESTING_FREE_PIN( LRE );
             }
-            result[3] *= ulp;
-
-            // Compute eigenvalues only, and test them
-            lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-            magma_cgeev(MagmaNoVec, MagmaNoVec,
-                        N, h_R, lda, w2,
-                        &DUM, 1, &DUM, 1,
-                        h_work, lwork, rwork, &info, queue);
-
-            if (info != 0) {
-              result[0] = ulpinv;
-             
-              info = abs(info);
-              printf("Info = %d fo case N, N\n", (int) info);
+            
+            /* =====================================================================
+               Performs operation using LAPACK
+               Do this after checks, because it overwrites VL and VR.
+               =================================================================== */
+            if ( opts.lapack ) {
+                cpu_time = magma_wtime();
+                lapackf77_cgeev( lapack_vec_const(opts.jobvl), lapack_vec_const(opts.jobvr),
+                                 &N, h_A, &lda, w2,
+                                 VL, &lda, VR, &lda,
+                                 h_work, &lwork, rwork, &info );
+                cpu_time = magma_wtime() - cpu_time;
+                if (info != 0)
+                    printf("lapackf77_cgeev returned error %d: %s.\n",
+                           (int) info, magma_strerror( info ));
+                
+                // check | W_magma - W_lapack | / | W |
+                // need to sort eigenvalues first
+                blasf77_ccopy( &N, w1, &ione, w1copy, &ione );
+                blasf77_ccopy( &N, w2, &ione, w2copy, &ione );
+                std::sort( w1copy, &w1copy[N], lessthan );
+                std::sort( w2copy, &w2copy[N], lessthan );
+                
+                // adjust sorting to deal with numerical inaccuracy
+                // search down w2 for eigenvalue that matches w1's eigenvalue
+                for( int j=0; j < N; ++j ) {
+                    for( int j2=j; j2 < N; ++j2 ) {
+                        magmaFloatComplex diff = MAGMA_C_SUB( w1copy[j], w2copy[j2] );
+                        float diff2 = magma_dzlapy2( diff ) / max( magma_dzlapy2( w1copy[j] ), tol );
+                        if ( diff2 < 100*tol ) {
+                            if ( j != j2 ) {
+                                std::swap( w2copy[j], w2copy[j2] );
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                blasf77_caxpy( &N, &c_neg_one, w2copy, &ione, w1copy, &ione );
+                error  = magma_cblas_scnrm2( N, w1copy, 1 );
+                error /= magma_cblas_scnrm2( N, w2copy, 1 );
+                
+                printf("%5d   %7.2f          %7.2f          %8.2e   %s\n",
+                       (int) N, cpu_time, gpu_time,
+                       error, (error < tolulp ? "ok" : "failed"));
+                status += ! (error < tolulp);
             }
-
-            // Do test 5
-            result[4] = 1;
-            for (j = 0; j < N; ++j)
-              if ( MAGMA_C_REAL( w1[j] ) != MAGMA_C_REAL(w2[j]) ||
-                   MAGMA_C_IMAG( w1[j] ) != MAGMA_C_IMAG(w2[j]) )
-                result[4] = 0;
-            //if (result[4] == 0) printf("test 5 failed with N N\n");
-
-            // Compute eigenvalues and right eigenvectors, and test them
-            lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-            magma_cgeev(MagmaNoVec, MagmaVec,
-                        N, h_R, lda, w2,
-                        &DUM, 1, LRE, lda,
-                        h_work, lwork, rwork, &info, queue);
-
-            if (info != 0) {
-              result[0] = ulpinv;
-
-              info = abs(info);
-              printf("Info = %d fo case N, V\n", (int) info);
+            else {
+                printf("%5d     ---            %7.2f\n",
+                       (int) N, gpu_time);
             }
-
-            // Do test 5 again
-            result[4] = 1;
-            for (j = 0; j < N; ++j)
-              if ( MAGMA_C_REAL( w1[j] ) != MAGMA_C_REAL(w2[j]) ||
-                   MAGMA_C_IMAG( w1[j] ) != MAGMA_C_IMAG(w2[j]) )
-                result[4] = 0;
-            //if (result[4] == 0) printf("test 5 failed with N V\n");
-
-            // Do test 6
-            result[5] = 1;
-            for (j = 0; j < N; ++j)
-              for (jj = 0; jj < N; ++jj)
-                if ( MAGMA_C_REAL( VR[j+jj*lda] ) != MAGMA_C_REAL( LRE[j+jj*lda] ) ||
-                     MAGMA_C_IMAG( VR[j+jj*lda] ) != MAGMA_C_IMAG( LRE[j+jj*lda] ) )
-                result[5] = 0;
- 
-
-            // Compute eigenvalues and left eigenvectors, and test them
-            lapackf77_clacpy( MagmaUpperLowerStr, &N, &N, h_A, &lda, h_R, &lda );
-            magma_cgeev(MagmaVec, MagmaNoVec,
-                        N, h_R, lda, w2,
-                        LRE, lda, &DUM, 1,
-                        h_work, lwork, rwork, &info, queue);
-
-            if (info != 0) {
-              result[0] = ulpinv;
-
-              info = abs(info);
-              printf("Info = %d fo case V, N\n", (int) info);
+            if ( opts.check ) {
+                // -1 indicates test was not run
+                if ( result[0] != -1 ) { printf("        | A * VR - VR * W | / ( n |A| ) = %8.2e   %s\n", result[0], (result[0] < tol ? "ok" : "failed")); }
+                if ( result[1] != -1 ) { printf("        |  |VR(i)| - 1    |             = %8.2e   %s\n", result[1], (result[1] < tol ? "ok" : "failed")); }
+                if ( result[2] != -1 ) { printf("        | A'* VL - VL * W'| / ( n |A| ) = %8.2e   %s\n", result[2], (result[2] < tol ? "ok" : "failed")); }
+                if ( result[3] != -1 ) { printf("        |  |VL(i)| - 1    |             = %8.2e   %s\n", result[3], (result[3] < tol ? "ok" : "failed")); }
+                if ( result[4] != -1 ) { printf("        W  (full) == W  (partial, W only)           %s\n",         (result[4] == 1. ? "ok" : "failed")); }
+                if ( result[5] != -1 ) { printf("        W  (full) == W  (partial, W and VR)         %s\n",         (result[5] == 1. ? "ok" : "failed")); }
+                if ( result[6] != -1 ) { printf("        W  (full) == W  (partial, W and VL)         %s\n",         (result[6] == 1. ? "ok" : "failed")); }
+                if ( result[7] != -1 ) { printf("        VR (full) == VR (partial, W and VR)         %s\n",         (result[7] == 1. ? "ok" : "failed")); }
+                if ( result[8] != -1 ) { printf("        VL (full) == VL (partial, W and VL)         %s\n",         (result[8] == 1. ? "ok" : "failed")); }
+                
+                int newline = 0;
+                if ( result[0] != -1 ) { status += ! (result[0] < tol);  newline = 1; }
+                if ( result[1] != -1 ) { status += ! (result[1] < tol);  newline = 1; }
+                if ( result[2] != -1 ) { status += ! (result[2] < tol);  newline = 1; }
+                if ( result[3] != -1 ) { status += ! (result[3] < tol);  newline = 1; }
+                if ( result[4] != -1 ) { status += ! (result[4] == 1.);  newline = 1; }
+                if ( result[5] != -1 ) { status += ! (result[5] == 1.);  newline = 1; }
+                if ( result[6] != -1 ) { status += ! (result[6] == 1.);  newline = 1; }
+                if ( result[7] != -1 ) { status += ! (result[7] == 1.);  newline = 1; }
+                if ( result[8] != -1 ) { status += ! (result[8] == 1.);  newline = 1; }
+                if ( newline ) {
+                    printf( "\n" );
+                }
             }
-
-            // Do test 5 again
-            result[4] = 1;
-            for (j = 0; j < N; ++j)
-              if ( MAGMA_C_REAL( w1[j] ) != MAGMA_C_REAL(w2[j]) ||
-                   MAGMA_C_IMAG( w1[j] ) != MAGMA_C_IMAG(w2[j]) )
-                result[4] = 0;
-            //if (result[4] == 0) printf("test 5 failed with V N\n");
-
-            // Do test 7
-            result[6] = 1;
-            for (j = 0; j < N; ++j)
-              for (jj = 0; jj < N; ++jj)
-                if ( MAGMA_C_REAL( VL[j+jj*lda] ) != MAGMA_C_REAL( LRE[j+jj*lda] ) ||
-                     MAGMA_C_IMAG( VL[j+jj*lda] ) != MAGMA_C_IMAG( LRE[j+jj*lda] ) )
-                  result[6] = 0;
-
-            printf("Test 1: | A * VR - VR * W | / ( n |A| ) = %e\n", result[0]);
-            printf("Test 2: | A'* VL - VL * W'| / ( n |A| ) = %e\n", result[1]);
-            printf("Test 3: |  |VR(i)| - 1    |             = %e\n", result[2]);
-            printf("Test 4: |  |VL(i)| - 1    |             = %e\n", result[3]);
-            printf("Test 5:   W (full)  ==  W (partial)     = %f\n", result[4]);
-            printf("Test 6:  VR (full)  == VR (partial)     = %f\n", result[5]);
-            printf("Test 7:  VL (full)  == VL (partial)     = %f\n", result[6]);
-
-            //====================================================================
-
-            matnorm = lapackf77_clange("f", &N, &ione, w1, &N, rwork);
-            blasf77_caxpy(&N, &c_neg_one, w1, &ione, w2, &ione);
-
-            result[7] = lapackf77_clange("f", &N, &ione, w2, &N, rwork) / matnorm;
-
-            printf("%5d     %6.2f         %6.2f         %e\n",
-                   (int) N, cpu_time, gpu_time, result[7]);
-
-            TESTING_FREE_PIN( LRE );
-          }
-        else
-          {
-            printf("%5d     %6.2f         %6.2f\n",
-                   (int) N, cpu_time, gpu_time);
-          }
-
-        if (argc != 1)
-            break;
+            
+            TESTING_FREE_CPU( w1copy );
+            TESTING_FREE_CPU( w2copy );
+            TESTING_FREE_CPU( w1     );
+            TESTING_FREE_CPU( w2     );
+            TESTING_FREE_CPU( rwork  );
+            TESTING_FREE_CPU( h_A    );
+            
+            TESTING_FREE_PIN( h_R    );
+            TESTING_FREE_PIN( VL     );
+            TESTING_FREE_PIN( VR     );
+            TESTING_FREE_PIN( h_work );
+            fflush( stdout );
+        }
+        if ( opts.niter > 1 ) {
+            printf( "\n" );
+        }
     }
 
-    /* Memory clean up */
-    TESTING_FREE_CPU( w1 );
-    TESTING_FREE_CPU( w2 );
-    TESTING_FREE_CPU( rwork );
-    TESTING_FREE_CPU( h_A );
-    TESTING_FREE_PIN( h_R );
-    TESTING_FREE_PIN( VL  );
-    TESTING_FREE_PIN( VR  );
-    TESTING_FREE_PIN( h_work );
-
-    /* Shutdown */
-    magma_queue_destroy( queue );
-    magma_finalize();
+    TESTING_FINALIZE();
+    return status;
 }

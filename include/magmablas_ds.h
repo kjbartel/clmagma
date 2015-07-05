@@ -1,15 +1,15 @@
 /*
-    -- MAGMA (version 1.1.0) --
+    -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       November 2011
+       @date November 2014
 
-       @generated from magmablas_zc.h mixed zc -> ds, Fri Jan 10 15:51:16 2014
+       @generated from magmablas_zc.h mixed zc -> ds, Sat Nov 15 00:21:34 2014
 */
 
-#ifndef MAGMA_BLAS_DS_H
-#define MAGMA_BLAS_DS_H
+#ifndef MAGMABLAS_DS_H
+#define MAGMABLAS_DS_H
 
 #include "magma_types.h"
 
@@ -18,26 +18,66 @@ extern "C" {
 #endif
 
   /* Mixed precision */
+void
+magmablas_dsaxpycp(
+    magma_int_t m,
+    magmaFloat_ptr  r, size_t r_offset,
+    magmaDouble_ptr x, size_t x_offset,
+    magmaDouble_const_ptr b, size_t b_offset,
+    magmaDouble_ptr w, size_t w_offset,
+    magma_queue_t queue );
 
-magma_err_t
-magmablas_dlag2s( magma_int_t M, magma_int_t N , 
-                  magmaDouble_ptr A, size_t A_offset,
-                  magma_int_t lda, 
-                  magmaFloat_ptr SA, size_t SA_offset, 
-                  magma_int_t ldsa, 
-                  magma_int_t *info, magma_queue_t queue );
+void
+magmablas_daxpycp(
+    magma_int_t m,
+    magmaDouble_ptr r, size_t r_offset,
+    magmaDouble_ptr x, size_t x_offset,
+    magmaDouble_const_ptr b, size_t b_offset,
+    magma_queue_t queue );
 
-magma_err_t
-magmablas_slag2d( magma_int_t m, magma_int_t n , 
-                  magmaDouble_ptr SA, size_t SA_offset,
-                  magma_int_t ldsa, 
-                  magmaFloat_ptr A, size_t A_offset, 
-                  magma_int_t lda, 
-                  magma_int_t *info, magma_queue_t queue ) ;
+    // TODO add ldsa                                                                                                           
+void
+magmablas_dslaswp(
+    magma_int_t n,
+    magmaDouble_ptr  A, size_t A_offset, magma_int_t lda,
+    magmaFloat_ptr  SA, size_t SA_offset,
+    magma_int_t m, const magma_int_t *ipiv, magma_int_t incx,
+    magma_queue_t queue );
 
+void
+magmablas_dlag2s(
+    magma_int_t m, magma_int_t n,
+    magmaDouble_const_ptr  A, size_t  A_offset, magma_int_t lda,
+    magmaFloat_ptr        SA, size_t SA_offset, magma_int_t ldsa,
+    magma_queue_t queue,
+    magma_int_t *info );
+
+void
+magmablas_slag2d(
+    magma_int_t m, magma_int_t n,
+    magmaFloat_const_ptr  SA, size_t SA_offset, magma_int_t ldsa,
+    magmaDouble_ptr        A, size_t  A_offset, magma_int_t lda,
+    magma_queue_t queue,
+    magma_int_t *info ) ;
+
+void
+magmablas_dlat2s(
+    magma_uplo_t uplo, magma_int_t n,
+    magmaDouble_const_ptr  A, size_t  A_offset, magma_int_t lda,
+    magmaFloat_ptr        SA, size_t SA_offset, magma_int_t ldsa,
+    magma_queue_t queue,
+    magma_int_t *info );
+
+void
+magmablas_slat2d(
+    magma_uplo_t uplo, magma_int_t n,
+    magmaFloat_const_ptr  SA ,size_t SA_offset, magma_int_t ldsa,
+    magmaDouble_ptr        A, size_t  A_offset, magma_int_t lda,
+    magma_queue_t queue,
+    magma_int_t *info );
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MAGMA_BLAS_DS_H */
+#endif /* MAGMABLAS_DS_H */

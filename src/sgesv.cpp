@@ -1,28 +1,29 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zgesv.cpp normal z -> s, Fri Jan 10 15:51:18 2014
+       @generated from zgesv.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 
 */
 #include "common_magma.h"
 
-extern "C" magma_err_t
-magma_sgesv(     magma_int_t n, magma_int_t nrhs,
-                 float *A, magma_int_t lda,
-                 magma_int_t *ipiv,
-                 float *B, magma_int_t ldb,
-                 magma_int_t *info,
-                 magma_queue_t *queue )
+extern "C" magma_int_t
+magma_sgesv(
+    magma_int_t n, magma_int_t nrhs,
+    float *A, magma_int_t lda,
+    magma_int_t *ipiv,
+    float *B, magma_int_t ldb,
+    magma_queue_t *queue,
+    magma_int_t *info )
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -106,18 +107,18 @@ magma_sgesv(     magma_int_t n, magma_int_t nrhs,
         magma_free( dA );
         goto CPU_INTERFACE;
     }
-    magma_ssetmatrix( n, n, A, 0, lda, dA, 0, ldda, queue[0] );
-    magma_sgetrf2_gpu( n, n, dA, 0, ldda, ipiv, info, queue );
+    magma_ssetmatrix( n, n, A, lda, dA, 0, ldda, queue[0] );
+    magma_sgetrf2_gpu( n, n, dA, 0, ldda, ipiv, queue, info );
     if ( *info == MAGMA_ERR_DEVICE_ALLOC ) {
         magma_free( dA );
         magma_free( dB );
         goto CPU_INTERFACE;
     }
-    magma_sgetmatrix( n, n, dA, 0, ldda, A, 0, lda, queue[0] );
+    magma_sgetmatrix( n, n, dA, 0, ldda, A, lda, queue[0] );
     if ( *info == 0 ) {
-        magma_ssetmatrix( n, nrhs, B, 0, ldb, dB, 0, lddb, queue[0] );
-        magma_sgetrs_gpu( MagmaNoTrans, n, nrhs, dA, 0, ldda, ipiv, dB, 0, lddb, info, queue[0]);
-        magma_sgetmatrix( n, nrhs, dB, 0, lddb, B, 0, ldb, queue[0]);
+        magma_ssetmatrix( n, nrhs, B, ldb, dB, 0, lddb, queue[0] );
+        magma_sgetrs_gpu( MagmaNoTrans, n, nrhs, dA, 0, ldda, ipiv, dB, 0, lddb, queue[0], info);
+        magma_sgetmatrix( n, nrhs, dB, 0, lddb, B, ldb, queue[0]);
     }
     magma_free( dA );
     magma_free( dB );
@@ -126,10 +127,9 @@ magma_sgesv(     magma_int_t n, magma_int_t nrhs,
 CPU_INTERFACE:
     /* If multi-GPU or allocation failed, use CPU interface and LAPACK.
      * Faster to use LAPACK for getrs than to copy A to GPU. */
-    magma_sgetrf( n, n, A, lda, ipiv, info, queue );
+    magma_sgetrf( n, n, A, lda, ipiv, queue, info );
     if ( *info == 0 ) {
-       lapackf77_sgetrs( lapack_const(MagmaNoTrans), &n, &nrhs, 
-                         A, &lda, ipiv, B, &ldb, info );
+        lapackf77_sgetrs( MagmaNoTransStr, &n, &nrhs, A, &lda, ipiv, B, &ldb, info );
     }
     return *info;
 }

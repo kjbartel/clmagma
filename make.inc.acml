@@ -1,19 +1,18 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- MAGMA (version 1.1.0) --
+#   -- MAGMA (version 1.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of	Colorado, Denver
-#      @date January 2014
+#      @date November 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 # setenv AMD_CLBLAS_STORAGE_PATH /home/tomov/cl_magma
+
+# GPU_TARGET specifies for which GPUs you want to compile MAGMA.
+# In clMAGMA, only AMD is supported, and is the default.
+#     AMD - clMAGMA with OpenCL on AMD cards
 #
-# GPU_TARGET specifies for which GPU you want to compile MAGMA:
-#     "Tesla" (NVIDIA compute capability 1.x cards)
-#     "Fermi" (NVIDIA compute capability 2.x cards)
-#     "AMD"   (clMAGMA with AMD cards)
-# See http://developer.nvidia.com/cuda-gpus
-GPU_TARGET = AMD
+#GPU_TARGET ?= AMD
 
 CC        = g++
 FORT      = gfortran
@@ -29,14 +28,14 @@ LDOPTS    = -fPIC
 
 # define library directories preferably in your environment, or here.
 #ACMLDIR ?= /opt/acml-4.4.0
-#clBLAS  ?= /opt/clAmdBlas-1.11.314
+#clBLAS  ?= /opt/clBLAS
 #AMDAPP  ?= /opt/AMDAPP
 -include make.check-acml
 -include make.check-clblas
 
 #LIB       = -lacml -lacml_mv
 LIB        = -lacml_mp -lacml_mv -lcblas
-LIB       += -lclAmdBlas -lOpenCL
+LIB       += -lclBLAS -lOpenCL
 
 LIBDIR    = -L$(ACMLDIR)/gfortran64/lib    \
             -L$(ACMLDIR)/gfortran64_mp/lib \

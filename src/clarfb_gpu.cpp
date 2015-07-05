@@ -1,30 +1,29 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zlarfb_gpu.cpp normal z -> c, Fri Jan 10 15:51:18 2014
+       @generated from zlarfb_gpu.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-magma_err_t
-magma_clarfb_gpu( int side, int trans, int direct, int storev,
-                  magma_int_t m, magma_int_t n, magma_int_t k,
-                  magmaFloatComplex_ptr dV, size_t dV_offset,   magma_int_t ldv,
-                  magmaFloatComplex_ptr dT, size_t dT_offset,   magma_int_t ldt,
-                  magmaFloatComplex_ptr dC, size_t dC_offset,   magma_int_t ldc,
-                  magmaFloatComplex_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
-                  magma_queue_t queue)
+extern "C" magma_int_t
+magma_clarfb_gpu(
+    magma_side_t side, magma_trans_t trans, magma_direct_t direct, magma_storev_t storev,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    magmaFloatComplex_ptr dV, size_t dV_offset,   magma_int_t ldv,
+    magmaFloatComplex_ptr dT, size_t dT_offset,   magma_int_t ldt,
+    magmaFloatComplex_ptr dC, size_t dC_offset,   magma_int_t ldc,
+    magmaFloatComplex_ptr dwork, size_t dwork_offset, magma_int_t ldwork,
+    magma_queue_t queue)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -106,7 +105,7 @@ magma_clarfb_gpu( int side, int trans, int direct, int storev,
         return MAGMA_SUCCESS;
     }
 
-    magma_int_t transt;
+    magma_trans_t transt;
     if (trans == MagmaNoTrans)
       transt = MagmaConjTrans;
     else

@@ -1,40 +1,40 @@
 /*
-   -- clMAGMA (version 1.1.0) --
+   -- clMAGMA (version 1.3.0) --
       Univ. of Tennessee, Knoxville
       Univ. of California, Berkeley
       Univ. of Colorado, Denver
-      @date January 2014
+      @date November 2014
 
       @author Raffaele Solca
  
       @precisions normal z -> c
        
 */
-
-#include <stdio.h>
 #include "common_magma.h"
 
-extern "C"{
+extern "C" {
     magma_int_t get_zstedx_smlsize()
     {
         return 25;
     }
-}
+}  // end extern "C"
 
 extern "C" magma_int_t
-magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
-             magma_int_t il, magma_int_t iu, double* d, double* e,
-             magmaDoubleComplex* z, magma_int_t ldz,
-             double* rwork, magma_int_t lrwork,
-             magma_int_t* iwork, magma_int_t liwork,
-             magmaDouble_ptr dwork, magma_int_t* info, magma_queue_t queue)
+magma_zstedx(
+    magma_range_t range, magma_int_t n, double vl, double vu,
+    magma_int_t il, magma_int_t iu, double* d, double* e,
+    magmaDoubleComplex* z, magma_int_t ldz,
+    double* rwork, magma_int_t lrwork,
+    magma_int_t* iwork, magma_int_t liwork,
+    magmaDouble_ptr dwork,
+    magma_queue_t queue,
+    magma_int_t* info)
 {
-/*
-    -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
     Univ. of Tennessee, Knoxville
     Univ. of California, Berkeley
     Univ. of Colorado, Denver
-    @date January 2014
+    @date November 2014
 
        .. Scalar Arguments ..
       CHARACTER          RANGE
@@ -49,7 +49,6 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
 
     Purpose
     =======
-
     ZSTEDX computes some eigenvalues and eigenvectors of a
     symmetric tridiagonal matrix using the divide and conquer method.
 
@@ -62,7 +61,6 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
 
     Arguments
     =========
-
     RANGE   (input) CHARACTER*1
             = 'A': all eigenvalues will be found.
             = 'V': all eigenvalues in the half-open interval (VL,VU]
@@ -105,7 +103,7 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
 
     LRWORK  (input) INTEGER
             The dimension of the array RWORK.
-            LRWORK must be at least 1 + 4*N + 2*N**2.
+            LRWORK >= 1 + 4*N + 2*N**2.
             Note that if N is less than or
             equal to the minimum divide size, usually 25, then LRWORK
             need only be max(1,2*(N-1)).
@@ -121,7 +119,7 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
 
     LIWORK  (input) INTEGER
             The dimension of the array IWORK.
-            LIWORK must be at least 3 + 5*N .
+            LIWORK >= 3 + 5*N .
             Note that if N is less than or
             equal to the minimum divide size, usually 25, then LIWORK
             need only be 1.
@@ -143,22 +141,19 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
 
     Further Details
     ===============
-
     Based on contributions by
        Jeff Rutter, Computer Science Division, University of California
        at Berkeley, USA
 
-    =====================================================================
-*/
-    magma_vec_t range_ = range;
+    ===================================================================== */
 
     magma_int_t alleig, indeig, valeig, lquery;
     magma_int_t i, j, smlsiz;
     magma_int_t liwmin, lrwmin;
 
-    alleig = lapackf77_lsame(lapack_const(range_), "A");
-    valeig = lapackf77_lsame(lapack_const(range_), "V");
-    indeig = lapackf77_lsame(lapack_const(range_), "I");
+    alleig = (range == MagmaRangeAll);
+    valeig = (range == MagmaRangeV);
+    indeig = (range == MagmaRangeI);
     lquery = lrwork == -1 || liwork == -1;
 
     *info = 0;
@@ -217,7 +212,7 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
     if(n==0)
         return *info;
     if(n==1){
-        MAGMA_Z_SET2REAL(*z,1.);
+        *z = MAGMA_Z_ONE;
         return *info;
     }
 
@@ -232,11 +227,11 @@ magma_zstedx(magma_vec_t range, magma_int_t n, double vl, double vu,
     } else {
         // We simply call DSTEDX instead.
         magma_dstedx(range, n, vl, vu, il, iu, d, e, rwork, n,
-                     rwork+n*n, lrwork-n*n, iwork, liwork, dwork, info, queue);
+                     rwork+n*n, lrwork-n*n, iwork, liwork, dwork, queue, info);
 
         for(j=0; j<n; ++j)
             for(i=0; i<n; ++i){
-                MAGMA_Z_SET2REAL(*(z+i+ldz*j), *(rwork+i+n*j));
+                *(z+i+ldz*j) = MAGMA_Z_MAKE( *(rwork+i+n*j), 0 );
             }
     }
 

@@ -1,32 +1,33 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
  
        @author Stan Tomov
 
-       @generated from zunmqr.cpp normal z -> c, Fri Jan 10 15:51:18 2014
+       @generated from zunmqr.cpp normal z -> c, Sat Nov 15 00:21:37 2014
 
 */
-#include <stdio.h>
 #include "common_magma.h"
 
 extern "C" magma_int_t
-magma_cunmqr(magma_side_t side, magma_trans_t trans,
-             magma_int_t m, magma_int_t n, magma_int_t k,
-             magmaFloatComplex *a,    magma_int_t lda,
-             magmaFloatComplex *tau,
-             magmaFloatComplex *c,    magma_int_t ldc,
-             magmaFloatComplex *work, magma_int_t lwork,
-             magma_int_t *info, magma_queue_t queue)
+magma_cunmqr(
+    magma_side_t side, magma_trans_t trans,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    magmaFloatComplex *a,    magma_int_t lda,
+    magmaFloatComplex *tau,
+    magmaFloatComplex *c,    magma_int_t ldc,
+    magmaFloatComplex *work, magma_int_t lwork,
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- MAGMA (version 1.1.0) --
+/*  -- MAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
@@ -34,7 +35,7 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
 
                     SIDE = 'L'     SIDE = 'R'
     TRANS = 'N':      Q * C          C * Q
-    TRANS = 'T':      Q**H * C       C * Q**H
+    TRANS = 'C':      Q**H * C       C * Q**H
 
     where Q is a complex orthogonal matrix defined as the product of k
     elementary reflectors
@@ -52,7 +53,7 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
 
     TRANS   (input) CHARACTER*1
             = 'N':  No transpose, apply Q;
-            = 'T':  Transpose, apply Q**H.
+            = 'C':  Conjugate transpose, apply Q**H.
 
     M       (input) INTEGER
             The number of rows of the matrix C. M >= 0.
@@ -111,16 +112,13 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
     
     magmaFloatComplex c_one = MAGMA_C_ONE;
 
-    magma_side_t side_ = side;
-    magma_trans_t trans_ = trans;
-
     /* Allocate work space on the GPU */
     magmaFloatComplex_ptr dwork, dc;
     magma_cmalloc( &dc, (m)*(n) );
     magma_cmalloc( &dwork, (m + n + 64)*64 );
     
     /* Copy matrix C from the CPU to the GPU */
-    magma_csetmatrix( m, n, c, 0, ldc, dc, 0, m, queue );
+    magma_csetmatrix( m, n, c, ldc, dc, 0, m, queue );
     //dc -= (1 + m);
     size_t dc_offset = -(1+m);
 
@@ -138,8 +136,8 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
     c -= c_offset;
 
     *info = 0;
-    left = lapackf77_lsame(lapack_const(side_), "L");
-    notran = lapackf77_lsame(lapack_const(trans_), "N");
+    left = (side == MagmaLeft);
+    notran = (trans == MagmaNoTrans);
     lquery = (lwork == -1);
 
     /* NQ is the order of Q and NW is the minimum dimension of WORK */
@@ -150,9 +148,9 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
         nq = n;
         nw = m;
     }
-    if (! left && ! lapackf77_lsame(lapack_const(side_), "R")) {
+    if (! left && side != MagmaRight) {
         *info = -1;
-    } else if (! notran && ! lapackf77_lsame(lapack_const(trans_), "T")) {
+    } else if (! notran && trans != MagmaConjTrans) {
         *info = -2;
     } else if (m < 0) {
         *info = -3;
@@ -168,13 +166,12 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
         *info = -12;
     }
 
-    if (*info == 0)
-      {
+    if (*info == 0) {
         /* Determine the block size.  NB may be at most NBMAX, where NBMAX
            is used to define the local array T.    */
         nb = 64;
         lwkopt = max(1,nw) * nb;
-        MAGMA_C_SET2REAL( work[0], lwkopt );
+        work[0] = MAGMA_C_MAKE( lwkopt, 0 );
     }
 
     if (*info != 0) {
@@ -191,14 +188,12 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
         return *info;
     }
 
-    if (nb >= k)
-      {
+    if (nb >= k) {
         /* Use CPU code */
-        lapackf77_cunmqr(lapack_const(side_), lapack_const(trans_), &m, &n, &k, &a[a_offset], &lda, &tau[1],
+        lapackf77_cunmqr(lapack_const(side), lapack_const(trans), &m, &n, &k, &a[a_offset], &lda, &tau[1],
                          &c[c_offset], &ldc, work, &lwork, &iinfo);
-      }
-    else
-      {
+    }
+    else {
         /* Use hybrid CPU-GPU code */
         if ( ( left && (! notran) ) ||  ( (! left) && notran ) ) {
             i1 = 1;
@@ -218,8 +213,7 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
             ic = 1;
         }
         
-        for (i__ = i1; i3 < 0 ? i__ >= i2 : i__ <= i2; i__ += i3)
-          {
+        for (i__ = i1; i3 < 0 ? i__ >= i2 : i__ <= i2; i__ += i3) {
             ib = min(nb, k - i__ + 1);
 
             /* Form the triangular factor of the block reflector
@@ -232,21 +226,19 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
                2) copy the panel from A to the GPU, and
                3) restore A                                      */
             cpanel_to_q(MagmaUpper, ib, &a[i__ + i__ * lda], lda, t+ib*ib);
-            magma_csetmatrix( i__4, ib, &a[i__ + i__ * lda], 0, lda, dwork, 0, i__4, queue );
+            magma_csetmatrix( i__4, ib, &a[i__ + i__ * lda], lda, dwork, 0, i__4, queue );
             cq_to_panel(MagmaUpper, ib, &a[i__ + i__ * lda], lda, t+ib*ib);
 
-            if (left)
-              {
+            if (left) {
                 /* H or H' is applied to C(i:m,1:n) */
                 mi = m - i__ + 1;
                 ic = i__;
-              }
-            else
-              {
+            }
+            else {
                 /* H or H' is applied to C(1:m,i:n) */
                 ni = n - i__ + 1;
                 jc = i__;
-              }
+            }
             
             if (left)
               lddwork = ni;
@@ -254,17 +246,17 @@ magma_cunmqr(magma_side_t side, magma_trans_t trans,
               lddwork = mi;
 
             /* Apply H or H'; First copy T to the GPU */
-            magma_csetmatrix( ib, ib, t, 0, ib, dwork, i__4*ib, ib, queue );
+            magma_csetmatrix( ib, ib, t, ib, dwork, i__4*ib, ib, queue );
             magma_clarfb_gpu( side, trans, MagmaForward, MagmaColumnwise,
                               mi, ni, ib,
                               dwork, 0, i__4, dwork, i__4*ib, ib,
                               dc, dc_offset+(ic + jc * m), m,
                               dwork, (i__4*ib + ib*ib), lddwork, queue);
-          }
+        }
 
-        magma_cgetmatrix( m, n, dc, dc_offset+(1+m), m, &c[c_offset], 0, ldc, queue );
-      }
-    MAGMA_C_SET2REAL( work[0], lwkopt );
+        magma_cgetmatrix( m, n, dc, dc_offset+(1+m), m, &c[c_offset], ldc, queue );
+    }
+    work[0] = MAGMA_C_MAKE( lwkopt, 0 );
 
     //dc += (1 + m);
     magma_free( dc );

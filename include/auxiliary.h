@@ -1,9 +1,9 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 */
 
 #ifndef MAGMA_AUXILIARY_H
@@ -11,31 +11,27 @@
 
 #include "magma_types.h"
 
+/* ------------------------------------------------------------
+ *   -- MAGMA Auxiliary structures and functions
+ * --------------------------------------------------------- */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-double magma_wtime();
-double magma_sync_wtime( magma_queue_t queue );
+real_Double_t magma_wtime( void );
+real_Double_t magma_sync_wtime( magma_queue_t queue );
 
-void magma_print_devices();
+size_t magma_strlcpy(char *dst, const char *src, size_t siz);
 
-void spanel_to_q(int uplo, int ib, float *a, int lda, float *work);
-void sq_to_panel(int uplo, int ib, float *a, int lda, float *work);
-
-void swp2pswp   (int trans, int n, int *ipiv, int *newipiv);
-
-void cpanel_to_q(int uplo, int ib, magmaFloatComplex *a, int lda, magmaFloatComplex *work);
-void cq_to_panel(int uplo, int ib, magmaFloatComplex *a, int lda, magmaFloatComplex *work);
-
-void dpanel_to_q(int uplo, int ib, double *a, int lda, double *work);
-void dq_to_panel(int uplo, int ib, double *a, int lda, double *work);
-
-void zpanel_to_q(int uplo, int ib, magmaDoubleComplex *a, int lda, magmaDoubleComplex *work);
-void zq_to_panel(int uplo, int ib, magmaDoubleComplex *a, int lda, magmaDoubleComplex *work);
+magma_int_t magma_num_gpus( void );
 
 double magma_cabs(magmaDoubleComplex x);
-float magma_cabsf(magmaFloatComplex x);
+float  magma_cabsf(magmaFloatComplex x);
+
+void magma_print_environment();
+
+void swp2pswp(magma_trans_t trans, magma_int_t n, magma_int_t *ipiv, magma_int_t *newipiv);
 
 #ifdef __cplusplus
 }

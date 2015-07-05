@@ -1,49 +1,24 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zgeqr2x_gpu-v3.cpp normal z -> d, Fri Jan 10 15:51:18 2014
+       @generated from zgeqr2x_gpu-v3.cpp normal z -> d, Sat Nov 15 00:21:37 2014
 
 */
 #include "common_magma.h"
 
-extern "C" void
-magma_dlarfbx_gpu(int m, int k, magmaDouble_ptr V, size_t v_offset, int ldv,
-                  magmaDouble_ptr dT, size_t dT_offset, int ldt, magmaDouble_ptr c, size_t c_offset, 
-                  magmaDouble_ptr dwork, size_t dwork_offset, magma_queue_t queue);
 
-extern "C" void
-magma_dlarfgtx_gpu(int n, magmaDouble_ptr dx0, size_t dx0_offset, magmaDouble_ptr dx, size_t dx_offset, 
-                   magmaDouble_ptr dtau, size_t dtau_offset, magmaDouble_ptr dxnorm, size_t dxnorm_offset, 
-                   magmaDouble_ptr dA, size_t dA_offset, int it,
-                   magmaDouble_ptr V, size_t V_offset, int ldv, magmaDouble_ptr T, size_t T_offset, int ldt,
-                   magmaDouble_ptr dwork, size_t dwork_offset, magma_queue_t queue);
-
-extern "C" void
-magmablas_dnrm2(int m, int num, magmaDouble_ptr da, size_t da_offset, magma_int_t ldda, magmaDouble_ptr dxnorm, size_t dxnorm_offset, 
-                 magma_queue_t queue);
-
-extern "C" void
-magmablas_dnrm2_adjust(int k, magmaDouble_ptr xnorm, size_t xnorm_offset, magmaDouble_ptr c, size_t c_offset, magma_queue_t queue);
-    
-extern "C" void
-magmablas_dgemm_reduce(magma_int_t m, magma_int_t n, magma_int_t k,
-                       double alpha, const magmaDouble_ptr d_A, size_t d_A_offset, magma_int_t lda,
-                       const magmaDouble_ptr d_B, size_t d_B_offset, magma_int_t ldb,
-                       double beta,        magmaDouble_ptr d_C, size_t d_C_offset, magma_int_t ldc,
-                       magma_queue_t queue);
-
-
-extern "C" magma_err_t
-magma_dlarfb2_gpu( magma_int_t m, magma_int_t n, magma_int_t k,
-                   const magmaDouble_ptr dV, size_t dV_offset, magma_int_t ldv,
-                   const magmaDouble_ptr dT, size_t dT_offset, magma_int_t ldt,
-                   magmaDouble_ptr dC, size_t dC_offset, magma_int_t ldc,
-                   magmaDouble_ptr dwork, size_t dwork_offset, magma_int_t ldwork, 
-                   magma_queue_t queue )
+extern "C" magma_int_t
+magma_dlarfb2_gpu(
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    const magmaDouble_ptr dV, size_t dV_offset, magma_int_t ldv,
+    const magmaDouble_ptr dT, size_t dT_offset, magma_int_t ldt,
+    magmaDouble_ptr dC, size_t dC_offset, magma_int_t ldc,
+    magmaDouble_ptr dwork, size_t dwork_offset, magma_int_t ldwork, 
+    magma_queue_t queue )
 {
     double c_zero    = MAGMA_D_ZERO;
     double c_one     = MAGMA_D_ONE;
@@ -53,13 +28,13 @@ magma_dlarfb2_gpu( magma_int_t m, magma_int_t n, magma_int_t k,
         return MAGMA_SUCCESS;
 
     // W = C^H V
-    // magma_dgemm( MagmaTrans, MagmaNoTrans,
-    magmablas_dgemm_reduce(
-                           n, k, m,
-                           c_one, dC, dC_offset, ldc,
-                           dV, dV_offset, ldv,
-                           c_zero, dwork, dwork_offset, ldwork, queue);
-
+    magma_dgemm( MagmaConjTrans, MagmaNoTrans,
+    //magmablas_dgemm_reduce(
+                 n, k, m,
+                 c_one, dC, dC_offset, ldc,
+                 dV, dV_offset, ldv,
+                 c_zero, dwork, dwork_offset, ldwork, queue);
+    
     // W = W T^H = C^H V T^H
     magma_dtrmm( MagmaRight, MagmaUpper, MagmaNoTrans, MagmaNonUnit,
                  n, k,
@@ -68,29 +43,33 @@ magma_dlarfb2_gpu( magma_int_t m, magma_int_t n, magma_int_t k,
                  queue);
 
     // C = C - V W^H = C - V T V^H C = (I - V T V^H) C = H C
-    magma_dgemm( MagmaNoTrans, MagmaTrans,
+    magma_dgemm( MagmaNoTrans, MagmaConjTrans,
                  m, n, k,
                  c_neg_one, dV, dV_offset, ldv,
                  dwork, dwork_offset, ldwork,
                  c_one, dC, dC_offset, ldc, queue );
+ 
+    return MAGMA_SUCCESS;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-extern "C" magma_err_t
-magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n, 
-                   magmaDouble_ptr dA, size_t dA_offset, magma_int_t *ldda, 
-                   magmaDouble_ptr dtau, size_t dtau_offset, 
-                   magmaDouble_ptr dT, size_t dT_offset, 
-                   magmaDouble_ptr ddA, size_t ddA_offset, 
-                   magmaDouble_ptr dwork, size_t dwork_offset, 
-                   magma_int_t *info, magma_queue_t queue)
+extern "C" magma_int_t
+magma_dgeqr2x3_gpu(
+    magma_int_t m, magma_int_t n, 
+    magmaDouble_ptr dA, size_t dA_offset, magma_int_t ldda, 
+    magmaDouble_ptr dtau, size_t dtau_offset, 
+    magmaDouble_ptr dT, size_t dT_offset, 
+    magmaDouble_ptr ddA, size_t ddA_offset, 
+    magmaDouble_ptr dwork, size_t dwork_offset, 
+    magma_queue_t queue,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose   
     =======   
@@ -163,26 +142,26 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
     and tau in TAU(i).   
     =====================================================================    */
 
-    //#define da_ref(a_1,a_2) ( dA+(a_2)*(*ldda) + (a_1))
-    #define da_ref(a_1,a_2) dA, (dA_offset + ((a_2)*(*ldda) + (a_1)))
+    //#define da_ref(a_1,a_2) ( dA+(a_2)*ldda + (a_1))
+    #define da_ref(a_1,a_2) dA, (dA_offset + ((a_2)*ldda + (a_1)))
     #define BLOCK_SIZE 32
     //#define BLOCK_SIZE 16
 
-    static magma_int_t i, k;
+    magma_int_t i, k;
 
     //double *dnorm = dwork;
     magmaDouble_ptr dnorm = dwork;
     size_t dnorm_offset = dwork_offset;
-    //double *work = (double *)(dwork+2*(*n));
+    //double *work = (double *)(dwork+2*n);
     magmaDouble_ptr work = (magmaDouble_ptr)dwork;
-    size_t work_offset = dwork_offset + 2*(*n);
+    size_t work_offset = dwork_offset + 2*n;
 
     *info = 0;
-    if (*m < 0) {
+    if (m < 0) {
         *info = -1;
-    } else if (*n < 0) {
+    } else if (n < 0) {
         *info = -2;
-    } else if (*ldda < max(1,*m)) {
+    } else if (ldda < max(1,m)) {
         *info = -4;
     }
     if (*info != 0) {
@@ -191,8 +170,8 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
     }
 
     /* Compute the norms of the trailing columns */
-    k = min(*m,*n);
-    magmablas_dnrm2(*m, k, da_ref(0,0), *ldda, dnorm, dnorm_offset, queue);
+    k = min(m,n);
+    magmablas_dnrm2(m, k, da_ref(0,0), ldda, dnorm, dnorm_offset, queue);
 
     for (int b=0; b < k; b += BLOCK_SIZE) {
         for (i = b; i < min(k, b+BLOCK_SIZE); ++i) {
@@ -200,7 +179,7 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
             /*   Apply H' to A(:,i) from the left                           */    
             if ( i-b > 0){
                 magma_queue_sync(queue);
-                magma_dlarfbx_gpu(*m-b, i-b, da_ref(b, b), *ldda,
+                magma_dlarfbx_gpu(m-b, i-b, da_ref(b, b), ldda,
                                   dT, (dT_offset+b+b*k), k, da_ref(b, i), work, work_offset, queue);
             }
             /*   Adjust the dnorm[i] to hold the norm of A(i:m,i)           */ 
@@ -213,16 +192,16 @@ magma_dgeqr2x3_gpu(magma_int_t *m, magma_int_t *n,
                 2. Elements above the diagonal are copied in ddA and
                    the ones in A are set to zero                                         
                 3. update T                                                 */
-            magma_dlarfgtx_gpu(*m-i, da_ref(i, i), da_ref(min(i+1,*m), i), dtau, dtau_offset+i, 
-                               dnorm, dnorm_offset+i, ddA, ddA_offset + i + i*(*n), i,
-                               da_ref(i,0), *ldda,  dT, dT_offset, k, work, work_offset, queue);
+            magma_dlarfgtx_gpu(m-i, da_ref(i, i), da_ref(min(i+1,m), i), dtau, dtau_offset+i, 
+                               dnorm, dnorm_offset+i, ddA, ddA_offset + i + i*n, i,
+                               da_ref(i,0), ldda,  dT, dT_offset, k, work, work_offset, queue);
         }
         
         /* Apply the transformations to the trailing matrix. */
         magma_dlarfb2_gpu(
-                           *m-b, k-i, BLOCK_SIZE,
-                           da_ref(b, b), *ldda, dT, dT_offset+b+b*k, k,
-                           da_ref(b, i), *ldda, work, work_offset, k-i, queue);
+                           m-b, k-i, BLOCK_SIZE,
+                           da_ref(b, b), ldda, dT, dT_offset+b+b*k, k,
+                           da_ref(b, i), ldda, work, work_offset, k-i, queue);
     }
     magma_queue_sync(queue);
     return *info;

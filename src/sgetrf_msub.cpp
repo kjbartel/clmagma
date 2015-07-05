@@ -1,11 +1,11 @@
 /*
-    -- clMAGMA (version 1.1.0) --
+    -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
-       @generated from zgetrf_msub.cpp normal z -> s, Fri Jan 10 15:51:17 2014
+       @generated from zgetrf_msub.cpp normal z -> s, Sat Nov 15 00:21:37 2014
 
 */
 #include <math.h>
@@ -16,25 +16,23 @@
 extern cl_context gContext;
 #endif
 
-#define inAT(id,i,j)  d_lAT[(id)], (((i)*nb)*lddat + (j)*nb)
-#define inA( id,i,j)  d_lA[(id)],  (((i)*nb)+ldda  * (j)*nb)
-
-extern "C" magma_err_t
-magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus, 
-                 magma_int_t m, magma_int_t n, 
-                 magmaFloat_ptr *d_lA, size_t dlA_offset, magma_int_t ldda,
-                 magma_int_t *ipiv, magma_int_t *info,
-                 magma_queue_t *queues)
+extern "C" magma_int_t
+magma_sgetrf_msub(
+    magma_trans_t trans, magma_int_t num_subs, magma_int_t num_gpus, 
+    magma_int_t m, magma_int_t n, 
+    magmaFloat_ptr *d_lA, size_t dlA_offset, magma_int_t ldda,
+    magma_int_t *ipiv,
+    magma_queue_t *queues,
+    magma_int_t *info)
 {
-/*  -- clMAGMA (version 1.1.0) --
+/*  -- clMAGMA (version 1.3.0) --
        Univ. of Tennessee, Knoxville
        Univ. of California, Berkeley
        Univ. of Colorado, Denver
-       @date January 2014
+       @date November 2014
 
     Purpose
     =======
-
     SGETRF computes an LU factorization of a general M-by-N matrix A
     using partial pivoting with row interchanges.
 
@@ -48,7 +46,6 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
 
     Arguments
     =========
-
     NUM_GPUS 
             (input) INTEGER
             The number of GPUS to be used for the factorization.
@@ -81,6 +78,8 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
                   to solve a system of equations.
     =====================================================================    */
 
+    #define d_lAT(id,i,j)  d_lAT[(id)], (((i)*nb)*lddat + (j)*nb)
+    #define d_lA( id,i,j)  d_lA[(id)],  (((i)*nb)+ldda  * (j)*nb)
 
     magma_int_t maxm, tot_subs = num_subs*num_gpus;
     magma_int_t i, j, d, lddat;
@@ -120,10 +119,11 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             *info = MAGMA_ERR_HOST_ALLOC;
             return *info;
         }
-        magma_sgetmatrix( m, n, d_lA[0], 0, ldda, work, 0, m, queues[0] );
-        lapackf77_sgetrf(&m, &n, work, &m, ipiv, info);
-        magma_ssetmatrix( m, n, work, 0, m, d_lA[0], 0, ldda, queues[0] );
-        magma_free_cpu(work);
+        printf( "trans %c, m %d, n %d\n", lapacke_trans_const(trans), m, n );
+        magma_sgetmatrix( m, n, d_lA[0], 0, ldda, work, m, queues[0] );
+        lapackf77_sgetrf( &m, &n, work, &m, ipiv, info );
+        magma_ssetmatrix( m, n, work, m, d_lA[0], 0, ldda, queues[0] );
+        magma_free_cpu( work );
     } else {
         /* Use hybrid blocked code. */
         maxm = ((m + 31)/32)*32;
@@ -147,7 +147,7 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
         }
         lddat = ((lddat+31)/32)*32; /* make it a multiple of 32 */
         /* allocating workspace */
-        for (d=0; d<num_gpus; d++) {
+        for (d=0; d < num_gpus; d++) {
             //#define SINGLE_GPU_PER_CONTEXT
             #ifdef SINGLE_GPU_PER_CONTEXT
             if ((MAGMA_SUCCESS != magma_smalloc_mgpu( d, &d_panel[d], (2+num_gpus)*nb*maxm ))  ||
@@ -156,7 +156,7 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             if ((MAGMA_SUCCESS != magma_smalloc( &d_panel[d], (2+num_gpus)*nb*maxm ))  ||
                 (MAGMA_SUCCESS != magma_smalloc( &d_lAP[d], (2+num_gpus)*nb*maxm )) ) {
             #endif
-                for( i=0; i<d; i++ ) {
+                for( i=0; i < d; i++ ) {
                     magma_free( d_panel[i] );
                     magma_free( d_lAP[i] );
                 }
@@ -165,7 +165,7 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             }
         }
         /* transposing the local matrix */
-        for (i=0; i<tot_subs; i++) {
+        for (i=0; i < tot_subs; i++) {
             /* local-n and local-ld */
             n_local[i] = ((n/nb)/tot_subs)*nb;
             if (i < (n/nb)%tot_subs)
@@ -177,31 +177,31 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
             if (trans == MagmaNoTrans) {
                 d_lAT[i] = d_lA[i];
             } else {
-                if ((m == n_local[i]) && (m%32 == 0) && (ldda%32 == 0) && (ldda == lddat)) {
+                if ( m == n_local[i] ) {
                     d_lAT[i] = d_lA[i];
-                    magma_stranspose_inplace( d_lA[i], 0, ldda, ldda, queues[2*(i%num_gpus)+1] );
+                    magmablas_stranspose_inplace( m, d_lA[i], 0, ldda, queues[2*(i%num_gpus)+1] );
                 } else {
                     #ifdef SINGLE_GPU_PER_CONTEXT
                     if (MAGMA_SUCCESS != magma_smalloc_mgpu( i%num_gpus, &d_lAT[i], lddat*maxm )) {
                     #else
                     if (MAGMA_SUCCESS != magma_smalloc( &d_lAT[i], lddat*maxm )) {
                     #endif
-                        for (j=0; j<=i; j++) {
+                        for (j=0; j <= i; j++) {
                             magma_free( d_panel[j] );
                             magma_free( d_lAP[j] );
                         }
-                        for (j=0; j<i; j++) {
+                        for (j=0; j < i; j++) {
                             if (d_lAT[j] != d_lA[j]) magma_free( d_lAT[j] );
                         }
                         *info = MAGMA_ERR_DEVICE_ALLOC;
                         return *info;
                     }
-                    magma_stranspose2(d_lAT[i], 0, lddat, d_lA[i], 0, ldda, m, n_local[i], queues[2*(i%num_gpus)+1]);
+                    magmablas_stranspose( m, n_local[i], d_lA[i], 0, ldda, d_lAT[i], 0, lddat, queues[2*(i%num_gpus)+1]);
                 }
             }
         }
         if (trans == MagmaNoTrans) {
-            for (d=0; d<num_gpus; d++){
+            for (d=0; d < num_gpus; d++){
                 magma_queue_sync(queues[2*d+1]);
             }
         }
@@ -209,14 +209,14 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
         /* cpu workspace */
         #ifdef USE_PINNED_CLMEMORY
         cl_mem buffer = clCreateBuffer(gContext, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(float)*maxm*nb*(1+num_gpus), NULL, NULL);
-        for (d=0; d<num_gpus; d++) {
+        for (d=0; d < num_gpus; d++) {
             work = (float*)clEnqueueMapBuffer(queues[2*d], buffer, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0,
                                                            sizeof(float)*maxm*nb*(1+num_gpus), 0, NULL, NULL, NULL);
         }
         #else
         if (MAGMA_SUCCESS != magma_smalloc_cpu( &work, maxm*nb*(1+num_gpus) )) {
-            for(d=0; d<num_gpus; d++ ) magma_free( d_panel[d] );
-            for(d=0; d<tot_subs; d++ ) {
+            for(d=0; d < num_gpus; d++ ) magma_free( d_panel[d] );
+            for(d=0; d < tot_subs; d++ ) {
                 if( d_lAT[d] != d_lA[d] ) magma_free( d_lAT[d] );
             }
             *info = MAGMA_ERR_HOST_ALLOC;
@@ -226,35 +226,35 @@ magma_sgetrf_msub(magma_int_t trans, magma_int_t num_subs, magma_int_t num_gpus,
 
         /* calling multi-gpu interface with allocated workspaces and streams */
         magma_sgetrf2_msub(num_subs, num_gpus, m, n, nb, 0, d_lAT, 0, lddat, ipiv, d_lAP, d_panel, 0, work, maxm,
-                           info, queues);
+                           queues, info);
 
         /* save on output */
-        for (d=0; d<tot_subs; d++) {
+        for (d=0; d < tot_subs; d++) {
             if (trans == MagmaNoTrans) {
                 //magma_scopymatrix( n_local[d], m, d_lAT[d], 0, lddat, d_lA[d], 0, ldda, queues[2*d+1] );
             } else {
                 if (d_lAT[d] == d_lA[d]) {
-                    magma_stranspose_inplace( d_lA[d], 0, ldda, ldda, queues[2*(d%num_gpus)+1] );
+                    magmablas_stranspose_inplace( m, d_lA[d], 0, ldda, queues[2*(d%num_gpus)+1] );
                 } else {
-                    magma_stranspose2( d_lA[d], 0, ldda, d_lAT[d], 0, lddat, n_local[d], m, queues[2*(d%num_gpus)+1] );
+                    magmablas_stranspose( n_local[d], m, d_lAT[d], 0, lddat, d_lA[d], 0, ldda, queues[2*(d%num_gpus)+1] );
                 }
             }
         }
         /* clean up */
-        for (d=0; d<num_gpus; d++) {
+        for (d=0; d < num_gpus; d++) {
             magma_queue_sync(queues[2*d+1]);
             magma_free( d_panel[d] );
             magma_free( d_lAP[d] );
             d_panel[d] = d_lAP[d] = NULL;
         } 
-        for (d=0; d<tot_subs; d++) {
+        for (d=0; d < tot_subs; d++) {
             if (d_lAT[d] != d_lA[d]) {
                 magma_free( d_lAT[d] ); 
                 d_lAT[d] = NULL;
             }
         }
         #ifdef USE_PINNED_CLMEMORY
-        for (d=0; d<num_gpus; d++) {
+        for (d=0; d < num_gpus; d++) {
             clEnqueueUnmapMemObject(queues[2*d], buffer, work, 0, NULL, NULL);
         }
         clReleaseMemObject( buffer );

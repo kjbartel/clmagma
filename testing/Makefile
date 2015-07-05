@@ -1,9 +1,9 @@
 #//////////////////////////////////////////////////////////////////////////////
-#   -- clMAGMA (version 1.1.0) --
+#   -- clMAGMA (version 1.3.0) --
 #      Univ. of Tennessee, Knoxville
 #      Univ. of California, Berkeley
 #      Univ. of Colorado, Denver
-#      @date January 2014
+#      @date November 2014
 #//////////////////////////////////////////////////////////////////////////////
 
 DIR = testing
@@ -16,16 +16,22 @@ ZSRC := \
 	testing_zgemm.cpp	\
 	testing_zgemm_reduce.cpp	\
 	testing_zgemv.cpp	\
+	testing_zswap.cpp	\
+	\
+	testing_zlacpy.cpp	\
+	testing_zlag2c.cpp	\
+	testing_zlaset.cpp	\
+	testing_ztranspose.cpp	\
 	\
 	testing_constants.cpp	\
-	testing_zlaswp.cpp	\
 
 # ----------
 # Cholesky, GPU interface
 ZSRC += \
+	testing_zcposv_gpu.cpp  \
+	\
 	testing_zposv_gpu.cpp	\
 	testing_zpotrf_gpu.cpp	\
-	testing_zpotrf2_gpu.cpp	\
 	testing_zpotrf_msub.cpp	\
 	testing_zpotri_gpu.cpp	\
 	\
@@ -36,13 +42,16 @@ ZSRC += \
 	testing_zposv.cpp	\
 	testing_zpotrf.cpp	\
 
+# Symmetric indefinite, CPU interface
+ZSRC += \
+	testing_zhetrf.cpp      \
+
 # ----------
 # LU, GPU interface
 ZSRC += \
 	testing_zgesv_gpu.cpp	\
 	testing_zgetrf_gpu.cpp	\
 	testing_zgetrf_msub.cpp	\
-	testing_zgetrf2_gpu.cpp	\
 	testing_zgetri_gpu.cpp	\
 	\
 	testing_zgetrf_mgpu.cpp	\
@@ -55,11 +64,11 @@ ZSRC += \
 # ----------
 # QR and least squares, GPU interface
 ZSRC += \
+	testing_zgeqr2x_gpu.cpp \
 	testing_zgeqrf_gpu.cpp	\
 	testing_zgeqrf_msub.cpp	\
 	testing_zgeqrf2_gpu.cpp	\
 	testing_zgeqrs_gpu.cpp	\
-	testing_zgeqr2x_gpu.cpp \
 	\
 	testing_zgeqrf_mgpu.cpp	\
 
@@ -88,6 +97,12 @@ ZSRC += \
 	testing_zgebrd.cpp	\
 
 # ----------
+# utilities
+ZSRC += \
+	magma_util.cpp		\
+	magma_zutil.cpp		\
+
+# ----------
 # iwocl benchmark
 ZSRC += \
 	testing_benchmark.cpp	\
@@ -108,24 +123,9 @@ EXE    := $(ALLOBJ:.o=)
 
 # --------------------
 LIBTEST := libtest.a
-LIBSRC  := testing_zutil.o testing_cutil.o testing_dutil.o testing_sutil.o testing_util.o
+LIBSRC  := magma_zutil.o magma_cutil.o magma_dutil.o magma_sutil.o magma_util.o
 LIBOBJ  := $(LIBSRC:.cpp=.o)
 LIBEXE  := $(LIBOBJ:.o=)
-
-# testing_zutil.cpp isn't in ZSRC (since they don't generate EXEs),
-# so add generation rules here instead of .Makefile.gen
-testing_cutil.cpp: testing_zutil.cpp
-	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p c --file testing_zutil.cpp
-
-testing_dutil.cpp: testing_zutil.cpp
-	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p d --file testing_zutil.cpp
-
-testing_sutil.cpp: testing_zutil.cpp
-	$(PYTHON) $(MAGMA_DIR)/tools/codegen.py  -p s --file testing_zutil.cpp
-
-gen += testing_cutil.cpp testing_dutil.cpp  testing_sutil.cpp
-
-generate: testing_cutil.cpp testing_dutil.cpp testing_sutil.cpp
 
 
 # --------------------
@@ -136,6 +136,9 @@ all: $(EXE)
 
 lib:
 	cd .. && $(MAKE) lib
+
+shared:
+	cd .. && $(MAKE) shared
 
 # depend on header
 $(ALLOBJ): testings.h
@@ -151,7 +154,9 @@ $(LIBLAPACKTEST):
 
 $(EXE): $(LIBMAGMA) $(LIBLAPACKTEST) $(LIBTEST)
 
-clean:
+clean: cleanobj cleanexe
+
+cleanobj:
 	cd lin    && $(MAKE) clean
 	rm -f *.o *~ $(LIBTEST)
 
