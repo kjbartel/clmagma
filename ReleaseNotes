@@ -1,0 +1,16 @@
+
+             clMAGMA Release Notes
+	
+-----------------------------------------------------
+
+clMAGMA is an OpenCL port of MAGMA, intended for a single GPU. 
+It supports AMD GPUs. 
+
+Included are routines for the following algorithms:
+
+    * LU, QR, and Cholesky factorizations in both real and complex
+      arithmetic (single and double);
+
+ 0.1.0 - 04-01-11
+    * LU, QR, and Cholesky dense matrix factorizations
+    * Auxiliary OpenCL kernels

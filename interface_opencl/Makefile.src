@@ -1,0 +1,17 @@
+CHDR = \
+
+
+DHDR = \
+
+
+SHDR = \
+
+
+CSRC = \
+magmablas_c.cpp
+
+DSRC = \
+magmablas_d.cpp
+
+SSRC = \
+magmablas_s.cpp

@@ -1,0 +1,42 @@
+===================
+clMAGMA README FILE
+===================
+
+VERSION 0.1  :  April     2012 (beta)
+VERSION 0.2  :  May       2012
+
+* To INSTALL clMAGMA, modify the make.inc file to indicate where 
+  OpenCL BLAS, CPU BLAS, and LAPACK are installed on your system. 
+  Examples are given in make.inc.acml and make.inc.mkl, showing how 
+  to link correspondingly to ACML and MKL. After proper modification 
+  of the make.inc file, typing 'make', will create 
+   1) the libclmagma.a and libclmagmablas.a libraries in directory 'lib'
+   2) testing drivers in directory 'testing'.
+
+* To TEST clMAGMA, go to directory 'testing'. Provided are a number of
+  drivers testing different routines. These drivers are also useful
+  as examples on how to use clMAGMA, as well as to benchmark the performance.
+  Before running set environment variable MAGMA_CL_DIR to point at
+  cl_magma/interface_opencl.
+
+* To TUNE clMAGMA, you can modify the blocking factors for the algorithms of
+  interest in file 'control/get_nb_tahiti.cpp'. The default values are tuned for 
+  AMD Radeon 7970 (Tahiti) GPUs. You can also compare your performance to 
+  what we get, given in file 
+  'testing/results_clmagma.txt', as an easy check for your installation.
+
+* To autotune clAcmlBlas set the AMD_CLBLAS_STORAGE_PATH environment variable 
+  to a working directory and run clAmdBlasTune. Subsequent clMAGMA runs will
+  use the optimized routines (as long as AMD_CLBLAS_STORAGE_PATH is points
+  to the location storing the results from the clAmdBlasTune runs). 
+
+For more INFORMATION, please refer to the MAGMA homepage and user forum:
+  
+  http://icl.cs.utk.edu/magma/
+  http://icl.cs.utk.edu/magma/forum/
+
+The MAGMA project supports the package in the sense that reports of 
+errors or poor performance will gain immediate attention from the 
+developers. Such reports, descriptions of interesting applications, 
+and other comments should be posted on the MAGMA user forum.
+

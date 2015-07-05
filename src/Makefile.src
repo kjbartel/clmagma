@@ -1,0 +1,17 @@
+CHDR = \
+
+
+DHDR = \
+
+
+SHDR = \
+
+
+CSRC = \
+cpotrf_gpu.cpp clarfb_gpu.cpp cgeqrf2_gpu.cpp
+
+DSRC = \
+dpotrf_gpu.cpp dlarfb_gpu.cpp dgeqrf2_gpu.cpp
+
+SSRC = \
+spotrf_gpu.cpp slarfb_gpu.cpp sgeqrf2_gpu.cpp sgetrf_gpu.cpp

@@ -1,0 +1,49 @@
+#//////////////////////////////////////////////////////////////////////////////
+#   -- MAGMA (version 0.1) --
+#      Univ. of Tennessee, Knoxville
+#      Univ. of California, Berkeley
+#      Univ. of	Colorado, Denver
+#      April 2012
+#//////////////////////////////////////////////////////////////////////////////
+
+# setenv AMD_CLBLAS_STORAGE_PATH /home/tomov/cl_magma
+#
+# GPU_TARGET specifies for which GPU you want to compile MAGMA
+#      0: Tesla Family
+#      1: Fermi Family
+#      2: AMD   Family
+#
+GPU_TARGET = 2
+
+CC        = gcc
+NVCC      = nvcc
+FORT      = gfortran
+
+ARCH      = ar
+ARCHFLAGS = cr
+RANLIB    = ranlib
+
+OPTS      = -O0 -DHAVE_AMDBLAS -DADD_ -g -Wall
+FOPTS     = -O0 -DHAVE_AMDBLAS -DADD_ -g -Wall -x f95-cpp-input
+#OPTS     = -O3 -DHAVE_AMDBLAS -DADD_ -g
+#NVOPTS   = -O3 -DHAVE_AMDBLAS -DADD_ --compiler-options -fno-strict-aliasing -DUNIX -g -G
+NVOPTS    = -O3 -DHAVE_AMDBLAS -DADD_ --compiler-options -fno-strict-aliasing -DUNIX
+LDOPTS    = -fPIC -Xlinker -zmuldefs
+
+# to set MKLROOT run: /mnt/scratch/sw/intel/2011.2.137/mkl/bin/mklvars.sh intel64
+MKLROOT   = /mnt/scratch/sw/intel/2011.2.137/composerxe-2011.2.137/mkl
+
+#LIB       = -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lpthread -lm -fopenmp
+LIB        = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lm -fopenmp
+LIB        = -L/mnt/scratch/sw/acml-4.4.0/gfortran64/lib -lacml -lacml_mv
+LIB        = -L/mnt/scratch/sw/acml-4.4.0/gfortran64_mp/lib -lacml_mp -lacml_mv
+LIB       += -lclAmdBlas -lOpenCL
+
+CUDADIR   = /mnt/scratch/cuda-4.0.17
+GPUBLAS   = /opt/clAmdBlas-1.7.245
+
+LIBDIR    = -L$(MKLROOT)/lib/intel64 \
+            -L$(MKLROOT)/../compiler/lib/intel64 \
+            -L$(GPUBLAS)/lib64
+INC       = -I$(GPUBLAS)/include \
+            -I/opt/AMDAPP/include
